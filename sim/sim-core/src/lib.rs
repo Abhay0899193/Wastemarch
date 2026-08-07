@@ -21,6 +21,15 @@
 
 #![forbid(unsafe_code)]
 
+pub mod determinism;
+pub mod fx;
+pub mod hash;
+pub mod rng;
+
+pub use fx::Fx;
+pub use hash::StateHasher;
+pub use rng::Pcg32;
+
 /// Simulation ticks per second. Fixed forever — rendering interpolates between
 /// ticks, and never writes back into simulation state.
 pub const TICKS_PER_SECOND: u32 = 20;

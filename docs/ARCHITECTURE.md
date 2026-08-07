@@ -121,12 +121,50 @@ The simulation lives in a `sim/` folder split into three parts:
 
 | Part | What it is for | Status |
 |---|---|---|
-| **`sim-core`** | The actual rules of the game. Depends on nothing. This is the piece that must be perfectly deterministic. | Stub — Phase 1 |
+| **`sim-core`** | The actual rules of the game. Depends on nothing. This is the piece that must be perfectly deterministic. | **Foundations built** — see below |
 | **`sim-godot`** | A thin translation layer that lets Godot talk to `sim-core`. This is what ships on the phone. | Stub — Phase 1 |
 | **`sim-server`** | The same `sim-core`, wrapped for our server to use when validating battles. | Stub — Phase 9 |
 
 The point of the split: `sim-core` is written once, and both the phone and the server use
 it unchanged. `sim-godot` and `sim-server` are just different doorways into the same room.
+
+### What is built so far
+
+Three foundation pieces, in the order they had to be built — each one is the ground the next
+stands on, and none of them can be swapped out later without redoing everything above.
+
+**The number type.** A whole-number type standing in for decimals, with 12 bits set aside
+for the fractional part. One metre divides into 4,096 steps. Adding 4,096 of the smallest
+possible steps gives *exactly* one, with no drift — the property decimal numbers cannot
+offer and the reason for all of this.
+
+Two design choices worth knowing about:
+
+- *Multiplication and division round by the same rule.* Which rule matters far less than the
+  fact that it is one rule. Mixed rounding is the kind of quiet asymmetry that produces a
+  disagreement nobody can find.
+- *Numbers too big to represent stop the program.* The alternative is silently wrapping
+  around to a wrong-but-plausible value, which in the online version means a phone and a
+  server disagreeing about a battle with nothing to investigate. A crash is a bug report.
+
+**The random number generator.** One seeded generator, and the seed is part of the battle
+record. Same seed, same sequence, on any device, forever. Nothing in the simulation may use
+any other source of randomness — not the clock, not the system generator — and nothing
+outside the simulation may draw from this one, because taking a number for a visual effect
+would shift the battle.
+
+**State hashing.** Squeezes an entire simulation state into one 64-bit number, so two
+machines can compare results in a single comparison. Deliberately hand-written rather than
+using the one built into the programming language, because that one is explicitly allowed to
+give different answers on different machines — which would have worked perfectly in testing
+and then failed silently in exactly the situation it was there to catch.
+
+These three are tied together by a check that runs a fixed minute of simulated arithmetic and
+compares the result against a recorded number, **on Intel Linux and Apple Silicon macOS at the
+same time, on every change**. See [TESTING.md](TESTING.md#5-cross-platform-determinism).
+
+Still to come in Phase 1: units and buildings, the grid, how troops find their way around
+walls, what they choose to attack, and damage.
 
 ---
 

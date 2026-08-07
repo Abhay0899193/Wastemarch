@@ -1,7 +1,7 @@
 # Testing — the checks that guard the project
 
 **What this is.** This lists every automatic check the project runs, what each one protects
-against, and how to run it yourself. Right now there are four; more arrive with each phase.
+against, and how to run it yourself. Right now there are five; more arrive with each phase.
 The list is short on purpose — a check that nobody trusts is worse than no check.
 
 ---
@@ -12,13 +12,14 @@ The list is short on purpose — a check that nobody trusts is worse than no che
 export GODOT=/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot
 
 sh ci/no-floats.sh                      # 1. no decimal numbers in the simulation
-cd sim && cargo test --workspace && cd ..   # 2. the simulation's own tests
+cd sim && cargo test --workspace && cd ..   # 2 & 5. the simulation's tests
 cd sim && cargo clippy --workspace -- -D warnings && cd ..   # 3. code quality
 $GODOT --headless --path game --quit    # 4. the game project imports cleanly
 ```
 
-All four also run automatically on GitHub every time anything is pushed. If any one of them
-fails, the change is marked broken.
+All of these also run automatically on GitHub every time anything is pushed, and the
+simulation tests run on **two different kinds of computer at once** — see check 5. If any one
+of them fails, the change is marked broken.
 
 ---
 
@@ -59,10 +60,17 @@ cd sim && cargo test --workspace
 
 **What it protects.** That the simulation's rules do what they are supposed to.
 
-**Currently.** The crates are empty stubs with one trivial test each, which proves the test
-machinery itself is correctly wired. The real tests arrive in Phase 1, including the
-important one: run the same battle ten thousand times with ten thousand different seeds and
-confirm the results are reproducible every time.
+**Currently 46 tests**, covering the three foundation pieces built so far:
+
+- **Fixed-point arithmetic** — that adding 4096 smallest steps makes exactly one with no
+  drift, that multiplication gives the same answer whichever way round you write it, that
+  positive and negative numbers round by the same rule, that overflow stops the program
+  rather than producing a wrong number quietly.
+- **The random number generator** — that the same seed replays identically (checked across
+  10,000 different seeds), that nearby seeds do not produce similar results, and that a
+  six-sided die rolled 60,000 times lands about 10,000 times on each face.
+- **State hashing** — checked against the published reference values for the algorithm, so
+  a future change that quietly alters it cannot go unnoticed.
 
 ## 3. Code quality
 
@@ -91,11 +99,48 @@ instead of when someone next opens the editor.
 
 ---
 
+## 5. Cross-platform determinism
+
+```bash
+cd sim && cargo test -p sim-core determinism
+```
+
+**What it protects.** The single most important property in the project: that a Mac, a Linux
+server and a phone all compute the *same answer*. Full explanation of why in
+[ARCHITECTURE.md](ARCHITECTURE.md#the-important-idea-determinism).
+
+**How it works.** A fixed workload runs a minute of simulated time — 1,200 steps of adding,
+multiplying, dividing, square roots and random draws — and squeezes the whole thing down to
+one 64-bit number. That number is written into the code as a constant. Every machine that
+runs the test must produce it exactly.
+
+It runs automatically on **both** Intel Linux and Apple Silicon macOS on every push. If the
+two ever disagree, one goes red and the other stays green, and the disagreement is
+impossible to miss.
+
+**If this test fails, do not change the expected number to make it pass.** A failure means
+one of three things: the simulation was changed deliberately (recompute it, and note in the
+commit message that previously recorded battles no longer replay), it was changed by
+accident (find out how), or two platforms genuinely disagree (stop everything). Only the
+first justifies a new number.
+
+**Proven working.** On 8 August 2026 five separate one-line changes were made to the
+simulation's arithmetic and the test was confirmed to catch every one: a shifted rounding
+threshold, multiplication truncating instead of rounding, division rounding the other way, a
+random-number constant changed by 2, and a square root off by one step.
+
+That exercise also found a real gap. The first version of the workload used only
+randomly-chosen numbers, and *missed* the shifted rounding threshold — because random values
+almost never land exactly on a half, which is the only case that change affects. Values that
+sit exactly on a rounding boundary are precisely where two implementations diverge, so a set
+of them is now included deliberately. **This is why a check has to be watched failing before
+it can be trusted.**
+
 ## Checks that arrive later
 
 | Check | Arrives | What it will protect |
 |---|---|---|
-| Cross-platform determinism | Phase 1 | The same battle on macOS, Linux, and an ARM chip must produce an identical result hash. This is the Phase 1 completion test. |
+| Determinism on a real phone | Phase 1 | The check above covers Linux and macOS. The Phase 1 gate also requires an ARM device to agree. |
 | Asset budget validation | Phase 2 | Every 3D asset within its triangle budget, correct scale, correct texel density, no bad geometry. |
 | Silhouette legibility | Phase 2 | Every building still identifiable as a solid black shape at 64 pixels. |
 | Replay determinism | Phase 4 | A battle replays identically from its record, twice. The Phase 4 completion test. |

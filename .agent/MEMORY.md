@@ -59,6 +59,41 @@ readable in the diff. Reserve raw `Transform3D` literals for files Godot itself 
 `game/tools/capture.gd` renders a scene to PNG for exactly this. It needs a real rendering
 device — do **not** pass `--headless`, or `root.get_texture()` returns null.
 
+### Comments in `game/project.godot` do not survive
+
+Opening the editor rewrites the file from its own template and **strips every comment**. It
+also drops `renderer/rendering_method.mobile` as redundant whenever the base
+`rendering_method` already says `mobile` — that is normal, not a lost setting, so do not
+re-add it thinking something went missing.
+
+Do not put rationale in `project.godot`. It lives in `docs/decisions/ADR-0002`, this file,
+and `docs/ARCHITECTURE.md`, all of which Godot cannot touch.
+
+Settings that must stay true, checked after any editor session:
+`renderer/rendering_method="mobile"` · `viewport_width=1920` / `viewport_height=1080` ·
+`stretch/mode="canvas_items"` / `aspect="expand"` · `handheld/orientation="landscape"` ·
+`import_etc2_astc=true` · `config/features` contains `"Mobile"`.
+
+`export_presets.cfg` is only rewritten when an export preset is saved, so its comments have
+survived so far. Do not rely on that.
+
+### A determinism canary built only from random values misses tie-rounding
+
+Discovered while proving the check, not by reasoning about it. The first
+`reference_workload_hash` drew pseudo-random operands and hashed the results. Perturbing
+`HALF` in `fx.rs` from 2048 to 2047 — a direct change to the rounding threshold — **did not
+fail the test**, because random operands essentially never produce a result of exactly one
+half, and that is the only case the change affects.
+
+`determinism.rs::hash_rounding_boundaries` now hashes explicit exact-tie cases for `mul`,
+`div`, `round_to_int`, `floor_to_int`, and `sqrt` either side of a perfect square. After
+that, all five perturbations are caught.
+
+**Generalise this:** a canary is only sensitive to what its inputs actually exercise. Random
+inputs cover the common path and systematically miss boundaries — which is exactly where two
+independent implementations diverge. Always add explicit boundary cases, and always verify a
+new check by watching it fail.
+
 ## Decisions with non-obvious reasoning
 
 ### `sim-godot` has no `godot` crate dependency, on purpose
@@ -85,6 +120,31 @@ Godot's default `.gitignore` excludes it because it can hold signing paths. Ours
 committed because the mobile configuration (arm64-only, min SDK 24, min iOS 15) is part of
 the Phase 0 deliverable and must not drift. Keystore paths and signing identities come from
 environment variables; `*.keystore`, `*.jks`, `*.p12`, `*.mobileprovision` are gitignored.
+
+### `sim-core` numeric contract — frozen, do not casually change
+
+Changing any of these invalidates every recorded battle and the golden hash. That is
+sometimes correct, but it is never incidental. Say so in the commit message.
+
+- `FIXED_POINT_BITS = 12`, `FIXED_ONE = 4096`, base type `i32`. Range about ±524288.
+- **`mul` and `div` both round half toward positive infinity.** `round_div` normalises a
+  negative divisor first, because Rust's `/` truncates toward zero and would otherwise round
+  negatives the opposite way from positives.
+- **Overflow panics in every profile**, via `narrow()`. Deliberately not a `debug_assert` —
+  truncation is deterministic *and wrong*, which is the exact failure this crate exists to
+  prevent. `overflow-checks = true` is also set on the release profile.
+- `fract()` is always in `[0, 1)`, including for negatives, so `floor + fract` reconstructs.
+- `sqrt` uses `i64::isqrt` (stdlib, exact, no floating point involved).
+- PCG multiplier `6364136223846793005` and default stream `0xda3e39cb94b95bdb` are from the
+  reference implementation. A different constant is a different generator.
+- `StateHasher` is FNV-1a 64, hand-written. **Never use `std`'s `DefaultHasher`** — it is
+  explicitly not stable across releases or platforms, so it would pass every local test and
+  then silently disagree between phone and server.
+- Multi-byte writes are little-endian **explicitly**, not host-endian.
+
+Golden hash lives in `determinism.rs::tests::EXPECTED_HASH`. If it fails: deliberate change →
+recompute and say so; accidental → investigate; one platform green and another red → stop
+everything, that is the emergency.
 
 ### Landscape 1920×1080, overriding the master plan's 1080×1920
 

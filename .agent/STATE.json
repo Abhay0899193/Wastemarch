@@ -1,18 +1,17 @@
 {
-  "phase": 0,
-  "phase_name": "Foundation",
-  "milestone": "M3 complete — session 1 closed",
-  "phase_gate": "Grey cube renders on a physical iPhone AND a physical Android device from a CI-produced build",
+  "phase": 1,
+  "phase_name": "Deterministic sim core (Phase 0 gate still open)",
+  "milestone": "M5 complete \u2014 sim-core foundations: fixed-point, PCG, hashing, determinism canary",
+  "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
   "phase_gate_met": false,
   "last_commit": "ccd6f28",
   "last_session": "2026-08-08",
-  "sessions_completed": 1,
+  "sessions_completed": 2,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
-
   "versions": {
     "godot": "4.7.1.stable.official.a13da4feb",
-    "godot_export_templates": "4.7.1.stable — WEB ONLY, ios.zip and android templates absent",
+    "godot_export_templates": "4.7.1.stable \u2014 WEB ONLY, ios.zip and android templates absent",
     "blender": "5.2.0 LTS (2026-07-14)",
     "rustc": "1.95.0",
     "cargo": "1.95.0",
@@ -21,39 +20,34 @@
     "xcode": "26.3 (17C529)",
     "python": "3.14.1"
   },
-
   "paths": {
     "godot": "/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot",
     "blender": "/Users/singha7/Applications/Blender.app/Contents/MacOS/Blender",
     "git_lfs": "/Users/singha7/.local/bin/git-lfs",
     "export_templates": "/Users/singha7/Library/Application Support/Godot/export_templates/4.7.1.stable"
   },
-
   "machine": {
     "model": "Apple M4 Pro",
     "memory_gb": 24,
     "arch": "arm64"
   },
-
   "verification_at_close": {
     "date": "2026-08-08",
-    "lfs_routing": "pass — .blend to lfs, .tres to text",
-    "no_floats_lint": "pass — and proven to fail on a planted f32",
-    "cargo_test": "pass — 4/4",
-    "clippy": "pass — clean with -D warnings",
+    "cargo_test": "pass \u2014 46/46",
+    "clippy": "pass \u2014 clean with -D warnings",
     "cargo_fmt": "pass",
-    "godot_import": "pass — 0 errors",
-    "godot_run": "pass — main scene runs 5 frames",
-    "grey_cube_on_desktop": "pass — verified by PNG render, origin unprojects to (960,540)",
-    "grey_cube_on_device": "NOT ATTEMPTED — blocked on export templates"
+    "no_floats_lint": "pass \u2014 proven to fail on a planted f32",
+    "determinism_canary": "pass \u2014 proven to catch 5 distinct perturbations: shifted rounding threshold, mul truncating, div rounding toward zero, PCG multiplier off by 2, sqrt off by one",
+    "ci_matrix": "sim job runs on ubuntu-latest and macos-latest, fail-fast disabled",
+    "godot_import": "pass \u2014 0 errors",
+    "grey_cube_on_device": "NOT ATTEMPTED \u2014 blocked on export templates"
   },
-
   "open_blockers": [
     {
       "id": "godot-export-templates",
       "blocks": "phase-0 gate",
       "severity": "blocking",
-      "detail": "export_templates/4.7.1.stable/ contains only the eight web_*.zip files. ios.zip and the Android templates are absent, so both phone exports fail immediately. ~1GB download. Editor > Manage Export Templates > Download and Install, or the curl command in docs/ENVIRONMENT.md.",
+      "detail": "export_templates/4.7.1.stable/ contains only the eight web_*.zip files. ios.zip and the Android templates are absent, so both phone exports fail immediately. ~1GB download. Editor > Manage Export Templates > Download and Install, or the curl command in docs/ENVIRONMENT.md. Owner reported starting this install on 8 Aug 2026.",
       "owner": "either"
     },
     {
@@ -78,7 +72,6 @@
       "owner": "user"
     }
   ],
-
   "open_decisions": [
     {
       "id": "colour-palette",
@@ -91,9 +84,21 @@
       "detail": "'Wastemarch' is a working title. Needs USPTO/EUIPO and app-store searches before any public listing."
     }
   ],
-
   "adrs": [
-    "ADR-0001 — Stack choices (accepted 2026-08-08)",
-    "ADR-0002 — Landscape 1920x1080, amends MASTER_PLAN.md §5 (accepted 2026-08-08)"
-  ]
+    "ADR-0001 \u2014 Stack choices (accepted 2026-08-08)",
+    "ADR-0002 \u2014 Landscape 1920x1080, amends MASTER_PLAN.md \u00a75 (accepted 2026-08-08)"
+  ],
+  "phase_0_gate_met": false,
+  "phase_0_note": "Phase 1 started partially with the owner's go-ahead. Only sim-core, which the Phase 0 gate cannot affect. The godot-rust GDExtension is deliberately NOT started \u2014 it needs the export templates and a device, which is what the gate guards.",
+  "sim_core_numeric_contract": {
+    "note": "Frozen. Changing any of this invalidates every recorded battle and the golden hash.",
+    "fixed_point_bits": 12,
+    "fixed_one": 4096,
+    "base_type": "i32",
+    "rounding": "mul and div both round half toward positive infinity",
+    "overflow": "panics in every profile, never truncates",
+    "rng": "PCG32, multiplier 6364136223846793005, default stream 0xda3e39cb94b95bdb",
+    "hasher": "FNV-1a 64, hand-written \u2014 never std DefaultHasher, which is not stable across platforms",
+    "golden_hash": "0x9b91916bb3e8f1d9 in determinism.rs::tests::EXPECTED_HASH"
+  }
 }

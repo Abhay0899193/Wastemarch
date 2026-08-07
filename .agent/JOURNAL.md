@@ -12,8 +12,10 @@ existed at `git@github.com:Abhay0899193/Wastemarch.git`.
 
 ### Environment verified before anything else
 
-- Godot `4.7.1.stable.official.a13da4feb` — matches target exactly. Export templates for
-  `4.7.1.stable` already installed.
+- Godot `4.7.1.stable.official.a13da4feb` — matches target exactly. ~~Export templates for
+  `4.7.1.stable` already installed.~~ **Wrong — corrected under M2 below: web templates
+  only.** Left visible rather than deleted, because the mistake was assuming a directory's
+  existence meant its contents.
 - Blender `5.2.0 LTS` (2026-07-14). Master plan does not pin Blender; recorded as-is.
   **Not 4.x** — this matters for Phase 2 scripting.
 - Rust 1.95.0, `aarch64-apple-darwin` only. Xcode 26.3. Python 3.14.1. Git 2.41.0.
@@ -129,3 +131,86 @@ templates are absent. Blockers and next actions in PLAN.md.
 - Skipped `docs/RELEASE.md` — Phase 7 content, would be an empty file for five months.
 - Did **not** download the ~1 GB export templates unprompted. Flagged to the owner instead;
   they may prefer the editor's template manager, which handles mirrors.
+
+---
+
+## 2026-08-08 — Session 2 — Phase 1 foundations
+
+**Context.** Owner asked for Phase 1 to start while they install the Godot export templates.
+Phase 0's gate is still open, so I flagged it and started only the part of Phase 1 that the
+gate cannot affect: `sim-core` is pure Rust with no Godot dependency and its own gate is
+tested in CI on Linux and macOS. **The `godot-rust` GDExtension is deliberately still not
+started** — it needs the export templates and a device, which is exactly what the gate
+guards. Gate still doing its job on the part it actually protects.
+
+**Godot rewrote `game/project.godot`** when the owner opened the editor. Every load-bearing
+setting survived; my comment header did not, and `renderer/rendering_method.mobile` was
+dropped as redundant. Comments in that file are futile — noted in MEMORY with the checklist
+of settings to re-verify after any editor session.
+
+### M4 — fixed-point arithmetic
+
+`fx.rs`. `Fx(i32)`, 12 fractional bits. Add/sub/mul/div/neg/abs/sqrt/min/max/clamp,
+floor/round conversion, `from_ratio` for const balance values, `Display` producing four
+decimals **without floating point** (the lint scans test code too, so the whole file has to
+obey the rule it enforces).
+
+Two decisions I want a future session to not "simplify":
+
+- **`narrow()` panics on overflow in every profile, not `debug_assert`.** Truncation is
+  deterministic *and wrong*. Deterministic-and-wrong is precisely the failure mode this crate
+  exists to prevent; a panic is a bug report, a wrapped value is an unreproducible desync.
+- **`mul` and `div` round by the same rule** (half toward +inf). Rust's `/` truncates toward
+  zero, so `round_div` normalises a negative divisor first. Mixed rounding between two
+  operations is the kind of asymmetry that produces a desync nobody can find.
+
+21 tests. The one that matters most is `multiplication_is_commutative` — not a given for
+fixed-point, and required because unit A hitting unit B must compute the same number as B
+hitting A.
+
+### M5 — PCG, state hashing, determinism canary
+
+`rng.rs` — PCG32, reference constants. `below()` rejects the biasing draws rather than using
+a plain modulo; the rejection loop is deterministic because the same seed rejects the same
+draws in the same order. Streams supported so independent subsystems cannot shift each
+other's results by adding a draw.
+
+`hash.rs` — FNV-1a 64, hand-written, verified against the published vectors. **I initially
+wrote the `"foobar"` vector from memory and it was the FNV-1 value, not FNV-1a.** Caught by
+computing all four independently in Python before trusting them. Do not recall constants;
+compute them.
+
+Deliberately **not** `std::hash::DefaultHasher` — it is explicitly not stable across releases
+or platforms, so it would pass every local test and then disagree between phone and server.
+That is the precise failure this hash exists to detect.
+
+`determinism.rs` — a fixed 1,200-tick workload reduced to one `u64`, with the value recorded
+as a constant. CI matrix now runs `sim` on **ubuntu-latest and macos-latest** with
+`fail-fast: false`, so a platform disagreement shows as one red and one green.
+
+### The canary had a real hole, and only failure-testing found it
+
+Proved the check the same way as the float lint — by breaking things. First perturbation,
+`HALF` 2048 → 2047 (a direct change to the rounding threshold), **passed**. The workload drew
+pseudo-random operands, and random operands essentially never land on exactly one half, which
+is the only case that change affects.
+
+Added `hash_rounding_boundaries`: explicit exact-tie cases for mul, div, round/floor
+conversion, and sqrt either side of a perfect square. Recomputed the golden hash. Re-ran all
+five perturbations — shifted rounding threshold, mul truncating, div rounding toward zero,
+PCG multiplier off by 2, sqrt off by one — **all five caught**.
+
+**The general lesson, now in MEMORY:** a canary is only sensitive to what its inputs actually
+exercise. Random inputs cover the common path and systematically miss boundaries, which is
+exactly where two implementations diverge. Always add explicit boundary cases, and never
+trust a check you have not watched fail.
+
+### Verification
+
+46 tests green · clippy `-D warnings` clean · fmt clean · float lint OK · determinism canary
+proven against five distinct perturbations · CI YAML validated.
+
+### State
+
+Phase 1 foundations done. Phase 0 gate still open. Next: entities and the grid can proceed
+without the gate; the GDExtension cannot.

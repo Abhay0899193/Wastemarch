@@ -11,8 +11,19 @@ env:
 
 jobs:
   sim:
-    name: Simulation core
-    runs-on: ubuntu-latest
+    # The matrix IS the determinism test. sim-core carries a golden hash of a
+    # reference workload; if x86_64 Linux and arm64 macOS ever compute different
+    # numbers for it, one of these two jobs goes red and the other stays green.
+    # That is the failure the whole architecture is built to make impossible, so
+    # it must be impossible to merge past.
+    #
+    # Phase 1 adds an arm64 Linux runner and an on-device run to close the gate.
+    name: Simulation core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # always want both results, never just the first failure
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,6 +41,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: sim
+          key: ${{ matrix.os }}
 
       - name: Toolchain
         working-directory: sim

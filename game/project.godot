@@ -1,10 +1,10 @@
 ; Engine configuration file.
-; Wastemarch — mobile isometric base-builder.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
 ;
-; Renderer, resolution and orientation here are load-bearing decisions, not defaults:
-;   - Mobile renderer, never Forward+        MASTER_PLAN.md §4
-;   - Landscape 1920x1080                    docs/decisions/ADR-0002
-;   - canvas_items stretch, expand aspect    MASTER_PLAN.md §5
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -26,7 +26,6 @@ window/handheld/orientation="landscape"
 [rendering]
 
 renderer/rendering_method="mobile"
-renderer/rendering_method.mobile="mobile"
 textures/vram_compression/import_etc2_astc=true
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
 anti_aliasing/quality/msaa_3d=1

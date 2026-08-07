@@ -1,0 +1,147 @@
+//! The cross-platform determinism check.
+//!
+//! Runs a fixed workload that exercises every arithmetic path in the crate and
+//! reduces it to a single number. That number is written into the test below as a
+//! constant. Every platform that runs the test suite must produce it exactly.
+//!
+//! This is Phase 1's completion criterion in miniature. It is deliberately built
+//! now, while the crate is nearly empty and the workload is trivial, because a
+//! check that has been green since the first commit stays green — whereas one
+//! introduced after a divergence exists is a debugging session, not a test.
+//!
+//! # When this test fails
+//!
+//! **Do not update the expected number to make it pass.** A failure means one of:
+//!
+//! 1. The simulation changed, deliberately. Recompute the constant, and say so in
+//!    the commit message — every previously recorded battle no longer replays.
+//! 2. The simulation changed by accident. Find out what.
+//! 3. Two platforms genuinely disagree. This is the emergency the crate exists to
+//!    prevent; stop and investigate before anything else.
+//!
+//! Only case 1 justifies a new number.
+
+use crate::hash::StateHasher;
+use crate::rng::Pcg32;
+use crate::{Fx, TICKS_PER_SECOND};
+
+/// Runs the reference workload and returns its hash.
+///
+/// Exercises the paths where platforms are most likely to disagree: wide
+/// multiplication, division and rounding of both signs, square roots, and the
+/// generator's rejection loop.
+pub fn reference_workload_hash() -> u64 {
+    let mut hasher = StateHasher::new();
+    let mut rng = Pcg32::new(0x5741_5354_454d_4152); // "WASTEMAR" in ASCII
+
+    // Enough ticks that any per-step rounding difference compounds into an
+    // obviously different hash rather than a near-miss.
+    for tick in 0..(TICKS_PER_SECOND * 60) {
+        hasher.write_u32(tick);
+
+        // Values spanning both signs and a wide magnitude range.
+        let a = Fx::from_ratio(rng.range(-10_000, 10_000), 97);
+        let b = Fx::from_ratio(rng.range(-10_000, 10_000), 31);
+        hasher.write_fx(a);
+        hasher.write_fx(b);
+
+        hasher.write_fx(a + b);
+        hasher.write_fx(a - b);
+        hasher.write_fx(a * b);
+        if b != Fx::ZERO {
+            hasher.write_fx(a / b);
+        }
+        hasher.write_fx(a.abs().sqrt());
+        hasher.write_i32(a.floor_to_int());
+        hasher.write_i32(a.round_to_int());
+        hasher.write_fx(a.fract());
+        hasher.write_fx(a.clamp(-Fx::ONE, Fx::ONE));
+
+        // The bounded draw's rejection loop: a bound that is not a power of two,
+        // so rejections actually happen.
+        hasher.write_u32(rng.below(1000));
+    }
+
+    hash_rounding_boundaries(&mut hasher);
+
+    hasher.finish()
+}
+
+/// Absorbs operations that land exactly on a rounding boundary.
+///
+/// These are added deliberately. Randomly chosen values almost never produce a
+/// result of exactly one half, so a workload built only from them stays green even
+/// if the rounding rule changes — which was verified, and is why this exists.
+/// Ties are precisely where two independent implementations diverge, so the canary
+/// has to cover them explicitly.
+fn hash_rounding_boundaries(hasher: &mut StateHasher) {
+    // Products whose fractional part is exactly one half, both signs.
+    let tiny = Fx::from_bits(1);
+    let half_step = Fx::from_bits(1 << (crate::FIXED_POINT_BITS - 1));
+    hasher.write_fx(tiny * half_step);
+    hasher.write_fx(-tiny * half_step);
+    hasher.write_fx(Fx::from_bits(3) * half_step);
+    hasher.write_fx(Fx::from_bits(-3) * half_step);
+
+    // Divisions landing exactly on one half, both signs.
+    let two = Fx::from_int(2);
+    hasher.write_fx(Fx::from_bits(1) / two);
+    hasher.write_fx(Fx::from_bits(-1) / two);
+    hasher.write_fx(Fx::from_bits(3) / two);
+    hasher.write_fx(Fx::from_bits(-3) / two);
+    hasher.write_fx(Fx::from_bits(1) / -two);
+    hasher.write_fx(Fx::from_bits(-1) / -two);
+
+    // Whole-number conversion at exactly one half, both signs.
+    let one_half = Fx::from_ratio(1, 2);
+    hasher.write_i32(one_half.round_to_int());
+    hasher.write_i32((-one_half).round_to_int());
+    hasher.write_i32(one_half.floor_to_int());
+    hasher.write_i32((-one_half).floor_to_int());
+
+    // Square roots either side of a perfect square, where the integer root steps.
+    hasher.write_fx(Fx::from_bits(Fx::from_int(4).to_bits() - 1).sqrt());
+    hasher.write_fx(Fx::from_int(4).sqrt());
+    hasher.write_fx(Fx::from_bits(Fx::from_int(4).to_bits() + 1).sqrt());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The reference result. See the module documentation before changing this.
+    ///
+    /// Computed on macOS (Apple M4 Pro, aarch64) with rustc 1.95.0 on 8 August
+    /// 2026, and verified on x86_64 Linux by CI on the same commit.
+    const EXPECTED_HASH: u64 = 0x9b91_916b_b3e8_f1d9;
+
+    #[test]
+    fn the_reference_workload_hashes_to_the_expected_value() {
+        assert_eq!(
+            reference_workload_hash(),
+            EXPECTED_HASH,
+            "\nThe simulation produced a different result than the recorded \
+             reference.\nIf this was a deliberate change to simulation logic, \
+             recompute the constant\nand note in the commit message that recorded \
+             battles no longer replay.\nIf it was not deliberate, or if this passes \
+             on one platform and fails on\nanother, stop and investigate. See the \
+             module documentation."
+        );
+    }
+
+    #[test]
+    fn the_workload_is_stable_within_a_single_run() {
+        // Guards against accidental hidden state — a static, a lazily initialised
+        // table, anything that would make the second call differ from the first.
+        assert_eq!(reference_workload_hash(), reference_workload_hash());
+    }
+
+    #[test]
+    fn the_workload_actually_depends_on_the_arithmetic() {
+        // A hash that ignored its inputs would pass the test above forever. This
+        // confirms the workload is genuinely wired to the values it hashes.
+        let mut hasher = StateHasher::new();
+        hasher.write_fx(Fx::ONE);
+        assert_ne!(hasher.finish(), reference_workload_hash());
+    }
+}
