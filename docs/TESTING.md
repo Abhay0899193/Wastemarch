@@ -60,7 +60,7 @@ cd sim && cargo test --workspace
 
 **What it protects.** That the simulation's rules do what they are supposed to.
 
-**Currently 46 tests**, covering the three foundation pieces built so far:
+**Currently 92 tests**, covering the foundation pieces built so far:
 
 - **Fixed-point arithmetic** — that adding 4096 smallest steps makes exactly one with no
   drift, that multiplication gives the same answer whichever way round you write it, that
@@ -71,6 +71,15 @@ cd sim && cargo test --workspace
   six-sided die rolled 60,000 times lands about 10,000 times on each face.
 - **State hashing** — checked against the published reference values for the algorithm, so
   a future change that quietly alters it cannot go unnoticed.
+- **The world grid** — that writing outside the grid is ignored rather than corrupting some
+  distant tile, and that the cost of crossing a whole map of the slowest terrain cannot
+  overflow (if it could, a long route would come back looking cheap and troops would walk the
+  wrong way).
+- **Units and buildings** — that a reference to a dead unit fails rather than silently
+  pointing at whoever reused its slot.
+- **Finding a way around walls** — that every step gets strictly closer, which is what
+  guarantees troops cannot walk in circles forever; that a walled-in troop stops instead of
+  spinning; and that mud is walked around when that is cheaper and through when it is not.
 
 ## 3. Code quality
 
@@ -124,10 +133,12 @@ commit message that previously recorded battles no longer replay), it was change
 accident (find out how), or two platforms genuinely disagree (stop everything). Only the
 first justifies a new number.
 
-**Proven working.** On 8 August 2026 five separate one-line changes were made to the
-simulation's arithmetic and the test was confirmed to catch every one: a shifted rounding
-threshold, multiplication truncating instead of rounding, division rounding the other way, a
-random-number constant changed by 2, and a square root off by one step.
+**Proven working.** On 8 August 2026, **nine** separate one-line changes were made to the
+simulation and the test was confirmed to catch every one: a shifted rounding threshold,
+multiplication truncating instead of rounding, division rounding the other way, a
+random-number constant changed by 2, a square root off by one step, the order neighbouring
+tiles are examined in, a queue ordering made ambiguous, a tie broken the other way, and the
+cost of mud changed by one.
 
 That exercise also found a real gap. The first version of the workload used only
 randomly-chosen numbers, and *missed* the shifted rounding threshold — because random values

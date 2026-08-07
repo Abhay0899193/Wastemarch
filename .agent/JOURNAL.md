@@ -214,3 +214,80 @@ proven against five distinct perturbations · CI YAML validated.
 
 Phase 1 foundations done. Phase 0 gate still open. Next: entities and the grid can proceed
 without the gate; the GDExtension cannot.
+
+---
+
+## 2026-08-08 — Session 3 — Android toolchain + Phase 1 core
+
+**Context.** Owner has no admin rights, so iOS is blocked. They asked me to install Android
+in-shell and keep building, testing in Godot meanwhile.
+
+### iOS — investigated to a definitive answer
+
+Xcode 26.3 and iOS SDK 26.2 are present. `/Library/Developer/PrivateFrameworks/`
+`CoreDevice` and `CoreSimulator` are **not**, and only an admin can install them.
+`CoreSimulator` is required by **`xcodebuild` itself** — it refuses to start even for a
+device-only unsigned build. So there is no iOS build of any kind.
+
+**Recorded loudly because it is the obvious wrong turn:** the paid Developer Program does NOT
+route around this. TestFlight installs over the air, but producing the `.ipa` still needs
+`xcodebuild`. Fix is `sudo xcodebuild -runFirstLaunch`, once. Then a *free* Apple ID suffices.
+
+Proven working without admin: Godot generates the full iOS Xcode project, device and
+simulator xcframeworks, MoltenVK and the PCK. It stopped only on missing app icons.
+
+### Android — done, no admin
+
+JDK 21.0.12 and SDK under `$HOME`. Homebrew is unusable here (casks write to root-owned
+`/usr/local`). Keystore generated, Godot editor settings corrected — its defaults pointed at
+a non-existent SDK path and keystore.
+
+**The APK was silently broken and the export said success.** `lib/arm64-v8a/libsim_godot.so`
+was **0 bytes**, because sim-godot had never been cross-compiled. Two causes: no NDK, and
+`rustup target add` had been run outside `sim/`, attaching the target to the *default*
+toolchain while cargo inside `sim/` uses the 1.95.0 pinned by `rust-toolchain.toml` — giving
+a baffling "can't find crate for std" for a target rustup listed as installed.
+
+Now: 123MB signed APK, `sdkVersion:'24'`, arm64-v8a only, a real 100,676,016-byte sim
+library. **Verify by size, never by presence.**
+
+Added `icon.svg` — SVG not PNG, so it stays diffable and out of LFS. Cleared the last Android
+warning and the error that also stopped the iOS export.
+
+### GDExtension — the sim now runs inside Godot
+
+Previously deferred as "needs export templates and a device". That was true for *shipping*
+and wrong for the *editor*. gdext 0.5.4 predates Godot 4.7.1, so `api-custom` generates
+bindings from the actual binary; Godot confirms the match at load. `sim-godot` uses `deny`
+rather than `forbid` for unsafe, with the entry point quarantined in its own module.
+
+`game/tools/sim_smoke.gd` checks the boundary neither side's own tests cover. Its hash
+constant is duplicated from Rust **deliberately** — reading it from the library would let a
+stale build agree with itself — so a Rust test now reads the `.gd` file to stop the
+duplication rotting.
+
+### Phase 1 — grid, entities, pathfinding
+
+Grid: `Tile` and `Point` as distinct types. Out-of-bounds reads as Rock, writes ignored not
+wrapped. Move costs are integers because they are summed over long paths.
+
+Entities: generational ids. Without them a dead archer's reused slot means stale references
+silently attack the wrong unit. No `HashMap` anywhere — Rust randomises iteration order.
+
+Pathfinding: flow field, Dijkstra from the goals. Goals seeded even when impassable so troops
+route *beside* a building. Queue keyed on `(cost, tile index)` never cost alone; ties resolve
+by fixed neighbour order via strict `<`.
+
+### The canary, extended three times and perturbation-tested each time
+
+Nine distinct perturbations caught across the session. The pathfinding four are the most
+valuable — that is the only code with a priority queue, and a queue is exactly where a
+cross-platform tie-ordering difference would hide.
+
+Golden hash is now `0x60d0b217ca281e07`. It changed three times today; each change is in a
+commit message saying so.
+
+### State
+
+92 tests. Two blockers left, both hardware/permission: an admin password for iOS, and a
+physical Android device. Nothing else is waiting on anything.

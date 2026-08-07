@@ -1,12 +1,12 @@
 {
   "phase": 1,
   "phase_name": "Deterministic sim core (Phase 0 gate still open)",
-  "milestone": "M5 complete \u2014 sim-core foundations: fixed-point, PCG, hashing, determinism canary",
+  "milestone": "Phase 1: fixed-point, PCG, hashing, grid, entities, flow-field pathfinding",
   "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
   "phase_gate_met": false,
-  "last_commit": "0fdfeb8",
+  "last_commit": "23b8fcb",
   "last_session": "2026-08-08",
-  "sessions_completed": 2,
+  "sessions_completed": 3,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
   "versions": {
@@ -37,14 +37,13 @@
   },
   "verification_at_close": {
     "date": "2026-08-08",
-    "cargo_test": "pass \u2014 46/46",
-    "clippy": "pass \u2014 clean with -D warnings",
+    "cargo_test": "pass \u2014 92/92",
+    "clippy": "pass",
     "cargo_fmt": "pass",
-    "no_floats_lint": "pass \u2014 proven to fail on a planted f32",
-    "determinism_canary": "pass \u2014 proven to catch 5 distinct perturbations: shifted rounding threshold, mul truncating, div rounding toward zero, PCG multiplier off by 2, sqrt off by one",
-    "ci_matrix": "CONFIRMED GREEN on commit 0fdfeb8 \u2014 x86_64 ubuntu-latest and arm64 macos-latest both computed golden hash 0x9b91916bb3e8f1d9. Two thirds of the Phase 1 gate met; the ARM-device third waits on Phase 0.",
-    "godot_import": "pass \u2014 0 errors",
-    "grey_cube_on_device": "NOT ATTEMPTED \u2014 blocked on export templates"
+    "no_floats_lint": "pass",
+    "determinism_canary": "pass \u2014 proven against 9 distinct perturbations across the session",
+    "godot_sim_smoke": "pass \u2014 sim runs inside Godot, hash matches CI",
+    "android_apk": "pass \u2014 123MB signed, sdkVersion 24, arm64-v8a, real 100MB sim library"
   },
   "open_blockers": [
     {
@@ -89,7 +88,7 @@
     "overflow": "panics in every profile, never truncates",
     "rng": "PCG32, multiplier 6364136223846793005, default stream 0xda3e39cb94b95bdb",
     "hasher": "FNV-1a 64, hand-written \u2014 never std DefaultHasher, which is not stable across platforms",
-    "golden_hash": "0x9b91916bb3e8f1d9 in determinism.rs::tests::EXPECTED_HASH"
+    "golden_hash": "0x60d0b217ca281e07 in determinism.rs::tests::EXPECTED_HASH (also game/tools/sim_smoke.gd)"
   },
   "export_chain_verified": {
     "date": "2026-08-08",

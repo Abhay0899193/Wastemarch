@@ -163,8 +163,25 @@ These three are tied together by a check that runs a fixed minute of simulated a
 compares the result against a recorded number, **on Intel Linux and Apple Silicon macOS at the
 same time, on every change**. See [TESTING.md](TESTING.md#5-cross-platform-determinism).
 
-Still to come in Phase 1: units and buildings, the grid, how troops find their way around
-walls, what they choose to attack, and damage.
+**The world.** A 44 by 44 grid of tiles, one metre each. Tiles know what is on them — open
+ground, mud, rock, treeline, or a building — and each costs a different amount to cross. Mud
+is two and a half times slower than open ground, which is what makes *where* you send troops
+a real decision rather than a formality.
+
+**Units and buildings.** Stored in one dense list. Each has an identifier carrying a
+*generation* number, which sounds fussy and prevents a specific nasty bug: when an archer
+dies its storage slot is reused by the next unit, and without the generation anything still
+referring to "slot 7" would silently start attacking whoever moved in. With it, a stale
+reference simply fails rather than pointing at the wrong unit.
+
+**Finding a way around walls.** Rather than working out a route for each troop separately,
+the game solves the whole board once, from the target outwards, recording at every tile which
+way to step next. Twenty troops then cost barely more than one. It also handles the case that
+matters most: a troop attacking a building routes to the tile *beside* it, never into it, and
+"my next step is into a building" is exactly the signal to start attacking.
+
+Still to come in Phase 1: what a unit chooses to attack, damage, and the battle record that
+makes replays possible.
 
 ---
 
