@@ -13,10 +13,12 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 sim-core = { path = "../sim-core" }
 
-# The `godot` crate (gdext) is deliberately NOT here yet.
+# gdext, the Rust bindings for Godot.
 #
-# Adding it means pinning a binding version against Godot 4.7 and a multi-minute
-# first build, in exchange for nothing — sim-core has no API to expose yet. It
-# goes in at the start of Phase 1, as soon as there is something worth calling.
+# `api-custom` builds the bindings from the extension API of the Godot binary on
+# this machine, rather than from a version baked into the crate. The crate's
+# newest release predates Godot 4.7.1, so a baked-in level would be wrong; this
+# way the bindings always match whatever Godot we actually run.
 #
-# This is a decision, not an oversight. Also recorded in .agent/MEMORY.md.
+# It requires GODOT4_BIN to be set — see .cargo/config.toml.
+godot = { version = "0.5", features = ["api-custom"] }

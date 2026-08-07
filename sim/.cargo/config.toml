@@ -1,0 +1,9 @@
+# gdext's `api-custom` feature generates its bindings from this exact Godot
+# binary, so the bindings always match the engine we actually run. Without it,
+# building sim-godot fails with "GODOT4_BIN not set".
+#
+# Hard-coded to this machine's path on purpose: it is recorded in
+# docs/ENVIRONMENT.md and there is one developer. If that ever stops being true,
+# move it to a per-developer .cargo/config.toml that is gitignored.
+[env]
+GODOT4_BIN = "/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot"

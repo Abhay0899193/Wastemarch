@@ -1,0 +1,25 @@
+; Loads the Rust simulation into Godot.
+;
+; The library paths point at cargo's build output rather than a copy inside the
+; project, so `cargo build` is immediately live in the editor with no copy step
+; to forget. sim/target/ is gitignored — a fresh checkout must run `cargo build`
+; before opening the project, which docs/ENVIRONMENT.md says.
+
+[configuration]
+
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = 4.7
+reloadable = true
+
+[libraries]
+
+macos.debug = "res://../sim/target/debug/libsim_godot.dylib"
+macos.release = "res://../sim/target/release/libsim_godot.dylib"
+
+; Phase 0 tail: these need `cargo build --target <triple>` and the paths below
+; are what the export presets will look for. Not built yet — iOS is blocked on an
+; admin action and Android on the toolchain install.
+ios.debug = "res://../sim/target/aarch64-apple-ios/debug/libsim_godot.dylib"
+ios.release = "res://../sim/target/aarch64-apple-ios/release/libsim_godot.dylib"
+android.debug.arm64 = "res://../sim/target/aarch64-linux-android/debug/libsim_godot.so"
+android.release.arm64 = "res://../sim/target/aarch64-linux-android/release/libsim_godot.so"
