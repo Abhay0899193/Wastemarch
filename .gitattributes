@@ -1,0 +1,35 @@
+# Git LFS — MASTER_PLAN.md §6.
+# Set up in the second commit, before any binary asset existed. Do not remove a
+# pattern once assets are tracked under it; that requires a history rewrite.
+#
+# Add a new pattern the first time a format actually appears, not speculatively.
+
+# 3D source and export
+*.blend     filter=lfs diff=lfs merge=lfs -text
+*.glb       filter=lfs diff=lfs merge=lfs -text
+*.gltf      filter=lfs diff=lfs merge=lfs -text
+*.fbx       filter=lfs diff=lfs merge=lfs -text
+
+# Textures
+*.png       filter=lfs diff=lfs merge=lfs -text
+*.jpg       filter=lfs diff=lfs merge=lfs -text
+*.exr       filter=lfs diff=lfs merge=lfs -text
+*.tga       filter=lfs diff=lfs merge=lfs -text
+*.ktx2      filter=lfs diff=lfs merge=lfs -text
+*.psd       filter=lfs diff=lfs merge=lfs -text
+
+# Audio
+*.wav       filter=lfs diff=lfs merge=lfs -text
+*.ogg       filter=lfs diff=lfs merge=lfs -text
+*.mp3       filter=lfs diff=lfs merge=lfs -text
+
+# AI model weights, if any are ever committed (they normally should not be)
+*.safetensors filter=lfs diff=lfs merge=lfs -text
+*.gguf        filter=lfs diff=lfs merge=lfs -text
+
+# Godot text resources are text — keep them diffable.
+*.tscn      text
+*.tres      text
+*.gd        text
+*.godot     text
+*.import    text

@@ -1,0 +1,33 @@
+# Godot — the editor's import cache and generated Android build template.
+.godot/
+/game/android/build/
+/game/android/.build_version
+*.translation
+
+# Rust
+target/
+
+# Blender autosaves and MCP scratch work.
+# tools/blender/scratch/ is explicitly experimental — CLAUDE.md §3 says nothing
+# in it may ship. Anything that ships is a committed script in tools/blender/.
+*.blend1
+*.blend2
+tools/blender/scratch/
+
+# ComfyUI generation outputs. Picks are committed to assets-src/concept/ by hand.
+tools/comfy/output/
+tools/comfy/temp/
+
+# Signing material — never committed. Paths come from env vars, see docs/RELEASE notes.
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store
