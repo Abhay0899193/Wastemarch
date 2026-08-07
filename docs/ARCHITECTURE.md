@@ -180,8 +180,26 @@ way to step next. Twenty troops then cost barely more than one. It also handles 
 matters most: a troop attacking a building routes to the tile *beside* it, never into it, and
 "my next step is into a building" is exactly the signal to start attacking.
 
-Still to come in Phase 1: what a unit chooses to attack, damage, and the battle record that
-makes replays possible.
+**Battles.** Every twentieth of a second, the same five things happen in the same order:
+redraw the routes if the board changed, decide what each unit is attacking, move, strike, then
+clear away the dead. That order is part of the game rather than a detail — moving before
+choosing a target would mean units chase where their enemy *was*.
+
+One rule is worth knowing because it looks like a bug and is not: a unit killed this instant
+still lands its own blow. Two units can kill each other. The alternative — whoever the
+computer happens to consider first wins — would make the outcome depend on storage order,
+which is exactly the kind of hidden asymmetry this whole design is built to avoid.
+
+**Battle records.** A finished battle is stored as its starting conditions plus a list of what
+you did and when. A busy three-minute battle comes to **1,015 bytes**. Watching a replay
+re-runs the battle rather than playing a video, and it comes out identical every time.
+
+Each record carries a fingerprint of the board it was played on, and refuses to replay against
+a different one. Without that, a replay against a changed board would quietly produce a
+different battle — the sort of bug that is nearly impossible to track down.
+
+Still to come: the things that make it a *game* rather than a simulation — troop types that
+counter each other, Seraphine's Orders, and the buildings themselves.
 
 ---
 

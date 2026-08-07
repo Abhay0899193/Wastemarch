@@ -291,3 +291,67 @@ commit message saying so.
 
 92 tests. Two blockers left, both hardware/permission: an admin password for iOS, and a
 physical Android device. Nothing else is waiting on anything.
+
+---
+
+## 2026-08-08 — Session 4 — Phase 1 complete except the device
+
+### CI went red and it was my own gap
+
+Adding gdext broke **both** `sim` matrix legs. The signature is the useful part: this matrix
+exists to detect cross-platform divergence, which shows as **one leg red and one green**.
+Both red is a build problem. Cause: `sim-godot` needs `GODOT4_BIN` at build time and
+`sim/.cargo/config.toml` hard-codes a macOS path no runner has. Clippy runs before tests, so
+it died there and the tests never ran.
+
+Split into a separate `sim-godot` job that downloads Godot. Also learned that local
+`cargo clippy` does not re-lint unchanged crates — `touch` the sources or a clean CI run
+fails where local passes. That lesson paid off within the hour: it caught two malformed hex
+literals later the same session.
+
+### The tick loop
+
+Five phases in fixed order. Combat stats live on the entity and come from the caller, never
+as constants — `sim-core` does no I/O, so it defines the shape and `game/data/` fills it.
+
+**A perturbation proved my own design was decoration.** The damage phase gathered blows and
+applied them afterwards, documented as producing simultaneity. Reordering it did not fail the
+canary — because attackers are never alive-checked, so deferred and immediate are identical.
+It was dead code allocating a `Vec` per tick against `MASTER_PLAN.md` §5. Removed; **the
+golden hash did not move**, which is the proof. Simultaneity comes from the *absence* of an
+alive check, now documented and pinned by two tests instead of being an accident.
+
+Thirteen perturbations across sessions: **eleven caught, two missed**, both misses explained
+in MEMORY rather than glossed.
+
+My own overflow guard caught me too — a test gave a wall 1,000,000 health against an `Fx`
+ceiling near 524,288, and `narrow()` panicked. Exactly the design working.
+
+### Battle records
+
+1015 bytes for a busy three-minute battle. `MASTER_PLAN.md` §1.4 says "roughly two
+kilobytes" — now measured, not believed.
+
+The setup fingerprint is the load-bearing part: a record replayed against a different board
+silently produces a different battle. Grid, roster and starting layout are hashed and checked
+before replay. Changing one balance number refuses the record.
+
+Encoding is explicitly little-endian with a magic number and version, and the input count is
+validated against buffer length **before** allocating so a corrupt count cannot request a
+huge allocation.
+
+### The 10,000-seed sweep, and a measurement worth having
+
+157 seconds in debug, **6 seconds in release** — the difference is overflow checks. So a
+1,000-seed version runs everywhere as the early warning, and CI runs the full sweep in
+release on the **Linux leg only**: GitHub bills macOS runners at ten times the rate, and the
+cross-platform question is already answered by the golden hash both legs check.
+
+The sweep also asserts different seeds produce *different* battles. Without that, a
+simulation ignoring its inputs entirely would pass the replay loop perfectly.
+
+### State
+
+125 tests plus the gated sweep. Phase 1 is **complete except the ARM-device third of its
+gate**, which needs hardware. Two blockers remain and both are the owner's: an admin password
+for iOS, and a physical Android device.

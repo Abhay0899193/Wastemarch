@@ -1,12 +1,12 @@
 {
   "phase": 1,
-  "phase_name": "Deterministic sim core (Phase 0 gate still open)",
-  "milestone": "Phase 1: fixed-point, PCG, hashing, grid, entities, flow-field pathfinding",
+  "phase_name": "Deterministic sim core \u2014 COMPLETE except the ARM-device gate",
+  "milestone": "Phase 1 feature-complete: fx, rng, hashing, grid, entities, pathfinding, tick loop, battle records, 10k-seed sweep",
   "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
   "phase_gate_met": false,
-  "last_commit": "23b8fcb",
+  "last_commit": "216c12a",
   "last_session": "2026-08-08",
-  "sessions_completed": 3,
+  "sessions_completed": 4,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
   "versions": {
@@ -37,13 +37,14 @@
   },
   "verification_at_close": {
     "date": "2026-08-08",
-    "cargo_test": "pass \u2014 92/92",
-    "clippy": "pass",
+    "cargo_test": "pass \u2014 125 passed, 1 ignored (the 10k sweep)",
+    "ten_thousand_seed_sweep": "pass in release \u2014 6.15s",
+    "clippy": "pass with -D warnings, after a forced re-lint",
     "cargo_fmt": "pass",
     "no_floats_lint": "pass",
-    "determinism_canary": "pass \u2014 proven against 9 distinct perturbations across the session",
+    "determinism_canary": "pass \u2014 13 perturbations tried across sessions, 11 caught, 2 missed and explained in MEMORY",
     "godot_sim_smoke": "pass \u2014 sim runs inside Godot, hash matches CI",
-    "android_apk": "pass \u2014 123MB signed, sdkVersion 24, arm64-v8a, real 100MB sim library"
+    "battle_record_size": "1015 bytes for a busy 3-minute battle; MASTER_PLAN.md \u00a71.4 claims ~2KB"
   },
   "open_blockers": [
     {
@@ -65,7 +66,8 @@
     {
       "id": "colour-palette",
       "blocks": "phase-2 bulk asset generation",
-      "detail": "Nine proposed hex values in docs/ART_BIBLE.md, deliberately unlocked. Needs owner sign-off plus a colourblind check and a phone-size test render."
+      "detail": "Nine proposed hex values in docs/ART_BIBLE.md, deliberately unlocked. Needs owner sign-off plus a colourblind check and a phone-size test render.",
+      "urgency": "HIGHEST OUTSTANDING \u2014 Phase 2 cannot start without it, and Phase 2 is the parallel track available while hardware is blocked"
     },
     {
       "id": "product-name",
@@ -88,7 +90,7 @@
     "overflow": "panics in every profile, never truncates",
     "rng": "PCG32, multiplier 6364136223846793005, default stream 0xda3e39cb94b95bdb",
     "hasher": "FNV-1a 64, hand-written \u2014 never std DefaultHasher, which is not stable across platforms",
-    "golden_hash": "0x60d0b217ca281e07 in determinism.rs::tests::EXPECTED_HASH (also game/tools/sim_smoke.gd)"
+    "golden_hash": "0x6de277a1cf08225b in determinism.rs::tests::EXPECTED_HASH (also game/tools/sim_smoke.gd)"
   },
   "export_chain_verified": {
     "date": "2026-08-08",
@@ -108,5 +110,6 @@
     "size": "123MB debug",
     "verified": "sdkVersion:'24', native-code arm64-v8a only, libsim_godot.so 100676016 bytes (was 0 before the NDK), 36 icon entries, signed",
     "note": "Debug build with symbols. A release build will be far smaller; not measured yet."
-  }
+  },
+  "phase_gate_blocked_on": "a physical ARM device \u2014 nothing else"
 }

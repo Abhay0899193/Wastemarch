@@ -2,8 +2,11 @@
 
 ## RESUME HERE
 
-**Last session:** 8 August 2026 (session 3). Working tree clean, on `main`, pushed.
+**Last session:** 8 August 2026 (session 4). Working tree clean, on `main`, pushed.
 **Nothing is half-finished.**
+
+**Phase 1 is complete except the ARM-device third of its gate.** Everything that can be built
+without hardware has been built.
 
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
@@ -11,95 +14,86 @@
 cd /Users/singha7/Documents/abhay/Wastemarch && \
 git log --oneline -10 && git status && \
 sh ci/no-floats.sh && \
-(cd sim && cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings) && \
+(cd sim && cargo test --workspace --exclude sim-godot && \
+          cargo clippy --workspace --exclude sim-godot --all-targets -- -D warnings) && \
 /Users/singha7/Applications/Godot.app/Contents/MacOS/Godot --headless --path game --script res://tools/sim_smoke.gd
 ```
 
-Expect **92 tests green** and `PASS — the Rust simulation is running inside Godot`.
+Expect **125 tests green, 1 ignored** and `PASS — the Rust simulation is running inside Godot`.
 
-**If the smoke test says WastemarchSim is not registered:** the dylib is stale or the editor
-has not scanned. Run `cd sim && cargo build` then
-`$GODOT --headless --path game --editor --quit` once.
+**Do not run `cargo test --workspace` without `--exclude sim-godot`** unless `GODOT4_BIN` is
+set; the binding needs the engine at build time. Its own check is
+`cargo build -p sim-godot`, which picks the path up from `sim/.cargo/config.toml`.
 
-**If the owner has opened the Godot editor since:** it rewrites `game/project.godot` and
-strips comments. Check the settings list in MEMORY under "Comments in game/project.godot do
-not survive".
+**Forced clippy re-lint before trusting a green run:**
+`touch sim/*/src/*.rs` first. Clippy caches and will not re-lint unchanged crates.
 
-### Next 3 actions
+**The full 10,000-seed sweep** is `#[ignore]`d because it is 157s in debug and 6s in release:
+`cargo test -p sim-core --release -- --ignored`.
 
-1. **Targeting** — which enemy a unit picks. Ties must break by `EntityId`, never by
-   iteration accident. Extend the canary as it lands, not after.
-2. **Damage and the tick loop** — a `step()` that actually advances a battle: move along the
-   flow field, acquire targets, apply damage, remove the dead. This is where `TICKS_PER_SECOND`
-   finally means something.
-3. **`BattleRecord`** — `{ seed, base_snapshot_hash, Vec<TimedInput> }`, and replay. Then the
-   10,000-seeded-battles property test the master plan asks for.
+---
 
-### The two blockers, both needing the owner
+## The two blockers, both the owner's
 
-| | Owner | What |
+| | What | Why it is stuck |
 |---|---|---|
-| **iOS** | someone with admin | `sudo xcodebuild -runFirstLaunch`, once. Then a **free** Apple ID is enough. **The paid programme does NOT work around this** — see MEMORY. |
-| **Android device** | owner | Connect a phone with USB debugging on. The APK is built and complete; `adb devices` lists nothing. |
+| **iOS** | `sudo xcodebuild -runFirstLaunch`, once, by someone with admin | `CoreSimulator.framework` is absent and `xcodebuild` will not start without it. **The paid Developer Program does NOT work around this** — see MEMORY. A *free* Apple ID suffices afterwards. |
+| **Android device** | Connect a phone with USB debugging on | The APK is built, signed and complete. `adb devices` lists nothing. |
 
-Nothing else in Phase 1 is waiting on either of them.
+**Nothing else is waiting on either.** Both Phase 0 and Phase 1 gates need physical hardware
+and nothing more.
 
 ---
 
 ## Phase 0 — gate NOT met
 
-**Gate:** grey cube on a physical iPhone **and** a physical Android device, from a CI build.
-
 - [x] Godot project, mobile renderer, landscape, grey cube verified by render
-- [x] Export templates (owner installed the full set)
-- [x] Android toolchain, user-local, no admin
-- [x] **Complete signed APK** — 123MB, `sdkVersion:'24'`, arm64-v8a only, real 100MB sim
-      library. Verified by reading the artifact, not the settings.
-- [x] Placeholder `icon.svg`
-- [ ] **Android device** — owner
-- [ ] **iOS admin action** — owner
-- [ ] iOS signing (free Apple ID, after the admin step)
+- [x] Export templates, Android toolchain (user-local, no admin), NDK
+- [x] Complete signed APK — `sdkVersion:'24'`, arm64-v8a only, real 100MB sim library
+- [ ] **Android device** · **iOS admin action** — owner
 - [ ] Self-hosted macOS runner; `ios` CI job made real
 - [ ] Both devices from a **CI** build
 - [ ] On-device: 60 fps, ≤120 draw calls, ≤250k tris
 
----
+## Phase 1 — gate NOT met (hardware only)
 
-## Phase 1 — Deterministic sim core
+**Gate:** a headless battle produces an identical state hash on macOS, Linux **and an ARM
+device**. The first two agree on every push; the third needs a device.
 
-**Gate:** a headless battle produces an identical state hash on macOS, Linux, **and an ARM
-device**.
-
-macOS and Linux agree on every push (CI matrix). The ARM third needs a device.
-
-### Done
-
-- [x] `Fx` fixed-point, `Pcg32`, `StateHasher`
-- [x] Determinism canary, **proven against 9 perturbations** across three extensions
-- [x] `Grid` — 44×44, terrain, move costs
-- [x] `Entities` — generational ids, no `HashMap`
-- [x] `FlowField` — Dijkstra, deterministic tie-breaking
+- [x] `Fx` fixed-point · `Pcg32` · `StateHasher`
+- [x] `Grid`, `Entities` (generational ids), `FlowField`
+- [x] `Battle` tick loop — targeting, movement, damage, death
+- [x] `BattleRecord` + replay, byte encoding, setup fingerprint
+- [x] 10,000-seeded-run property test
+- [x] Determinism canary — **13 perturbations tried, 11 caught, 2 explained**
 - [x] GDExtension: the sim runs inside Godot and agrees with CI
-
-### Still to build
-
-- [ ] Targeting
-- [ ] Damage + the tick loop
-- [ ] `BattleRecord` + replay
-- [ ] 10,000-seeded-battle property test
-- [ ] Cross-compile checks in CI for the Android target
 - [ ] **Blocked on a device:** on-device hash agreement
 
-### Frozen numeric contract
+### Next 3 actions, once a device exists
 
-See MEMORY, "`sim-core` numeric contract". Golden hash **`0x60d0b217ca281e07`**, duplicated
-in `game/tools/sim_smoke.gd` on purpose and guarded by a test. Changing it invalidates every
-recorded battle — sometimes correct, never incidental, always say so in the commit message.
+1. Install the APK, run the sim smoke test on-device, compare the hash to CI's.
+2. Close both gates, then start Phase 2 (art pipeline) — **which is blocked on the colour
+   palette decision**, see below.
+3. Add an `aarch64-linux-android` cross-compile check to CI so the Android library cannot
+   silently regress to zero bytes again.
+
+### If the owner would rather keep building than wait
+
+Phase 2 (art pipeline) is the master plan's parallel track and does **not** need a device.
+Its first real step needs the **colour palette locked** — nine proposed values in
+`docs/ART_BIBLE.md`, awaiting the owner. That is the single highest-value decision
+outstanding.
 
 ---
+
+## Frozen numeric contract
+
+See MEMORY, "`sim-core` numeric contract". Golden hash **`0x6de277a1cf08225b`**, duplicated in
+`game/tools/sim_smoke.gd` on purpose and guarded by a test. Changing it invalidates every
+recorded battle — sometimes correct, never incidental, always say so in the commit message.
 
 ## Deliberately out of scope
 
-`docs/RELEASE.md` (Phase 7) · colour palette lock (Phase 2, **blocks bulk asset work**) ·
-eight-way movement (Phase 4, if four-way looks wrong on screen) · Homebrew permission fix
-(not needed — everything installs under `$HOME`). All in `docs/BACKLOG.md`.
+`docs/RELEASE.md` (Phase 7) · eight-way movement (Phase 4, if four-way looks wrong) ·
+per-tick allocation in the battle loop (Phase 4, marked `ponytail:` at the site) ·
+Homebrew permission fix (not needed). All in `docs/BACKLOG.md`.
