@@ -51,13 +51,60 @@ jobs:
         working-directory: sim
         run: cargo fmt --all -- --check
 
+      # sim-godot is excluded here and checked in its own job below. It needs the
+      # Godot binary at build time (gdext's api-custom generates bindings from the
+      # engine itself), and downloading Godot onto both legs of this matrix would
+      # double its cost for no gain — this job exists to compare arithmetic across
+      # platforms, and sim-godot contains none.
       - name: Clippy
         working-directory: sim
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --exclude sim-godot --all-targets -- -D warnings
 
       - name: Tests
         working-directory: sim
-        run: cargo test --workspace
+        run: cargo test --workspace --exclude sim-godot
+
+  sim-godot:
+    # The GDExtension binding. Checked once, on Linux — it is the same source
+    # everywhere and this only needs to catch "does it still compile against the
+    # engine", not platform differences.
+    #
+    # This job exists because its absence let a real breakage through: adding
+    # gdext made the `sim` job fail on both platforms at once, which is the
+    # signature of a build problem rather than the cross-platform divergence that
+    # job is meant to detect. Keeping them separate keeps that signal clean.
+    name: GDExtension binding
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Fetch Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download"
+          file="Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          curl -fsSL -o godot.zip "${base}/${GODOT_VERSION}-stable/${file}.zip"
+          unzip -q godot.zip
+          sudo install -m 755 "${file}" /usr/local/bin/godot
+          godot --version
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sim
+          key: sim-godot
+
+      # sim/.cargo/config.toml hard-codes a local macOS path for GODOT4_BIN.
+      # Cargo's [env] does not override a variable already present in the
+      # environment unless it sets force = true, so this wins here.
+      - name: Build and lint the binding
+        working-directory: sim
+        env:
+          GODOT4_BIN: /usr/local/bin/godot
+        run: |
+          cargo clippy -p sim-godot --all-targets -- -D warnings
+          cargo build -p sim-godot
 
   godot:
     name: Godot project imports

@@ -259,3 +259,25 @@ ADR is the correction. **Anywhere the master plan says 1080×1920, it is wrong.*
    unlocked. Blocks bulk asset generation in Phase 2.
 2. **Final product name** — "Wastemarch" is a working title. Needs a trademark search before
    any public listing.
+
+### `sim-godot` cannot build without `GODOT4_BIN` — keep it out of the `sim` CI matrix
+
+gdext's `api-custom` feature runs the Godot binary at build time to generate its bindings.
+`sim/.cargo/config.toml` hard-codes a local macOS path, which exists on this machine and on
+**neither** CI runner. Adding gdext therefore broke CI on both matrix legs at once.
+
+**The failure signature is the useful part.** The `sim` matrix exists to detect
+*cross-platform divergence*, which shows as **one leg red and one green**. Both legs red is a
+build problem, never a divergence. Do not go looking for an arithmetic bug when both fail.
+
+Structure now: `sim` runs `--workspace --exclude sim-godot` on ubuntu + macos; a separate
+`sim-godot` job on ubuntu downloads Godot, sets `GODOT4_BIN` and builds the binding.
+
+Cargo's `[env]` does **not** override a variable already in the environment unless it says
+`force = true`. That is what lets CI's `GODOT4_BIN` win over the config file. Never add
+`force` there.
+
+### Local `cargo clippy` caches — a clean CI run can fail where local passes
+
+Clippy does not re-lint unchanged crates. `touch sim/*/src/*.rs` before trusting a local
+clippy run, or a warning introduced earlier passes locally and fails on CI's fresh checkout.
