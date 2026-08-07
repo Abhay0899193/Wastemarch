@@ -7,3 +7,15 @@
 # move it to a per-developer .cargo/config.toml that is gitignored.
 [env]
 GODOT4_BIN = "/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot"
+
+# Cross-compiling the simulation for Android phones.
+#
+# The `24` in the linker name is the minimum Android version, and it must match
+# the `sdkVersion` the exported APK reports (MASTER_PLAN.md §4). If one is
+# changed, change the other.
+#
+# Without this, `cargo build --target aarch64-linux-android` fails at the link
+# step — and, far worse, Godot's export will happily put a ZERO-BYTE library into
+# the APK and report success. Always check the size of what ends up inside.
+[target.aarch64-linux-android]
+linker = "/Users/singha7/Android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android24-clang"

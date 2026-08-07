@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Placeholder app icon. SVG rather than PNG on purpose: it is text, so it stays
+    diffable and out of Git LFS, and Godot rasterises it at whatever size each
+    platform asks for.
+
+    Colours are the proposed palette from docs/ART_BIBLE.md, which is NOT yet
+    locked. This is deliberately plain — the real icon is Phase 6 work and needs
+    the owner's sign-off on the palette first.
+
+    It does obey the Art Bible's silhouette rule: the keep reads as one shape at
+    small sizes rather than dissolving into detail.
+  -->
+  <rect width="512" height="512" fill="#8B8071"/>
+
+  <!-- The Duskwood, always on the north edge of frame. ART_BIBLE §5.3. -->
+  <path d="M0 0 h512 v104
+           l-24 14 l-26 -18 l-28 20 l-24 -16 l-30 18 l-26 -20 l-28 16
+           l-24 -14 l-30 18 l-26 -18 l-28 16 l-24 -14 l-30 18 l-26 -18
+           l-28 16 l-24 -14 l-26 16 z"
+        fill="#0A1412"/>
+
+  <!-- Hollowmere Keep: square tower, east wall collapsed. STORY.md §1.4. -->
+  <g fill="#C4BCAE">
+    <rect x="196" y="188" width="120" height="188"/>
+    <rect x="180" y="168" width="24" height="34"/>
+    <rect x="228" y="168" width="24" height="34"/>
+    <rect x="276" y="168" width="24" height="34"/>
+    <!-- the broken east wall, sloping into rubble -->
+    <path d="M316 240 l64 44 v92 h-64 z"/>
+  </g>
+
+  <!-- One lit window. Chapter 1 is a single fire in the dark. ART_BIBLE §5.3. -->
+  <rect x="240" y="268" width="32" height="44" fill="#E8A54B"/>
+
+  <!-- Old field boundary lines, still visible under everything. -->
+  <g stroke="#C4BCAE" stroke-width="5" opacity="0.34">
+    <path d="M0 412 h512"/>
+    <path d="M0 456 h512"/>
+    <path d="M118 376 v136"/>
+    <path d="M394 376 v136"/>
+  </g>
+</svg>

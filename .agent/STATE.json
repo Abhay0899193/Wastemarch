@@ -21,7 +21,8 @@
     "python": "3.14.1",
     "jdk": "Temurin 21.0.12 (user-local, ~/Library/Java/JavaVirtualMachines)",
     "android_sdk": "platform-tools adb 1.0.41, platforms;android-34, build-tools;34.0.0 (~/Android/sdk)",
-    "gdext": "godot crate 0.5.4 with api-custom, bindings generated against Godot 4.7.1"
+    "gdext": "godot crate 0.5.4 with api-custom, bindings generated against Godot 4.7.1",
+    "android_ndk": "29.0.14206865"
   },
   "paths": {
     "godot": "/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot",
@@ -54,18 +55,11 @@
       "owner": "user \u2014 needs someone with admin on this Mac"
     },
     {
-      "id": "ios-app-icons",
-      "blocks": "any completed iOS export",
-      "severity": "minor",
-      "detail": "Godot iOS export fails with 'Export Icons: Invalid icon (icons/settings_58x58)'. Placeholder icons needed. Cheap, but it stops the first real attempt.",
-      "owner": "engineer"
-    },
-    {
-      "id": "android-ndk",
-      "blocks": "the Rust sim running on Android; Phase 1 ARM gate",
-      "severity": "in progress",
-      "detail": "Android SDK/JDK installed user-local and a signed APK builds (sdkVersion 24, arm64-v8a only, verified via aapt2). BUT lib/arm64-v8a/libsim_godot.so is 0 bytes \u2014 sim-godot has never been cross-compiled for Android. Installing ndk;29.0.14206865 + rustup target aarch64-linux-android.",
-      "owner": "engineer"
+      "id": "android-device",
+      "blocks": "phase-0 gate (Android half)",
+      "severity": "blocking, needs hardware",
+      "detail": "A complete signed APK now builds: 123MB, sdkVersion 24, arm64-v8a only, containing a real 100MB libsim_godot.so (verified by size, not just presence). `adb devices` lists nothing. Owner must connect an Android phone with USB debugging on: Settings > About > tap Build number 7x, then Developer options > USB debugging. Then `~/Android/sdk/platform-tools/adb install -r <apk>`.",
+      "owner": "user"
     }
   ],
   "open_decisions": [
@@ -109,5 +103,11 @@
     "platform": "macOS editor",
     "evidence": "game/tools/sim_smoke.gd passes; determinism hash inside Godot = 0x9b91916bb3e8f1d9, the same value CI computes on ubuntu-latest and macos-latest",
     "note": "New .gdextension files are not seen until the editor scans once: run `--headless --path game --editor --quit` before `--script`."
+  },
+  "android_apk": {
+    "date": "2026-08-08",
+    "size": "123MB debug",
+    "verified": "sdkVersion:'24', native-code arm64-v8a only, libsim_godot.so 100676016 bytes (was 0 before the NDK), 36 icon entries, signed",
+    "note": "Debug build with symbols. A release build will be far smaller; not measured yet."
   }
 }

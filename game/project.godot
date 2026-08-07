@@ -14,6 +14,7 @@ config/name="Wastemarch"
 config/description="A mobile isometric base-builder and real-time strategy game."
 run/main_scene="res://world/WorldRoot.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
 
 [display]
 
