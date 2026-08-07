@@ -18,7 +18,10 @@
     "git": "2.41.0",
     "git_lfs": "3.7.1",
     "xcode": "26.3 (17C529)",
-    "python": "3.14.1"
+    "python": "3.14.1",
+    "jdk": "Temurin 21.0.12 (user-local, ~/Library/Java/JavaVirtualMachines)",
+    "android_sdk": "platform-tools adb 1.0.41, platforms;android-34, build-tools;34.0.0 (~/Android/sdk)",
+    "gdext": "godot crate 0.5.4 with api-custom, bindings generated against Godot 4.7.1"
   },
   "paths": {
     "godot": "/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot",
@@ -51,24 +54,17 @@
       "owner": "user \u2014 needs someone with admin on this Mac"
     },
     {
-      "id": "android-sdk",
-      "blocks": "phase-0 gate",
-      "severity": "blocking, but NO admin required",
-      "detail": "Android SDK and JDK not installed, but both install entirely under $HOME with no admin. Do NOT use Homebrew --cask (writes to root-owned /usr/local). Full user-local commands in docs/ENVIRONMENT.md. This is the only route to the Phase 0 gate that is not admin-blocked.",
-      "owner": "engineer can do this"
-    },
-    {
-      "id": "brew-permissions",
-      "blocks": "any future brew install, including the Android toolchain",
-      "severity": "minor",
-      "detail": "/usr/local/bin is root-owned so Homebrew cannot symlink. Fix: sudo chown -R $(whoami) /usr/local/bin",
-      "owner": "user"
-    },
-    {
       "id": "ios-app-icons",
       "blocks": "any completed iOS export",
       "severity": "minor",
       "detail": "Godot iOS export fails with 'Export Icons: Invalid icon (icons/settings_58x58)'. Placeholder icons needed. Cheap, but it stops the first real attempt.",
+      "owner": "engineer"
+    },
+    {
+      "id": "android-ndk",
+      "blocks": "the Rust sim running on Android; Phase 1 ARM gate",
+      "severity": "in progress",
+      "detail": "Android SDK/JDK installed user-local and a signed APK builds (sdkVersion 24, arm64-v8a only, verified via aapt2). BUT lib/arm64-v8a/libsim_godot.so is 0 bytes \u2014 sim-godot has never been cross-compiled for Android. Installing ndk;29.0.14206865 + rustup target aarch64-linux-android.",
       "owner": "engineer"
     }
   ],
@@ -107,5 +103,11 @@
     "result": "PASS \u2014 177MB .app built, launched, initialised 'Metal 4.0 - Forward Mobile' on M4 Pro, no errors",
     "not_verified": "Cube not visually confirmed from the EXPORTED bundle: an exported app ignores --script so capture.gd cannot run, and screencapture is blocked by macOS Screen Recording permission. The cube IS confirmed from the editor binary against the same scene file that was packed.",
     "conclusion": "Project, templates and export pipeline are sound. iOS is blocked purely on signing."
+  },
+  "gdextension_working": {
+    "date": "2026-08-08",
+    "platform": "macOS editor",
+    "evidence": "game/tools/sim_smoke.gd passes; determinism hash inside Godot = 0x9b91916bb3e8f1d9, the same value CI computes on ubuntu-latest and macos-latest",
+    "note": "New .gdextension files are not seen until the editor scans once: run `--headless --path game --editor --quit` before `--script`."
   }
 }

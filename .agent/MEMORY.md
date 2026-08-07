@@ -108,6 +108,35 @@ work, not a permissions wall. So everything up to where Apple's tooling takes ov
 `/usr/local/bin` is not. Install the JDK and Android SDK under `$HOME` — never via Homebrew
 `--cask`, which writes to `/usr/local` and fails. Full commands in `docs/ENVIRONMENT.md`.
 
+### Android toolchain — installed user-local, no admin (8 Aug 2026)
+
+| | |
+|---|---|
+| JDK | Temurin 21.0.12, `~/Library/Java/JavaVirtualMachines/jdk-21.0.12+8/Contents/Home` |
+| Android SDK | `~/Android/sdk` — platform-tools (adb 1.0.41), platforms;android-34, build-tools;34.0.0 |
+| Debug keystore | `~/.android/debug.keystore`, alias `androiddebugkey`, pass `android` |
+
+Godot editor settings (`~/Library/Application Support/Godot/editor_settings-4.7.tres`) point
+at all of the above. **Godot's defaults were wrong** — it shipped with
+`android_sdk_path = ~/Library/Android/sdk` and a keystore path that did not exist.
+
+**Never use Homebrew for this.** Its casks write to root-owned `/usr/local` and the owner has
+no admin.
+
+### Android export gotchas
+
+- **`gradle_build/min_sdk` and `target_sdk` cannot be set unless `use_gradle_build` is true.**
+  Godot refuses the export entirely: *"Min SDK can only be overridden when Use Gradle Build is
+  enabled."* Do not re-add them to `export_presets.cfg`. The prebuilt template's own values
+  are used, and they are correct — a produced APK reports `sdkVersion:'24'` and ships
+  `arm64-v8a` only, both matching `MASTER_PLAN.md` §4. Verify with
+  `~/Android/sdk/build-tools/34.0.0/aapt2 dump badging <apk>`.
+- **A missing GDExtension library becomes a ZERO-BYTE entry in the APK, silently.** The first
+  APK contained `lib/arm64-v8a/libsim_godot.so` at 0 bytes because the Rust crate had never
+  been cross-compiled for Android. The export reported success. **Always check the size**, not
+  just the presence, of every `.so` the `.gdextension` lists:
+  `unzip -l <apk> | grep lib/`.
+
 ### Godot's iOS export needs app icons
 
 The export gets all the way through generating the Xcode project and then fails:

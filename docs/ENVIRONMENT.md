@@ -49,12 +49,47 @@ update one of these, update this file in the same sitting.
 
 ## Not installed
 
+| Tool | Version | Where |
+|---|---|---|
+| **Java (Temurin JDK)** | `21.0.12` | `~/Library/Java/JavaVirtualMachines/jdk-21.0.12+8/Contents/Home` |
+| **Android SDK** | platform-tools (adb 1.0.41), platform 34, build-tools 34.0.0 | `~/Android/sdk` |
+| **Android debug keystore** | generated 8 Aug 2026 | `~/.android/debug.keystore` |
+
+Both Java and the Android SDK live **inside your home folder**, installed without any
+administrator involvement. See the setup section at the end for exactly how.
+
+## Not installed
+
 | Missing | Consequence | Plan |
 |---|---|---|
-| **An Apple ID signed into Xcode** | Cannot build for iPhone at all. | **Blocking the Phase 0 test.** See below. |
-| **Android SDK** | Cannot build an Android app at all. | Install when we are ready to put the game on an Android phone. Command below. |
-| **Java runtime** | Required by the Android SDK. | Installed alongside it. |
+| **Administrator access to this Mac** | No iPhone build of any kind is possible. | **Blocking the Phase 0 test.** See below. |
 | **`gh`** (GitHub command-line tool) | None. The repository and remote already exist. | Not needed. |
+
+### Android works today
+
+A signed Android app was produced on 8 August 2026 and checked against the requirements in
+the master plan:
+
+| Requirement | Actual | |
+|---|---|---|
+| Minimum Android version 24 | `sdkVersion:'24'` | ✅ |
+| 64-bit only, no 32-bit | `arm64-v8a` and nothing else | ✅ |
+| Named and versioned correctly | `com.wastemarch.game`, `0.1.0` | ✅ |
+
+These were read out of the finished app rather than assumed from the settings:
+
+```bash
+~/Android/sdk/build-tools/34.0.0/aapt2 dump badging Wastemarch.apk
+```
+
+**One problem found doing this, worth knowing about.** The app contained the Rust simulation
+as a **zero-byte file** — the export reported success while quietly including nothing, because
+the simulation had never been compiled for phone processors. The app would have started and
+drawn the cube, and the simulation simply would not have been there.
+
+The lesson is recorded: always check the *size* of what ends up inside the app, not just that
+the name is present. The fix, in progress, is the Android NDK — the toolkit that compiles code
+for phone processors.
 
 ### iOS — blocked on one admin password, and nothing else
 
