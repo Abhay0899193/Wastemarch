@@ -122,7 +122,7 @@ The simulation lives in a `sim/` folder split into three parts:
 | Part | What it is for | Status |
 |---|---|---|
 | **`sim-core`** | The actual rules of the game. Depends on nothing. This is the piece that must be perfectly deterministic. | **Foundations built** — see below |
-| **`sim-godot`** | A thin translation layer that lets Godot talk to `sim-core`. This is what ships on the phone. | Stub — Phase 1 |
+| **`sim-godot`** | A thin translation layer that lets Godot talk to `sim-core`. This is what ships on the phone. | **Working** — the simulation runs inside Godot, and inside the Android app |
 | **`sim-server`** | The same `sim-core`, wrapped for our server to use when validating battles. | Stub — Phase 9 |
 
 The point of the split: `sim-core` is written once, and both the phone and the server use
