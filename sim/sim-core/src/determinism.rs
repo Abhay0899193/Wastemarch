@@ -63,8 +63,75 @@ pub fn reference_workload_hash() -> u64 {
     }
 
     hash_rounding_boundaries(&mut hasher);
+    hash_world_state(&mut hasher);
 
     hasher.finish()
+}
+
+/// Exercises the grid and entity storage, and folds the result in.
+///
+/// Extended as each piece of the simulation lands, rather than afterwards. A
+/// canary is only sensitive to what its workload actually touches, so state that
+/// is never hashed here is state whose divergence nobody would notice.
+fn hash_world_state(hasher: &mut StateHasher) {
+    use crate::grid::{Grid, Terrain, Tile};
+    use crate::{Entities, Entity, EntityKind, Team};
+
+    let mut rng = Pcg32::with_stream(0x4f53_544d_4552_4500, 7); // "OSTMERE\0"
+
+    // A grid with every terrain scattered across it by seeded draws, so tile
+    // indexing and bounds behaviour are both covered.
+    let mut grid = Grid::new();
+    for _ in 0..2_000 {
+        let tile = Tile::new(rng.range(-2, crate::grid::GRID_SIZE + 1), rng.range(-2, 45));
+        let terrain = match rng.below(5) {
+            0 => Terrain::Open,
+            1 => Terrain::Mud,
+            2 => Terrain::Rock,
+            3 => Terrain::Treeline,
+            _ => Terrain::Built,
+        };
+        // Deliberately includes out-of-bounds tiles: those writes must be
+        // ignored, and a change to that behaviour must show up here.
+        grid.set(tile, terrain);
+        hasher.write_u8(grid.get(tile) as u8);
+        hasher.write_u32(grid.move_cost(tile));
+    }
+    grid.hash_into(hasher);
+
+    // Spawn, damage, and remove entities so slot reuse order is covered too.
+    let mut entities = Entities::new();
+    let mut ids = Vec::new();
+    for i in 0..200 {
+        let team = if i % 3 == 0 {
+            Team::Duskwood
+        } else {
+            Team::Holding
+        };
+        let kind = if i % 7 == 0 {
+            EntityKind::Building
+        } else {
+            EntityKind::Troop
+        };
+        let tile = Tile::new(rng.range(0, crate::grid::GRID_SIZE - 1), rng.range(0, 43));
+        ids.push(entities.spawn(Entity::new(
+            kind,
+            team,
+            tile.centre(),
+            Fx::from_ratio(rng.range(50, 400), 3),
+        )));
+    }
+    for _ in 0..400 {
+        let victim = ids[rng.below(ids.len() as u32) as usize];
+        if let Some(entity) = entities.get_mut(victim) {
+            entity.take_damage(Fx::from_ratio(rng.range(1, 90), 7));
+        }
+        for id in entities.remove_dead() {
+            hasher.write_u32(id.index());
+            hasher.write_u32(id.generation());
+        }
+    }
+    entities.hash_into(hasher);
 }
 
 /// Absorbs operations that land exactly on a rounding boundary.
@@ -113,7 +180,7 @@ mod tests {
     ///
     /// Computed on macOS (Apple M4 Pro, aarch64) with rustc 1.95.0 on 8 August
     /// 2026, and verified on x86_64 Linux by CI on the same commit.
-    const EXPECTED_HASH: u64 = 0x9b91_916b_b3e8_f1d9;
+    const EXPECTED_HASH: u64 = 0x8f71_831f_894f_8205;
 
     #[test]
     fn the_reference_workload_hashes_to_the_expected_value() {
@@ -126,6 +193,23 @@ mod tests {
              battles no longer replay.\nIf it was not deliberate, or if this passes \
              on one platform and fails on\nanother, stop and investigate. See the \
              module documentation."
+        );
+    }
+
+    #[test]
+    fn the_godot_smoke_test_expects_the_same_hash() {
+        // game/tools/sim_smoke.gd hard-codes this value on purpose: reading it
+        // back out of the library would make a stale build agree with itself.
+        // The duplication is load-bearing, so this keeps the two in step rather
+        // than leaving it to whoever edits one of them.
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../game/tools/sim_smoke.gd");
+        let source =
+            std::fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {path}: {e}"));
+        let expected = format!("const EXPECTED_HASH := \"{EXPECTED_HASH:#018x}\"");
+        assert!(
+            source.contains(&expected),
+            "game/tools/sim_smoke.gd is out of step with EXPECTED_HASH.\n\
+             It should contain:\n  {expected}"
         );
     }
 

@@ -22,11 +22,15 @@
 #![forbid(unsafe_code)]
 
 pub mod determinism;
+pub mod entity;
 pub mod fx;
+pub mod grid;
 pub mod hash;
 pub mod rng;
 
+pub use entity::{Entities, Entity, EntityId, EntityKind, Team};
 pub use fx::Fx;
+pub use grid::{Grid, Point, Terrain, Tile};
 pub use hash::StateHasher;
 pub use rng::Pcg32;
 
