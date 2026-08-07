@@ -44,18 +44,18 @@
   },
   "open_blockers": [
     {
-      "id": "ios-signing",
+      "id": "ios-admin",
       "blocks": "phase-0 gate",
-      "severity": "blocking",
-      "detail": "Xcode 26.3 installed but never signed in: `security find-identity -v -p codesigning` reports 0 valid identities, no provisioning profiles, no Xcode accounts. Godot fails the iOS export with 'App Store Team ID not specified'. A FREE Apple ID is enough \u2014 Xcode > Settings > Accounts > + creates a Personal Team that can install on your own devices (7-day expiry). Paid Developer Program only needed for TestFlight/App Store in Phase 8. Owner must sign in; engineer then reads the Team ID into export_presets.cfg.",
-      "owner": "user"
+      "severity": "blocking, needs an administrator",
+      "detail": "Owner has NO ADMIN RIGHTS. Xcode 26.3 + iOS SDK 26.2 present, but /Library/Developer/PrivateFrameworks/{CoreDevice,CoreSimulator}.framework are absent and only an admin can install them. xcodebuild refuses to start without CoreSimulator even for a device-only unsigned build, so NO iOS build of any kind is possible. The paid Developer Program does NOT work around this \u2014 TestFlight still needs an .ipa, which needs xcodebuild. FIX: an admin runs `sudo xcodebuild -runFirstLaunch` once; after that a FREE Apple ID / Personal Team suffices. Verified working without admin: Godot generates the full iOS Xcode project, device+sim xcframeworks, MoltenVK and PCK; stops only on missing app icons.",
+      "owner": "user \u2014 needs someone with admin on this Mac"
     },
     {
       "id": "android-sdk",
       "blocks": "phase-0 gate",
-      "severity": "blocking",
-      "detail": "Android SDK and Java not installed. Godot reports missing platform-tools and build-tools. Owner will install manually and report back; command in docs/ENVIRONMENT.md.",
-      "owner": "user"
+      "severity": "blocking, but NO admin required",
+      "detail": "Android SDK and JDK not installed, but both install entirely under $HOME with no admin. Do NOT use Homebrew --cask (writes to root-owned /usr/local). Full user-local commands in docs/ENVIRONMENT.md. This is the only route to the Phase 0 gate that is not admin-blocked.",
+      "owner": "engineer can do this"
     },
     {
       "id": "brew-permissions",
@@ -63,6 +63,13 @@
       "severity": "minor",
       "detail": "/usr/local/bin is root-owned so Homebrew cannot symlink. Fix: sudo chown -R $(whoami) /usr/local/bin",
       "owner": "user"
+    },
+    {
+      "id": "ios-app-icons",
+      "blocks": "any completed iOS export",
+      "severity": "minor",
+      "detail": "Godot iOS export fails with 'Export Icons: Invalid icon (icons/settings_58x58)'. Placeholder icons needed. Cheap, but it stops the first real attempt.",
+      "owner": "engineer"
     }
   ],
   "open_decisions": [

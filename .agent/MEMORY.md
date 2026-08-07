@@ -77,6 +77,43 @@ Settings that must stay true, checked after any editor session:
 `export_presets.cfg` is only rewritten when an export preset is saved, so its comments have
 survived so far. Do not rely on that.
 
+### iOS is blocked on ONE admin action — investigated fully, do not re-derive
+
+The owner has **no admin rights on this Mac**. Xcode 26.3 and iOS SDK 26.2 are installed, but
+Xcode's first-launch components in `/Library/Developer/PrivateFrameworks/` are not, and only
+an administrator can install them.
+
+- `CoreDevice.framework` — **absent**. Needed to install onto a physical iPhone.
+- `CoreSimulator.framework` — **absent**. Needed for the Simulator **and by `xcodebuild`
+  itself**, which refuses to start without it even for a device-only, unsigned build:
+  `xcodebuild failed to load a required plug-in ... run 'xcodebuild -runFirstLaunch'`.
+
+So **no iOS build of any kind is possible** — not device, not simulator, not an App Store
+archive.
+
+**The paid Developer Program does NOT route around this.** TestFlight installs over the air,
+which looks like a way to dodge the missing device tooling, but producing the `.ipa` to upload
+still needs `xcodebuild`. Do not suggest spending the money as a workaround; it buys nothing
+until the admin step happens.
+
+**Fix:** an administrator runs `sudo xcodebuild -runFirstLaunch` once (or opens Xcode and
+accepts the prompt). After that a **free** Apple ID and Personal Team is enough for device
+installs — the paid programme is a Phase 8 concern.
+
+**Verified working without admin:** Godot generates the complete iOS Xcode project, device and
+simulator xcframeworks, MoltenVK and the PCK. It stops only on missing app icons — ordinary
+work, not a permissions wall. So everything up to where Apple's tooling takes over is sound.
+
+**Android needs no admin at all.** `$HOME` and `~/.local/bin` are writable; only
+`/usr/local/bin` is not. Install the JDK and Android SDK under `$HOME` — never via Homebrew
+`--cask`, which writes to `/usr/local` and fails. Full commands in `docs/ENVIRONMENT.md`.
+
+### Godot's iOS export needs app icons
+
+The export gets all the way through generating the Xcode project and then fails:
+`Export Icons: Invalid icon (icons/settings_58x58): ''`. Placeholder icons are needed before
+any iOS export completes. Cheap to fix, but it will stop the first real attempt.
+
 ### Godot export gotchas, both cost time on 8 Aug 2026
 
 - **The macOS template ships ONE universal binary**, `godot_macos_debug.universal`. Setting

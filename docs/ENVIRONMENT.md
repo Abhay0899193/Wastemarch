@@ -56,28 +56,68 @@ update one of these, update this file in the same sitting.
 | **Java runtime** | Required by the Android SDK. | Installed alongside it. |
 | **`gh`** (GitHub command-line tool) | None. The repository and remote already exist. | Not needed. |
 
-### iOS signing — the current blocker
+### iOS — blocked on one admin password, and nothing else
 
-Xcode 26.3 is installed but has **never been signed in**. There are no signing certificates,
-no provisioning profiles, and no Apple ID configured:
+**Investigated in full on 8 August 2026. This section is the conclusion; do not re-derive it.**
+
+Xcode 26.3 is installed and the iOS SDK 26.2 is present. What is missing is Xcode's
+*first-launch components*, which live in `/Library/Developer/PrivateFrameworks/` and can only
+be installed by an administrator:
+
+| Component | Present? | Needed for |
+|---|---|---|
+| iOS SDK 26.2, iPhoneOS platform | ✅ yes | compiling |
+| `CoreDevice.framework` | ❌ **absent** | installing onto a physical iPhone |
+| `CoreSimulator.framework` | ❌ **absent** | the iOS Simulator — **and `xcodebuild` itself** |
+
+That last row is the one that decides everything. `xcodebuild` refuses to start at all without
+`CoreSimulator`, even for a device-only build with signing switched off:
 
 ```
-$ security find-identity -v -p codesigning
-     0 valid identities found
+xcodebuild failed to load a required plug-in.
+Ensure your system frameworks are up-to-date by running 'xcodebuild -runFirstLaunch'
 ```
 
-Godot therefore refuses to export for iPhone, with `App Store Team ID not specified`.
+**So there is no iOS build of any kind — device, simulator, or App Store upload — without
+one administrator action.**
 
-Apple will not let *anyone* install an app on *any* iPhone without an identity to sign it —
-this is not a Godot limitation and there is no way around it.
+#### Do not buy the Developer Program hoping to avoid this
 
-**A free Apple ID is enough for now.** Signing in to Xcode with any Apple ID creates a
-"Personal Team", which can install apps on your own devices. Those builds stop working after
-seven days and have to be reinstalled, which is fine for development. The paid Developer
-Program ($99/year) is only needed for TestFlight and the App Store, which is Phase 8.
+The £/$99-a-year programme with TestFlight looks like a way around needing admin on this Mac,
+since TestFlight installs over the air. **It is not.** Uploading to TestFlight still requires
+building an `.ipa` first, and building requires `xcodebuild`, which is exactly what is
+blocked. The money would buy nothing until the admin step happens anyway.
 
-To set it up: **Xcode → Settings → Accounts → + → Apple ID**, sign in. Then tell the
-engineer, who will read the Team ID and put it into the export settings.
+#### The fix — one command, once
+
+Whoever has administrator rights on this Mac runs:
+
+```bash
+sudo xcodebuild -runFirstLaunch
+```
+
+Equivalently, they open Xcode once and click through the "install additional components"
+prompt. It takes a couple of minutes and never needs repeating.
+
+**After that, a free Apple ID is enough.** Xcode → Settings → Accounts → + → sign in creates
+a "Personal Team" that installs on your own devices. Those builds expire after seven days and
+are simply reinstalled. The paid programme is a Phase 8 concern.
+
+#### What is already proven to work without admin
+
+Godot generated the complete iOS Xcode project, both device and simulator frameworks, MoltenVK
+and the packed game data — all of it, no admin required. The export stopped only on missing
+app icons, which is ordinary work rather than a permissions wall.
+
+So the whole chain up to the point where Apple's tooling takes over is sound.
+
+### Android needs no administrator at all
+
+Every part of the Android toolchain installs inside your home folder. `$HOME` and
+`~/.local/bin` are both writable; only `/usr/local/bin` is not, which is why Homebrew fails
+and why the instructions below deliberately avoid it.
+
+This makes Android the route that can make progress today. See the setup section at the end.
 
 ### Verified: the export chain itself works
 
@@ -179,21 +219,52 @@ it, a preference you changed months ago could quietly alter the output.
 
 ---
 
-## Installing the Android toolchain, when we get there
+## Installing the Android toolchain — no administrator needed
 
-Run these yourself, then tell the engineer it is done:
+**Do not use Homebrew for this.** Its `--cask` installers write to `/usr/local`, which is
+root-owned on this Mac and will fail. Everything below installs into your home folder
+instead, which needs no special permission.
+
+The engineer can run all of this. It is written out so you can see what it does.
 
 ```bash
-brew install --cask temurin                    # the Java runtime
-brew install --cask android-commandlinetools   # the Android SDK
-sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" \
-           "cmdline-tools;latest" "ndk;23.2.8568313"
+# 1. Java, unpacked into your home folder rather than installed system-wide.
+mkdir -p ~/Library/Java/JavaVirtualMachines
+cd ~/Downloads
+curl -LO https://api.adoptium.net/v3/binary/latest/21/ga/mac/aarch64/jdk/hotspot/normal/eclipse
+tar xzf eclipse -C ~/Library/Java/JavaVirtualMachines
+export JAVA_HOME=~/Library/Java/JavaVirtualMachines/*/Contents/Home
+
+# 2. The Android command-line tools, likewise.
+mkdir -p ~/Android/sdk/cmdline-tools
+cd ~/Downloads
+curl -LO https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip
+unzip -q commandlinetools-mac-11076708_latest.zip -d ~/Android/sdk/cmdline-tools
+mv ~/Android/sdk/cmdline-tools/cmdline-tools ~/Android/sdk/cmdline-tools/latest
+
+# 3. The pieces Godot actually needs.
+export ANDROID_HOME=~/Android/sdk
+~/Android/sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME \
+  "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 ```
 
 Then in Godot: **Editor → Editor Settings → Export → Android**, set the SDK path to
-`/usr/local/share/android-commandlinetools`, and click the button to generate a debug
-keystore. A **keystore** is the file that signs your app so Android will accept it as
-genuinely yours. The debug one is for testing on your own phone only.
+`~/Android/sdk` and the Java path to the folder from step 1, and click the button that
+generates a debug keystore.
 
-If Homebrew's permission problem above is still unfixed, these two `--cask` installs will
-fail the same way. Run the `chown` command first.
+A **keystore** is the file that signs your app so Android will accept it as genuinely yours.
+The debug one is for testing on your own phone and nothing else.
+
+Finally, on the phone: **Settings → About → tap "Build number" seven times**, then
+**Developer options → USB debugging**. Plug it in and `~/Android/sdk/platform-tools/adb
+devices` should list it.
+
+### If you would rather fix Homebrew properly
+
+One administrator command makes every future `brew install` work normally:
+
+```bash
+sudo chown -R $(whoami) /usr/local/bin
+```
+
+Not required for anything above.
