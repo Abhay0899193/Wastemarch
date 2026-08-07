@@ -17,10 +17,15 @@ JOURNAL.md when you do.
 - **Blender is 5.2.0 LTS, not 4.x.** Nearly every Blender-Python example online targets 4.x
   and several operators moved in 5.0. Verify against the 5.x API before copying any snippet.
   This will cost time in Phase 2 if forgotten.
-- **Rust 1.95.0**, only `aarch64-apple-darwin` installed. Phase 1's cross-platform
-  determinism test needs Linux and Android targets added.
-- Xcode 26.3 present → iOS builds are possible. **No Android SDK and no Java.** The owner
-  will install those manually and report back; the command is in `docs/ENVIRONMENT.md`.
+- **Rust 1.95.0** with `aarch64-apple-darwin` and `aarch64-linux-android`.
+  **`rustup target add` must be run from inside `sim/`** — elsewhere it attaches the target to
+  the *default* toolchain while cargo in `sim/` uses the 1.95.0 pinned by
+  `rust-toolchain.toml`. The symptom is a baffling "can't find crate for `std`" for a target
+  `rustup target list --installed` happily reports. Cost real time on 8 Aug 2026.
+- **Android toolchain installed** — JDK 21.0.12, SDK, NDK 29.0.14206865, all under `$HOME`.
+  See the section below.
+- Xcode 26.3 present but **iOS is blocked on an admin action** — see below. Not a signing
+  problem; `xcodebuild` itself will not start.
 
 ## Do not retry
 
