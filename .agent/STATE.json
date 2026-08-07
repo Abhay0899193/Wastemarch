@@ -1,0 +1,74 @@
+{
+  "phase": 0,
+  "phase_name": "Foundation",
+  "milestone": "M1 — .agent working memory and docs",
+  "phase_gate": "Grey cube renders on a physical iPhone AND a physical Android device from a CI-produced build",
+  "phase_gate_met": false,
+  "last_commit": "faa5cb3",
+  "last_session": "2026-08-08",
+  "repo": "git@github.com:Abhay0899193/Wastemarch.git",
+  "branch": "main",
+
+  "versions": {
+    "godot": "4.7.1.stable.official.a13da4feb",
+    "godot_export_templates": "4.7.1.stable",
+    "blender": "5.2.0 LTS (2026-07-14)",
+    "rustc": "1.95.0",
+    "cargo": "1.95.0",
+    "git": "2.41.0",
+    "git_lfs": "3.7.1",
+    "xcode": "26.3 (17C529)",
+    "python": "3.14.1"
+  },
+
+  "paths": {
+    "godot": "/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot",
+    "blender": "/Users/singha7/Applications/Blender.app/Contents/MacOS/Blender",
+    "git_lfs": "/Users/singha7/.local/bin/git-lfs"
+  },
+
+  "machine": {
+    "model": "Apple M4 Pro",
+    "memory_gb": 24,
+    "arch": "arm64"
+  },
+
+  "open_blockers": [
+    {
+      "id": "android-sdk",
+      "blocks": "phase-0 gate",
+      "detail": "Android SDK and Java not installed. Owner will install manually and report back; command in docs/ENVIRONMENT.md.",
+      "owner": "user"
+    },
+    {
+      "id": "ios-signing",
+      "blocks": "phase-0 gate",
+      "detail": "iOS signing certificates and provisioning profile not set up. Needs a self-hosted macOS GitHub runner; hosted runners cannot hold signing material safely.",
+      "owner": "engineer"
+    },
+    {
+      "id": "brew-permissions",
+      "blocks": "any future brew install",
+      "detail": "/usr/local/bin is root-owned so Homebrew cannot symlink. Fix: sudo chown -R $(whoami) /usr/local/bin",
+      "owner": "user"
+    }
+  ],
+
+  "open_decisions": [
+    {
+      "id": "colour-palette",
+      "blocks": "phase-2 bulk asset generation",
+      "detail": "Nine proposed hex values in docs/ART_BIBLE.md, deliberately unlocked. Needs owner sign-off plus a colourblind check and a phone-size test render."
+    },
+    {
+      "id": "product-name",
+      "blocks": "phase-8 public listing",
+      "detail": "'Wastemarch' is a working title. Needs USPTO/EUIPO and app-store searches before any public listing."
+    }
+  ],
+
+  "adrs": [
+    "ADR-0001 — Stack choices (accepted 2026-08-08)",
+    "ADR-0002 — Landscape 1920x1080, amends MASTER_PLAN.md §5 (accepted 2026-08-08)"
+  ]
+}
