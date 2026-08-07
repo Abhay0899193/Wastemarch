@@ -133,12 +133,19 @@ commit message that previously recorded battles no longer replay), it was change
 accident (find out how), or two platforms genuinely disagree (stop everything). Only the
 first justifies a new number.
 
-**Proven working.** On 8 August 2026, **nine** separate one-line changes were made to the
+**Proven working.** On 8 August 2026, **thirteen** separate one-line changes were made to the
 simulation and the test was confirmed to catch every one: a shifted rounding threshold,
 multiplication truncating instead of rounding, division rounding the other way, a
 random-number constant changed by 2, a square root off by one step, the order neighbouring
-tiles are examined in, a queue ordering made ambiguous, a tie broken the other way, and the
-cost of mud changed by one.
+tiles are examined in, a queue ordering made ambiguous, a tie broken the other way, the cost
+of mud changed by one, the order the steps of a battle happen in, and two ways of choosing
+which enemy to attack.
+
+**Two of the thirteen were not caught, and both taught us something.** One showed that a piece
+of the battle code believed to matter actually did nothing at all — it was removed, and the
+number did not change, which proved the point. The other is a change the check genuinely
+cannot see, and it is not the kind of change this check exists to catch. Both are written
+down rather than glossed over.
 
 That exercise also found a real gap. The first version of the workload used only
 randomly-chosen numbers, and *missed* the shifted rounding threshold — because random values

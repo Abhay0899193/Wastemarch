@@ -162,6 +162,27 @@ any iOS export completes. Cheap to fix, but it will stop the first real attempt.
   create image from display"). Not worth pursuing; verify rendering with the editor binary
   and `tools/capture.gd`.
 
+### Known canary blind spots — measured, not assumed
+
+Thirteen perturbations tried across sessions 2–3; **eleven caught, two missed**. Both misses
+are understood and neither is a cross-platform risk:
+
+1. **Deferred vs immediate damage application: MISSED, and the miss was correct.** The battle
+   loop used to gather blows and apply them afterwards, documented as producing simultaneity.
+   It did not: attackers are not alive-checked, so the two are genuinely identical. The
+   perturbation proved the buffer was dead code, and it was removed — the golden hash did not
+   move, which confirms it. **Simultaneity comes from the absence of an alive check, not from
+   the buffer.** Adding one would change the game.
+2. **Targeting by true distance instead of squared distance: MISSED.** `sqrt` is monotonic, so
+   the ordering is the same except where two distinct squared distances round to the same
+   root. That never happens in the workload. Acceptable: `isqrt` is exact and deterministic,
+   so this is a behaviour-change risk, not a platform-divergence risk — and the canary is for
+   the latter. Squared distance is still preferred, and the reason is documented at the call
+   site.
+
+**The general point: run the perturbation, then explain the result.** A miss is sometimes the
+test telling you the code was redundant.
+
 ### A determinism canary built only from random values misses tie-rounding
 
 Discovered while proving the check, not by reasoning about it. The first

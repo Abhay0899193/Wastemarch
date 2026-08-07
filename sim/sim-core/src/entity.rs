@@ -64,6 +64,24 @@ impl EntityId {
     }
 }
 
+/// What an entity can do in a fight.
+///
+/// These are **balance values and must come from `game/data/`**, never from
+/// constants in code (`CLAUDE.md` §3). `sim-core` does no I/O, so it cannot read
+/// them itself — it defines the shape and the caller supplies the numbers. That
+/// is what keeps balance tuning out of the compiler.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct Combat {
+    /// Distance covered per tick. Zero for anything that does not move.
+    pub speed: Fx,
+    /// Damage per landed attack.
+    pub damage: Fx,
+    /// How close it must be to attack.
+    pub range: Fx,
+    /// Ticks between attacks. Zero means it may attack every tick.
+    pub cooldown: u32,
+}
+
 /// A unit or building in the world.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Entity {
@@ -72,10 +90,17 @@ pub struct Entity {
     pub position: Point,
     pub health: Fx,
     pub max_health: Fx,
+    pub combat: Combat,
+    /// What it is currently attacking. Cleared when that target dies.
+    pub target: Option<EntityId>,
+    /// Ticks remaining before it may attack again.
+    pub cooldown_remaining: u32,
 }
 
 impl Entity {
-    /// A new entity at full health.
+    /// A new entity at full health, with no combat ability.
+    ///
+    /// Use [`Entity::with_combat`] to give it stats.
     pub fn new(kind: EntityKind, team: Team, position: Point, max_health: Fx) -> Entity {
         Entity {
             kind,
@@ -83,7 +108,16 @@ impl Entity {
             position,
             health: max_health,
             max_health,
+            combat: Combat::default(),
+            target: None,
+            cooldown_remaining: 0,
         }
+    }
+
+    /// The same entity with combat stats attached.
+    pub fn with_combat(mut self, combat: Combat) -> Entity {
+        self.combat = combat;
+        self
     }
 
     /// Whether this entity still counts as alive.
@@ -108,6 +142,21 @@ impl Entity {
         hasher.write_fx(self.position.y);
         hasher.write_fx(self.health);
         hasher.write_fx(self.max_health);
+        hasher.write_fx(self.combat.speed);
+        hasher.write_fx(self.combat.damage);
+        hasher.write_fx(self.combat.range);
+        hasher.write_u32(self.combat.cooldown);
+        hasher.write_u32(self.cooldown_remaining);
+        // Who a unit is aiming at is simulation state: two runs that agree on
+        // health but disagree on targets will diverge on the very next tick.
+        match self.target {
+            Some(id) => {
+                hasher.write_u8(1);
+                hasher.write_u32(id.index());
+                hasher.write_u32(id.generation());
+            }
+            None => hasher.write_u8(0),
+        }
     }
 }
 

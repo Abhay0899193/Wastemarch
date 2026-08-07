@@ -160,6 +160,88 @@ fn hash_world_state(hasher: &mut StateHasher) {
             hasher.write_i32(tile.y);
         }
     }
+
+    hash_a_whole_battle(hasher);
+}
+
+/// Runs an actual battle and folds its state into the hash.
+///
+/// This is the best workload in the file, because it is the only one that
+/// exercises everything at once and in the order the real game uses it:
+/// targeting, movement geometry, simultaneous damage, death, and flow fields
+/// rebuilt as the board changes. Anything that diverges between two machines
+/// almost certainly shows up here first.
+///
+/// Hashed every tick rather than only at the end — a battle that ends with
+/// everyone dead leaves an empty entity list, which hashes the same no matter how
+/// it got there.
+fn hash_a_whole_battle(hasher: &mut StateHasher) {
+    use crate::grid::{Grid, Terrain, Tile};
+    use crate::{Battle, Combat, Entity, EntityKind, Team};
+
+    let mut rng = Pcg32::with_stream(0x4475_736b_776f_6f64, 3); // "Duskwood"
+
+    let mut grid = Grid::new();
+    for _ in 0..120 {
+        grid.set(
+            Tile::new(rng.range(0, 43), rng.range(0, 43)),
+            if rng.below(2) == 0 {
+                Terrain::Rock
+            } else {
+                Terrain::Mud
+            },
+        );
+    }
+
+    let mut battle = Battle::new(grid, 0x5761_7220);
+
+    for i in 0..24 {
+        let attacker = Combat {
+            speed: Fx::from_ratio(rng.range(1, 4), 20),
+            damage: Fx::from_ratio(rng.range(20, 140), 10),
+            range: Fx::from_ratio(rng.range(10, 45), 10),
+            cooldown: rng.below(6),
+        };
+        battle.spawn(
+            Entity::new(
+                EntityKind::Troop,
+                Team::Holding,
+                Tile::new(rng.range(0, 20), rng.range(0, 43)).centre(),
+                Fx::from_ratio(rng.range(200, 900), 4),
+            )
+            .with_combat(attacker),
+        );
+
+        let defender = Combat {
+            speed: Fx::from_ratio(rng.range(1, 4), 20),
+            damage: Fx::from_ratio(rng.range(20, 140), 10),
+            range: Fx::from_ratio(rng.range(10, 45), 10),
+            cooldown: rng.below(6),
+        };
+        battle.spawn(
+            Entity::new(
+                if i % 5 == 0 {
+                    EntityKind::Building
+                } else {
+                    EntityKind::Troop
+                },
+                Team::Duskwood,
+                Tile::new(rng.range(24, 43), rng.range(0, 43)).centre(),
+                Fx::from_ratio(rng.range(200, 900), 4),
+            )
+            .with_combat(defender),
+        );
+    }
+
+    for _ in 0..600 {
+        battle.step();
+        hasher.write_u64(battle.state_hash());
+        if battle.is_over() {
+            break;
+        }
+    }
+    hasher.write_u32(battle.tick());
+    hasher.write_u64(battle.state_hash());
 }
 
 /// Absorbs operations that land exactly on a rounding boundary.
@@ -208,7 +290,7 @@ mod tests {
     ///
     /// Computed on macOS (Apple M4 Pro, aarch64) with rustc 1.95.0 on 8 August
     /// 2026, and verified on x86_64 Linux by CI on the same commit.
-    const EXPECTED_HASH: u64 = 0x60d0_b217_ca28_1e07;
+    const EXPECTED_HASH: u64 = 0x6de2_77a1_cf08_225b;
 
     #[test]
     fn the_reference_workload_hashes_to_the_expected_value() {

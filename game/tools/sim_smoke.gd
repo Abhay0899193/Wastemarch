@@ -18,7 +18,7 @@ extends SceneTree
 
 ## Kept in step with determinism.rs::tests::EXPECTED_HASH. If you change one,
 ## change both — and see that file's documentation before changing either.
-const EXPECTED_HASH := "0x60d0b217ca281e07"
+const EXPECTED_HASH := "0x6de277a1cf08225b"
 const EXPECTED_TICK_RATE := 20
 
 var _failures := 0
