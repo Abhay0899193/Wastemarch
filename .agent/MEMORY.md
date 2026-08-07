@@ -9,11 +9,11 @@ JOURNAL.md when you do.
 
 - **Godot** `4.7.1.stable.official.a13da4feb` at
   `/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot`. Matches the target exactly.
-- **Export templates are WEB-ONLY.** The `4.7.1.stable` template directory exists and looks
-  populated, but holds only the eight `web_*.zip` files. `ios.zip` and the Android templates
-  are absent, so both phone exports fail at the first step. **Do not assume "the directory
-  exists" means "templates are installed" — always `ls` for the specific file.** Fix and
-  verification command in `docs/ENVIRONMENT.md`. Blocks the Phase 0 gate.
+- **Export templates: COMPLETE** as of 8 Aug 2026 — all 35 files including `ios.zip`,
+  `android_debug.apk`, `android_release.apk`, `macos.zip`. Resolved by the owner.
+  *Historical note worth keeping:* they were previously web-only while the directory looked
+  populated. **Never take "the directory exists" as "the templates are installed" — `ls` for
+  the specific file.**
 - **Blender is 5.2.0 LTS, not 4.x.** Nearly every Blender-Python example online targets 4.x
   and several operators moved in 5.0. Verify against the 5.x API before copying any snippet.
   This will cost time in Phase 2 if forgotten.
@@ -76,6 +76,20 @@ Settings that must stay true, checked after any editor session:
 
 `export_presets.cfg` is only rewritten when an export preset is saved, so its comments have
 survived so far. Do not rely on that.
+
+### Godot export gotchas, both cost time on 8 Aug 2026
+
+- **The macOS template ships ONE universal binary**, `godot_macos_debug.universal`. Setting
+  `binary_format/architecture="arm64"` fails with `Requested template binary
+  "godot_macos_debug.arm64" not found` — which reads like a missing download and is not. Use
+  `"universal"`. Verify what a template actually contains with
+  `unzip -l ~/Library/Application\ Support/Godot/export_templates/4.7.1.stable/macos.zip`.
+- **An exported app ignores `--script`.** It just runs the main scene. `tools/capture.gd`
+  therefore only works against the **editor** binary, not an export. Do not try to screenshot
+  an exported build that way — it silently runs the game forever instead.
+- `screencapture` from a shell is blocked by macOS Screen Recording permission ("could not
+  create image from display"). Not worth pursuing; verify rendering with the editor binary
+  and `tools/capture.gd`.
 
 ### A determinism canary built only from random values misses tie-rounding
 

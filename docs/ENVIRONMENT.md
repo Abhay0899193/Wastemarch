@@ -28,7 +28,7 @@ update one of these, update this file in the same sitting.
 | Tool | Version | Where |
 |---|---|---|
 | **Godot** | `4.7.1.stable.official.a13da4feb` ✅ *matches target* | `/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot` |
-| **Godot export templates** | `4.7.1.stable` — ⚠️ **web only**, see below | `~/Library/Application Support/Godot/export_templates/4.7.1.stable/` |
+| **Godot export templates** | `4.7.1.stable` — ✅ **complete**, all 35 files | `~/Library/Application Support/Godot/export_templates/4.7.1.stable/` |
 | **Blender** | `5.2.0 LTS` (built 14 July 2026) | `/Users/singha7/Applications/Blender.app/Contents/MacOS/Blender` |
 | **Rust** | `rustc 1.95.0` / `cargo 1.95.0` | `~/.cargo/bin/` |
 | **Git** | `2.41.0` | `/usr/bin/git` |
@@ -51,43 +51,54 @@ update one of these, update this file in the same sitting.
 
 | Missing | Consequence | Plan |
 |---|---|---|
-| **iOS and Android export templates** | Cannot produce an app for either phone platform. | Download the full set — see below. Needed for the Phase 0 test. |
+| **An Apple ID signed into Xcode** | Cannot build for iPhone at all. | **Blocking the Phase 0 test.** See below. |
 | **Android SDK** | Cannot build an Android app at all. | Install when we are ready to put the game on an Android phone. Command below. |
 | **Java runtime** | Required by the Android SDK. | Installed alongside it. |
 | **`gh`** (GitHub command-line tool) | None. The repository and remote already exist. | Not needed. |
 
-### The export templates are incomplete
+### iOS signing — the current blocker
 
-The folder `~/Library/Application Support/Godot/export_templates/4.7.1.stable/` exists, but
-it contains **only the eight web templates**. `ios.zip` and the Android templates are not
-there, so an export for either phone fails immediately:
+Xcode 26.3 is installed but has **never been signed in**. There are no signing certificates,
+no provisioning profiles, and no Apple ID configured:
 
 ```
-No export template found at the expected path:
-  .../export_templates/4.7.1.stable/ios.zip
+$ security find-identity -v -p codesigning
+     0 valid identities found
 ```
 
-**This blocks the Phase 0 test** — no phone build is possible until it is fixed.
+Godot therefore refuses to export for iPhone, with `App Store Team ID not specified`.
 
-The easiest fix is inside Godot: **Editor → Manage Export Templates… → Download and
-Install**. It picks a working mirror and puts everything in the right place. The full set is
-roughly 1 GB.
+Apple will not let *anyone* install an app on *any* iPhone without an identity to sign it —
+this is not a Godot limitation and there is no way around it.
 
-The equivalent from a terminal, if you prefer:
+**A free Apple ID is enough for now.** Signing in to Xcode with any Apple ID creates a
+"Personal Team", which can install apps on your own devices. Those builds stop working after
+seven days and have to be reinstalled, which is fine for development. The paid Developer
+Program ($99/year) is only needed for TestFlight and the App Store, which is Phase 8.
 
-```bash
-cd ~/Downloads
-curl -LO https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
-unzip -o Godot_v4.7.1-stable_export_templates.tpz -d /tmp/godot-tpl
-mkdir -p ~/Library/Application\ Support/Godot/export_templates/4.7.1.stable
-cp /tmp/godot-tpl/templates/* ~/Library/Application\ Support/Godot/export_templates/4.7.1.stable/
+To set it up: **Xcode → Settings → Accounts → + → Apple ID**, sign in. Then tell the
+engineer, who will read the Team ID and put it into the export settings.
+
+### Verified: the export chain itself works
+
+To separate "the project cannot export" from "signing is not configured", a macOS build was
+produced on 8 August 2026 with signing switched off. It built (a 177 MB app bundle), started,
+and initialised the correct renderer:
+
+```
+Metal 4.0 - Forward Mobile - Using Device #0: Apple - Apple M4 Pro (Apple9)
 ```
 
-To confirm it worked, `ios.zip` should be listed by:
+So the project, the templates and the export pipeline are all sound. **The only thing
+standing between here and an app on your iPhone is the Apple ID.**
 
-```bash
-ls ~/Library/Application\ Support/Godot/export_templates/4.7.1.stable/
-```
+Two things learned doing this, recorded so they do not cost time again:
+
+- The macOS template contains **one universal binary**, not one per processor type. Asking
+  the export for `arm64` fails with `Requested template binary "godot_macos_debug.arm64" not
+  found`, which reads like a missing download but is not. The setting must say `universal`.
+- An **exported** app ignores `--script`; it just runs the game. That option only works with
+  the Godot editor binary.
 
 ---
 

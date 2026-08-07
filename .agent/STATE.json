@@ -11,7 +11,7 @@
   "branch": "main",
   "versions": {
     "godot": "4.7.1.stable.official.a13da4feb",
-    "godot_export_templates": "4.7.1.stable \u2014 WEB ONLY, ios.zip and android templates absent",
+    "godot_export_templates": "4.7.1.stable \u2014 COMPLETE, all 35 files (ios.zip, android, macos, linux, windows, web)",
     "blender": "5.2.0 LTS (2026-07-14)",
     "rustc": "1.95.0",
     "cargo": "1.95.0",
@@ -44,18 +44,11 @@
   },
   "open_blockers": [
     {
-      "id": "godot-export-templates",
-      "blocks": "phase-0 gate",
-      "severity": "blocking",
-      "detail": "export_templates/4.7.1.stable/ contains only the eight web_*.zip files. ios.zip and the Android templates are absent, so both phone exports fail immediately. ~1GB download. Editor > Manage Export Templates > Download and Install, or the curl command in docs/ENVIRONMENT.md. Owner reported starting this install on 8 Aug 2026.",
-      "owner": "either"
-    },
-    {
       "id": "ios-signing",
       "blocks": "phase-0 gate",
       "severity": "blocking",
-      "detail": "No signing certificate or provisioning profile, and no self-hosted macOS runner. GitHub-hosted runners cannot hold signing material safely. Needs the owner's Apple ID.",
-      "owner": "engineer, needs owner input"
+      "detail": "Xcode 26.3 installed but never signed in: `security find-identity -v -p codesigning` reports 0 valid identities, no provisioning profiles, no Xcode accounts. Godot fails the iOS export with 'App Store Team ID not specified'. A FREE Apple ID is enough \u2014 Xcode > Settings > Accounts > + creates a Personal Team that can install on your own devices (7-day expiry). Paid Developer Program only needed for TestFlight/App Store in Phase 8. Owner must sign in; engineer then reads the Team ID into export_presets.cfg.",
+      "owner": "user"
     },
     {
       "id": "android-sdk",
@@ -100,5 +93,12 @@
     "rng": "PCG32, multiplier 6364136223846793005, default stream 0xda3e39cb94b95bdb",
     "hasher": "FNV-1a 64, hand-written \u2014 never std DefaultHasher, which is not stable across platforms",
     "golden_hash": "0x9b91916bb3e8f1d9 in determinism.rs::tests::EXPECTED_HASH"
+  },
+  "export_chain_verified": {
+    "date": "2026-08-08",
+    "how": "macOS export with signing disabled, to separate 'cannot export' from 'signing not configured'",
+    "result": "PASS \u2014 177MB .app built, launched, initialised 'Metal 4.0 - Forward Mobile' on M4 Pro, no errors",
+    "not_verified": "Cube not visually confirmed from the EXPORTED bundle: an exported app ignores --script so capture.gd cannot run, and screencapture is blocked by macOS Screen Recording permission. The cube IS confirmed from the editor binary against the same scene file that was packed.",
+    "conclusion": "Project, templates and export pipeline are sound. iOS is blocked purely on signing."
   }
 }
