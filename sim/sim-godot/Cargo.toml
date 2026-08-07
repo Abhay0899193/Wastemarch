@@ -1,0 +1,22 @@
+[package]
+name = "sim-godot"
+description = "GDExtension binding: the doorway from Godot into sim-core. Ships on the phone."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+# cdylib is what Godot loads at runtime; rlib keeps it usable from Rust tests.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+sim-core = { path = "../sim-core" }
+
+# The `godot` crate (gdext) is deliberately NOT here yet.
+#
+# Adding it means pinning a binding version against Godot 4.7 and a multi-minute
+# first build, in exchange for nothing — sim-core has no API to expose yet. It
+# goes in at the start of Phase 1, as soon as there is something worth calling.
+#
+# This is a decision, not an oversight. Also recorded in .agent/MEMORY.md.

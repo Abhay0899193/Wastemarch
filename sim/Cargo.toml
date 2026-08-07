@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["sim-core", "sim-godot", "sim-server"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+
+[profile.release]
+# Determinism is worth more than the last few percent of speed. One codegen unit
+# and no LTO variance keeps optimisation decisions identical across machines.
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+overflow-checks = true

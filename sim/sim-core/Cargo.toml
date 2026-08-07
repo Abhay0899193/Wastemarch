@@ -1,0 +1,12 @@
+[package]
+name = "sim-core"
+description = "Deterministic game simulation. Fixed-point integer maths only, no I/O, no engine types."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Dependencies are deliberately empty and should stay that way as long as possible.
+# Anything pulled in here also has to be deterministic across architectures, and
+# auditing a dependency tree for that is far more work than writing the maths.
+[dependencies]

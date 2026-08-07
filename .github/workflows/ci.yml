@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.1
+
+jobs:
+  sim:
+    name: Simulation core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false # no binary assets are needed to build or test the sim
+
+      # Runs first, before anything is compiled. A float in sim-core is not a
+      # code-quality nit to fix later, it is a correctness failure that
+      # invalidates every other result in this job.
+      - name: No floating-point in sim-core
+        run: sh ci/no-floats.sh
+
+      # No setup-rust step on purpose. sim/rust-toolchain.toml pins 1.95.0 with
+      # rustfmt and clippy, and rustup installs it on the first cargo command.
+      # One source of truth for the version beats two that can drift apart.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sim
+
+      - name: Toolchain
+        working-directory: sim
+        run: cargo --version && rustc --version
+
+      - name: Formatting
+        working-directory: sim
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        working-directory: sim
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        working-directory: sim
+        run: cargo test --workspace
+
+  godot:
+    name: Godot project imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true # the project references assets, so they must be real files
+
+      - name: Fetch Godot ${{ env.GODOT_VERSION }} headless
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download"
+          file="Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          curl -fsSL -o godot.zip "${base}/${GODOT_VERSION}-stable/${file}.zip"
+          unzip -q godot.zip
+          sudo install -m 755 "${file}" /usr/local/bin/godot
+          godot --version
+
+      # Catches broken scene references, missing files and corrupt resources now,
+      # rather than the next time someone opens the editor.
+      - name: Import and run the project
+        run: |
+          set -euo pipefail
+          godot --headless --path game --quit           2>&1 | tee import.log
+          godot --headless --path game --quit-after 5   2>&1 | tee -a import.log
+          if grep -qE "(ERROR|SCRIPT ERROR):" import.log; then
+            echo "::error::Godot reported errors during import"
+            grep -nE "(ERROR|SCRIPT ERROR):" import.log
+            exit 1
+          fi
+
+  ios:
+    name: iOS build
+    # Manual only, and a stub. A real iOS build needs signing certificates, which
+    # cannot be held safely on a GitHub-hosted runner — this moves to a
+    # self-hosted macOS runner at the end of Phase 0. Running it on every push
+    # would only burn minutes failing.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Not yet implemented
+        run: |
+          echo "::warning::iOS export is not wired up yet."
+          echo "Blocked on: export templates (ios.zip absent locally),"
+          echo "            signing certificates, and a self-hosted macOS runner."
+          echo "Tracked in .agent/PLAN.md under 'Remaining Phase 0 work'."

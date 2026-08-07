@@ -1,0 +1,9 @@
+# Pinned so every machine and every CI runner compile sim-core with the identical
+# compiler. Different compiler versions can make different optimisation choices,
+# and determinism is the whole point of this workspace.
+#
+# Bumping this is a deliberate act: bump it, then re-run the cross-platform hash
+# test from Phase 1 before trusting the result.
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]
