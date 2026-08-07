@@ -64,6 +64,16 @@ jobs:
         working-directory: sim
         run: cargo test --workspace --exclude sim-godot
 
+      # MASTER_PLAN.md §9 wants 10,000 seeded runs. The sweep itself is only ~6s
+      # in release (~157s in debug, where overflow checks dominate) — the real
+      # cost is the extra release build, which is why this runs on ubuntu only.
+      # GitHub bills macOS runners at ten times the rate, and the cross-platform
+      # question is already settled by the golden hash that both legs check.
+      - name: Full 10,000-seed sweep
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: sim
+        run: cargo test -p sim-core --release -- --ignored --nocapture
+
   sim-godot:
     # The GDExtension binding. Checked once, on Linux — it is the same source
     # everywhere and this only needs to catch "does it still compile against the

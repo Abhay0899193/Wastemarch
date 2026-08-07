@@ -323,6 +323,89 @@ mod tests {
         );
     }
 
+    /// Plays `count` seeded battles twice each and checks every pair matches.
+    ///
+    /// `MASTER_PLAN.md` §9 asks for 10,000 seeded runs. In a debug build that is
+    /// about two and a half minutes — the release profile's overflow checks are
+    /// most of it — against roughly six seconds in release. Too slow to sit in
+    /// every debug run, trivial in release.
+    ///
+    /// So: a thousand seeds run everywhere in debug on every push and would catch
+    /// a regression first, and the full sweep is `#[ignore]`d and run by CI in
+    /// release on the Linux leg. The slow one is the contract; the fast one is
+    /// the early warning.
+    fn seeded_battles_replay_identically(count: u64, distinct_floor: usize) {
+        use crate::grid::{Grid, Terrain, Tile};
+        use crate::{Battle, Combat, Entity, EntityKind, Team};
+
+        fn play(seed: u64) -> u64 {
+            let mut rng = Pcg32::new(seed);
+            let mut grid = Grid::new();
+            for _ in 0..12 {
+                grid.set(Tile::new(rng.range(0, 43), rng.range(0, 43)), Terrain::Rock);
+            }
+            let mut battle = Battle::new(grid, seed);
+            for i in 0..4 {
+                for team in [Team::Holding, Team::Duskwood] {
+                    let combat = Combat {
+                        speed: Fx::from_ratio(rng.range(1, 5), 20),
+                        damage: Fx::from_ratio(rng.range(10, 90), 10),
+                        range: Fx::from_ratio(rng.range(10, 40), 10),
+                        cooldown: rng.below(5),
+                    };
+                    battle.spawn(
+                        Entity::new(
+                            EntityKind::Troop,
+                            team,
+                            Tile::new(rng.range(0, 43), rng.range(0, 43)).centre(),
+                            Fx::from_ratio(rng.range(80, 400), 4),
+                        )
+                        .with_combat(combat),
+                    );
+                    let _ = i;
+                }
+            }
+            battle.run(120);
+            battle.state_hash()
+        }
+
+        let mut distinct = std::collections::HashSet::new();
+        for seed in 0..count {
+            let first = play(seed);
+            let second = play(seed);
+            assert_eq!(first, second, "seed {seed} did not replay identically");
+            distinct.insert(first);
+        }
+
+        // Different seeds must mostly produce different battles. Without this a
+        // simulation that ignored its inputs entirely would pass the loop above
+        // with flying colours.
+        assert!(
+            distinct.len() > distinct_floor,
+            "only {} distinct outcomes from {count} seeds — is the seed being used?",
+            distinct.len()
+        );
+    }
+
+    #[test]
+    fn a_thousand_seeded_battles_each_replay_identically() {
+        seeded_battles_replay_identically(1_000, 900);
+    }
+
+    /// The full `MASTER_PLAN.md` §9 sweep. Run it in **release**, where it takes
+    /// about six seconds rather than two and a half minutes:
+    ///
+    /// ```text
+    /// cargo test -p sim-core --release -- --ignored
+    /// ```
+    ///
+    /// CI runs exactly that on the Linux leg.
+    #[test]
+    #[ignore = "slow in debug — run with --release; CI does so on the Linux leg"]
+    fn ten_thousand_seeded_battles_each_replay_identically() {
+        seeded_battles_replay_identically(10_000, 9_000);
+    }
+
     #[test]
     fn the_workload_is_stable_within_a_single_run() {
         // Guards against accidental hidden state — a static, a lazily initialised

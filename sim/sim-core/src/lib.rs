@@ -28,6 +28,7 @@ pub mod fx;
 pub mod grid;
 pub mod hash;
 pub mod pathfind;
+pub mod record;
 pub mod rng;
 
 pub use battle::Battle;
@@ -36,6 +37,7 @@ pub use fx::Fx;
 pub use grid::{Grid, Point, Terrain, Tile};
 pub use hash::StateHasher;
 pub use pathfind::{Direction, FlowField};
+pub use record::{BattleRecord, BattleSetup, Input, ReplayError, TimedInput, TroopSpec, replay};
 pub use rng::Pcg32;
 
 /// Simulation ticks per second. Fixed forever — rendering interpolates between
