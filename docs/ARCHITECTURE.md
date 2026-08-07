@@ -62,8 +62,9 @@ We want three things that all depend on it:
 
 **Replays that cost nothing.** A battle replay is not a video. It is the starting layout,
 one random number seed, and a list of "at 4.2 seconds, the player dropped an archer here."
-Roughly two kilobytes. To play it back, we run the battle again and it comes out identical.
-A video of the same battle would be tens of megabytes.
+A busy three-minute battle comes to **1,015 bytes** — measured, not estimated. To play it
+back, we run the battle again and it comes out identical. A video of the same battle would be
+tens of megabytes.
 
 **Player-versus-player in version 2, without rewriting the game.** When players can raid
 each other, the game has to answer: did that battle really happen the way the phone claims?
@@ -121,7 +122,7 @@ The simulation lives in a `sim/` folder split into three parts:
 
 | Part | What it is for | Status |
 |---|---|---|
-| **`sim-core`** | The actual rules of the game. Depends on nothing. This is the piece that must be perfectly deterministic. | **Foundations built** — see below |
+| **`sim-core`** | The actual rules of the game. Depends on nothing. This is the piece that must be perfectly deterministic. | **Phase 1 complete** — see below |
 | **`sim-godot`** | A thin translation layer that lets Godot talk to `sim-core`. This is what ships on the phone. | **Working** — the simulation runs inside Godot, and inside the Android app |
 | **`sim-server`** | The same `sim-core`, wrapped for our server to use when validating battles. | Stub — Phase 9 |
 
@@ -130,8 +131,8 @@ it unchanged. `sim-godot` and `sim-server` are just different doorways into the 
 
 ### What is built so far
 
-Three foundation pieces, in the order they had to be built — each one is the ground the next
-stands on, and none of them can be swapped out later without redoing everything above.
+Everything Phase 1 asked for, in the order it had to be built — each piece is the ground the
+next stands on, and none can be swapped out later without redoing everything above.
 
 **The number type.** A whole-number type standing in for decimals, with 12 bits set aside
 for the fractional part. One metre divides into 4,096 steps. Adding 4,096 of the smallest
