@@ -132,6 +132,34 @@ fn hash_world_state(hasher: &mut StateHasher) {
         }
     }
     entities.hash_into(hasher);
+
+    // Pathfinding, on the board built above. This is the most valuable thing in
+    // the whole workload: it is the only part with a priority queue, and a
+    // priority queue is exactly where a platform difference in tie ordering would
+    // hide. Several goals, some of them on impassable tiles, so the
+    // approach-but-do-not-enter rule is covered too.
+    let goals = [
+        Tile::new(4, 4),
+        Tile::new(40, 39),
+        Tile::new(21, 22),
+        Tile::new(-3, 12), // out of bounds; must be ignored
+    ];
+    let field = crate::FlowField::towards(&grid, &goals);
+    field.hash_into(hasher);
+
+    // Trace a few routes so the walked path, not just the stored field, is
+    // covered — the two could disagree if direction selection ever changed.
+    for start in [
+        Tile::new(0, 0),
+        Tile::new(43, 43),
+        Tile::new(17, 31),
+        Tile::new(30, 2),
+    ] {
+        for tile in field.trace(start, 512) {
+            hasher.write_i32(tile.x);
+            hasher.write_i32(tile.y);
+        }
+    }
 }
 
 /// Absorbs operations that land exactly on a rounding boundary.
@@ -180,7 +208,7 @@ mod tests {
     ///
     /// Computed on macOS (Apple M4 Pro, aarch64) with rustc 1.95.0 on 8 August
     /// 2026, and verified on x86_64 Linux by CI on the same commit.
-    const EXPECTED_HASH: u64 = 0x8f71_831f_894f_8205;
+    const EXPECTED_HASH: u64 = 0x60d0_b217_ca28_1e07;
 
     #[test]
     fn the_reference_workload_hashes_to_the_expected_value() {
