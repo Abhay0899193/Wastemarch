@@ -1,0 +1,60 @@
+[gd_scene load_steps=6 format=3]
+
+; Phase 0 gate scene: a grey cube under the locked game camera.
+; The camera is the real deliverable here — orthographic, 30 degrees elevation,
+; 45 degrees yaw, per docs/ART_BIBLE.md. Every asset in the project is designed
+; for this exact view, so it is worth getting right before anything is modelled.
+;
+; The cube and ground plane are placeholders and get replaced in Phase 3.
+
+[sub_resource type="Environment" id="Environment_world"]
+background_mode = 1
+background_color = Color(0.11, 0.12, 0.13, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.42, 0.44, 0.48, 1)
+ambient_light_energy = 0.6
+
+[sub_resource type="StandardMaterial3D" id="Material_grey"]
+albedo_color = Color(0.55, 0.55, 0.55, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="Material_ground"]
+albedo_color = Color(0.32, 0.31, 0.28, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="Mesh_cube"]
+material = SubResource("Material_grey")
+size = Vector3(4, 4, 4)
+
+[sub_resource type="PlaneMesh" id="Mesh_ground"]
+material = SubResource("Material_ground")
+size = Vector2(40, 40)
+
+[node name="WorldRoot" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_world")
+
+; Elevation and yaw are written as angles rather than a basis matrix so the locked
+; camera from the Art Bible is readable in the file. Position is 20m back along the
+; camera's own forward axis, so it looks exactly at the world origin.
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(12.247449, 10, 12.247449)
+rotation_degrees = Vector3(-30, 45, 0)
+projection = 1
+size = 16.0
+far = 200.0
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+position = Vector3(0, 20, 0)
+rotation_degrees = Vector3(-45, -50, 0)
+light_energy = 1.1
+shadow_enabled = true
+directional_shadow_mode = 0
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_ground")
+
+[node name="GreyCube" type="MeshInstance3D" parent="."]
+position = Vector3(0, 2, 0)
+mesh = SubResource("Mesh_cube")

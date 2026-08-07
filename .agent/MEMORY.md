@@ -9,8 +9,11 @@ JOURNAL.md when you do.
 
 - **Godot** `4.7.1.stable.official.a13da4feb` at
   `/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot`. Matches the target exactly.
-  Export templates for `4.7.1.stable` are already installed at
-  `~/Library/Application Support/Godot/export_templates/4.7.1.stable/`.
+- **Export templates are WEB-ONLY.** The `4.7.1.stable` template directory exists and looks
+  populated, but holds only the eight `web_*.zip` files. `ios.zip` and the Android templates
+  are absent, so both phone exports fail at the first step. **Do not assume "the directory
+  exists" means "templates are installed" — always `ls` for the specific file.** Fix and
+  verification command in `docs/ENVIRONMENT.md`. Blocks the Phase 0 gate.
 - **Blender is 5.2.0 LTS, not 4.x.** Nearly every Blender-Python example online targets 4.x
   and several operators moved in 5.0. Verify against the 5.x API before copying any snippet.
   This will cost time in Phase 2 if forgotten.
@@ -40,6 +43,21 @@ break there. **Always use the two-step:**
 ```bash
 git mv claude.md CLAUDE.tmp && git mv CLAUDE.tmp CLAUDE.md
 ```
+
+### Godot `Transform3D(...)` literals in .tscn fill ROWS, not columns
+
+Writing a camera basis as columns produces the transposed (= inverted) rotation, and the
+camera silently points the wrong way — the scene renders the environment background only,
+with no error and no warning. Cost about fifteen minutes in session 1.
+
+**Prefer `position = Vector3(...)` + `rotation_degrees = Vector3(...)` in hand-written
+.tscn files.** Godot applies them correctly, and "30 degrees elevation, 45 yaw" stays
+readable in the diff. Reserve raw `Transform3D` literals for files Godot itself wrote.
+
+**Verify camera framing empirically, never by eye on the maths:**
+`cam.unproject_position(Vector3.ZERO)` must land near the centre of `root.size`.
+`game/tools/capture.gd` renders a scene to PNG for exactly this. It needs a real rendering
+device — do **not** pass `--headless`, or `root.get_texture()` returns null.
 
 ## Decisions with non-obvious reasoning
 

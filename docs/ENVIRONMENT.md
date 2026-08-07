@@ -28,7 +28,7 @@ update one of these, update this file in the same sitting.
 | Tool | Version | Where |
 |---|---|---|
 | **Godot** | `4.7.1.stable.official.a13da4feb` ✅ *matches target* | `/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot` |
-| **Godot export templates** | `4.7.1.stable` ✅ installed | `~/Library/Application Support/Godot/export_templates/4.7.1.stable/` |
+| **Godot export templates** | `4.7.1.stable` — ⚠️ **web only**, see below | `~/Library/Application Support/Godot/export_templates/4.7.1.stable/` |
 | **Blender** | `5.2.0 LTS` (built 14 July 2026) | `/Users/singha7/Applications/Blender.app/Contents/MacOS/Blender` |
 | **Rust** | `rustc 1.95.0` / `cargo 1.95.0` | `~/.cargo/bin/` |
 | **Git** | `2.41.0` | `/usr/bin/git` |
@@ -51,9 +51,43 @@ update one of these, update this file in the same sitting.
 
 | Missing | Consequence | Plan |
 |---|---|---|
+| **iOS and Android export templates** | Cannot produce an app for either phone platform. | Download the full set — see below. Needed for the Phase 0 test. |
 | **Android SDK** | Cannot build an Android app at all. | Install when we are ready to put the game on an Android phone. Command below. |
 | **Java runtime** | Required by the Android SDK. | Installed alongside it. |
 | **`gh`** (GitHub command-line tool) | None. The repository and remote already exist. | Not needed. |
+
+### The export templates are incomplete
+
+The folder `~/Library/Application Support/Godot/export_templates/4.7.1.stable/` exists, but
+it contains **only the eight web templates**. `ios.zip` and the Android templates are not
+there, so an export for either phone fails immediately:
+
+```
+No export template found at the expected path:
+  .../export_templates/4.7.1.stable/ios.zip
+```
+
+**This blocks the Phase 0 test** — no phone build is possible until it is fixed.
+
+The easiest fix is inside Godot: **Editor → Manage Export Templates… → Download and
+Install**. It picks a working mirror and puts everything in the right place. The full set is
+roughly 1 GB.
+
+The equivalent from a terminal, if you prefer:
+
+```bash
+cd ~/Downloads
+curl -LO https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
+unzip -o Godot_v4.7.1-stable_export_templates.tpz -d /tmp/godot-tpl
+mkdir -p ~/Library/Application\ Support/Godot/export_templates/4.7.1.stable
+cp /tmp/godot-tpl/templates/* ~/Library/Application\ Support/Godot/export_templates/4.7.1.stable/
+```
+
+To confirm it worked, `ios.zip` should be listed by:
+
+```bash
+ls ~/Library/Application\ Support/Godot/export_templates/4.7.1.stable/
+```
 
 ---
 

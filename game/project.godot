@@ -1,0 +1,32 @@
+; Engine configuration file.
+; Wastemarch — mobile isometric base-builder.
+;
+; Renderer, resolution and orientation here are load-bearing decisions, not defaults:
+;   - Mobile renderer, never Forward+        MASTER_PLAN.md §4
+;   - Landscape 1920x1080                    docs/decisions/ADR-0002
+;   - canvas_items stretch, expand aspect    MASTER_PLAN.md §5
+
+config_version=5
+
+[application]
+
+config/name="Wastemarch"
+config/description="A mobile isometric base-builder and real-time strategy game."
+run/main_scene="res://world/WorldRoot.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation="landscape"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
+anti_aliasing/quality/msaa_3d=1
