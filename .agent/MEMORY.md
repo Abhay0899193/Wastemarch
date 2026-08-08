@@ -816,3 +816,29 @@ part they were missing.
 **Known regression to fix next: emission does not survive the bake.** The watchtower's brazier
 was an emissive material and is now flat pale in the baked albedo. Emissive parts need either a
 separate emission texture in the glTF or to stay on their own unbaked material.
+
+### Side-by-side beats opinion: `scratchpad/compare.py` pattern
+
+The owner said the models looked nothing like the concepts and I kept answering with fixes
+instead of looking. Rendering each shipped `.glb` at the game camera and stacking it directly
+under its concept made the four real gaps obvious in one image:
+
+1. **Sharpness** — one 1024 texture over a whole building holds far less resolution per face
+   than a 1024 concept that spent all of itself on three visible sides. Now baked at **2048**.
+2. **Lighting** — ambient was 0.6 of neutral grey against a 1.1 sun, so the shadow side was lit
+   nearly as brightly as the front. Every model read flat. Now a **warm 2.0 sun against a cool
+   0.32 ambient**, which is the hard lit-side/shadow-side split that reads as premium in this
+   genre. Biggest single win of the session and it was a two-line change.
+3. **Geometry** — the watchtower's ladder, railings and bracing exist but are too thin to read.
+   Still open.
+4. **Emission was lost in the bake.** `DIFFUSE` drops it. Now bakes `EMIT` to its own texture
+   and wires it to Emission Color, which glTF carries natively.
+
+**Render the shipped asset beside its concept before deciding what is wrong.** Three sessions
+of fixes went into things that were not the main problem.
+
+### The preview ground had no material
+
+It rendered pure white, blew out under the stronger sun, and made every building look dark by
+comparison. Now dead soil `#8B8071` from ADR-0004. The ground is most of the frame in this
+game — it can never be a placeholder while judging art.

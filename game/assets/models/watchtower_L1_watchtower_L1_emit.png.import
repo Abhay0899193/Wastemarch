@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cii4jd54b2qgv"
-path="res://.godot/imported/watchtower_L1_watchtower_L1_albedo.png-4c8450def1eada48fbbce56a2cc3dcf3.ctex"
+uid="uid://ly5f2rposabj"
+path="res://.godot/imported/watchtower_L1_watchtower_L1_emit.png-5c3cc30c93af2b7d3170b62bd2839676.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "b0c3371f88a6d01a12b6b40e18e9739d"
+"md5": "5638aba32bc7e0259dcaff3ef5a69311"
 }
 
 [deps]
 
-source_file="res://assets/models/watchtower_L1_watchtower_L1_albedo.png"
-dest_files=["res://.godot/imported/watchtower_L1_watchtower_L1_albedo.png-4c8450def1eada48fbbce56a2cc3dcf3.ctex"]
+source_file="res://assets/models/watchtower_L1_watchtower_L1_emit.png"
+dest_files=["res://.godot/imported/watchtower_L1_watchtower_L1_emit.png-5c3cc30c93af2b7d3170b62bd2839676.ctex"]
 
 [params]
 

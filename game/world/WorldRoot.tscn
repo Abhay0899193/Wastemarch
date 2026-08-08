@@ -13,8 +13,13 @@
 background_mode = 1
 background_color = Color(0.11, 0.12, 0.13, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.42, 0.44, 0.48, 1)
-ambient_light_energy = 0.6
+; Cool and dim, against a warm sun. This split is what gives a building a clearly
+; lit side and a clearly shadowed one instead of an even grey wash — the thing
+; that reads as "premium" in Clash of Clans and every game in the genre. It was
+; 0.6 of a neutral grey, which lit the shadow side almost as brightly as the sun
+; lit the front, and left every model looking flat beside its own concept art.
+ambient_light_color = Color(0.34, 0.39, 0.5, 1)
+ambient_light_energy = 0.32
 
 [sub_resource type="StandardMaterial3D" id="Material_grey"]
 albedo_color = Color(0.55, 0.55, 0.55, 1)
@@ -51,7 +56,8 @@ far = 200.0
 [node name="Sun" type="DirectionalLight3D" parent="."]
 position = Vector3(0, 20, 0)
 rotation_degrees = Vector3(-45, -50, 0)
-light_energy = 1.1
+light_color = Color(1, 0.95, 0.87, 1)
+light_energy = 2.0
 shadow_enabled = true
 directional_shadow_mode = 0
 

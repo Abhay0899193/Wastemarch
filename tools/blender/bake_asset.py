@@ -40,7 +40,11 @@ REPO = Path(__file__).resolve().parent.parent.parent
 OUT_DIR = REPO / "assets-src" / "model"
 TEX_DIR = REPO / "assets-src" / "baked"
 
-BAKE_PX = 1024
+# 2048, not 1024. One texture is stretched over a whole building, so it holds far
+# less resolution per face than a 1024 concept image that spent all of itself on
+# the three visible sides. At 1024 the buildings came out visibly blurry beside
+# their own concepts. 2048 costs 4x the texture memory and is still one texture.
+BAKE_PX = 2048
 AO_SAMPLES = 24          # plenty for soft contact shadows on box geometry
 AO_STRENGTH = 0.85       # 1.0 is very dark in corners; this keeps it readable
 MARGIN_PX = 16           # bleed past each UV island, so seams do not show
@@ -120,6 +124,14 @@ def multiply_into(albedo, ao, strength: float) -> None:
     a[:, 3] = 1.0
     albedo.pixels.foreach_set(a.reshape(-1))
     albedo.update()
+
+
+def _has_any_light(img) -> bool:
+    """Whether an emission bake found anything at all."""
+    import numpy as np
+    a = np.empty(BAKE_PX * BAKE_PX * 4, dtype=np.float32)
+    img.pixels.foreach_get(a)
+    return bool(a.reshape(-1, 4)[:, :3].max() > 0.02)
 
 
 def save(img, path: Path) -> None:
@@ -211,6 +223,23 @@ def main(argv) -> int:
     bake("AO")
     print(f"  baked ambient occlusion, {AO_SAMPLES} samples")
 
+    # --- 3b. emission, which the albedo bake throws away ---------------------
+    #
+    # Baking DIFFUSE colour drops emission entirely, so the watchtower's brazier
+    # and the keep's lit doorway came out flat. glTF carries an emissive texture
+    # natively, so this bakes one and wires it up.
+    emit = new_image(f"{args.asset}_emit", (0.0, 0.0, 0.0, 1.0))
+    for m in mats:
+        add_bake_target(m, emit, "baked")
+    bake("EMIT")
+    emit_path = TEX_DIR / f"{args.asset}_L{args.level}_emit.png"
+    has_emit = _has_any_light(emit)
+    if has_emit:
+        save(emit, emit_path)
+        print(f"  baked emission -> {emit_path.name}")
+    else:
+        print("  no emissive surfaces on this asset")
+
     multiply_into(albedo, ao, args.ao_strength)
     tex_path = TEX_DIR / f"{args.asset}_L{args.level}_albedo.png"
     save(albedo, tex_path)
@@ -228,6 +257,14 @@ def main(argv) -> int:
     ftex = final.node_tree.nodes.new("ShaderNodeTexImage")
     ftex.image = saved
     final.node_tree.links.new(ftex.outputs["Color"], fb.inputs["Base Color"])
+
+    if has_emit:
+        eimg = bpy.data.images.load(str(emit_path), check_existing=False)
+        etex = final.node_tree.nodes.new("ShaderNodeTexImage")
+        etex.image = eimg
+        final.node_tree.links.new(etex.outputs["Color"],
+                                  fb.inputs["Emission Color"])
+        fb.inputs["Emission Strength"].default_value = 1.0
     obj.data.materials.append(final)
 
     # The camera-space UVs have done their job and must not ship: glTF would
