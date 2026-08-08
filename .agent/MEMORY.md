@@ -582,3 +582,26 @@ Fix: tiles arrive already tinted, written by `_palette_tile()`. Base colour is t
 nothing else, so there is no node left for an exporter to drop. **Read the `.glb` back when a
 material looks wrong** — the JSON chunk is plain text and it answers in seconds what an hour of
 staring at renders will not.
+
+### Pick source files by what they ARE, not by what they are not
+
+`_newest_tile()` excluded `_tile.png` by name and took the alphabetically last of the rest.
+Then `_normal.png` appeared beside it, which sorts **after** `_1001.png` — so the newest-file
+rule silently chose the *normal map* as the base-colour source. Buildings turned pale, lost
+their mortar, and nothing failed.
+
+Now it matches `<material>_<digits>.png`. **A blocklist of suffixes grows stale the moment a
+new output appears; an allowlist of what a source file looks like does not.**
+
+### Triangle budgets are a ceiling, and the first pass used a sixth of one
+
+The keep was 660 triangles of a 4,000 budget and looked like a massing study beside its own
+concept art. Adding a stepped plinth, corner quoins, buttresses, recessed arrow slits and a
+proper doorway reveal took it to 1,104 — still 28% of budget — and closed most of the visible
+gap.
+
+**Quoins are the best value in the list:** alternating large blocks at each corner, twelve
+triangles apiece, and they are the single most recognisable "this is masonry" cue there is.
+
+The scene budget is even slacker: three buildings are 3,436 of 250,000 triangles. Draw calls,
+not triangles, are the real mobile constraint — spend geometry freely, add materials never.

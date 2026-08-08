@@ -657,3 +657,25 @@ black building into a named error, which is why attempts four and five were quic
 rather than expressed in a material, and texel density is now 512 rather than 256 — not a
 violation but a consequence, because with tiling, density is set by repeat frequency and
 repeating more often costs nothing.
+
+### The owner said the models look nothing like the concepts, and was right
+
+Diagnosis, worst first: no ambient occlusion; a sixth of the triangle budget being used; no
+normal map; zero hue variation inside a material; flat lighting.
+
+Fixed this session — **normal maps** derived from each tile's luminance by Sobel gradient
+(glTF carries a normal texture natively, unlike the colour mix it dropped earlier), and
+**geometry**: the keep went from 660 to 1,104 triangles with a stepped plinth, corner quoins,
+buttresses, recessed arrow slits and a doorway with jambs and a lintel. Quoins are the best
+value of the lot — twelve triangles each and the clearest "this is masonry" cue available.
+
+**Budgets are a ceiling and I had been treating them as a target.** Three buildings are 3,436
+of 250,000 triangles. Draw calls are the real mobile constraint, not geometry.
+
+**One silent bug worth the scar.** `_newest_tile()` excluded `_tile.png` by name and took the
+alphabetically last of the rest. Adding `_normal.png` — which sorts after `_1001.png` — made
+the *normal map* the base-colour source. The stone turned pale, lost its mortar, and nothing
+failed. Now it matches `<material>_<digits>.png`: a blocklist of suffixes goes stale the moment
+a new output appears, an allowlist of what a source looks like does not.
+
+Still open, in order: ambient occlusion, lighting, and bounded hue variation within a material.

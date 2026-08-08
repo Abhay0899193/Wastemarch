@@ -47,6 +47,10 @@ TEXTURE_PX = 1024
 # memory however often it repeats, so tiling twice as often doubles the apparent
 # resolution for nothing. That is why this is 2 m and not 4 m.
 TILE_METRES = 2.0
+
+# How much relief the derived normal maps imply. Above about 12 the stones start
+# to look inflated rather than laid.
+NORMAL_STRENGTH = 6.0
 ACHIEVED_TEXEL_DENSITY = TEXTURE_PX / TILE_METRES        # 512 px/m
 MATERIAL_DIR = REPO / "assets-src" / "material"
 LOD1_RATIO = 0.4             # LOD1 must be no more than 40% of the original
@@ -182,7 +186,55 @@ def _palette_tile(material: str, source: Path, rgb):
             f"VALIDATION FAILED: {out_path.name} saved with mean brightness "
             f"{lum:.3f} — it is blank. The pixels never reached the file.")
 
+    # A normal map from the same tile, so individual stones and planks catch the
+    # light instead of the surface reading as a flat sticker. Derived rather than
+    # generated: the height information is already in the tile's brightness, and
+    # a second AI pass would only invent a different surface.
+    _normal_from_height(material, source, out_path.parent)
+
     return out, mean
+
+
+def _normal_from_height(material: str, source: Path, out_dir: Path):
+    """Turn a tile's brightness into a tangent-space normal map.
+
+    Sobel gradients on the luminance, which for a texture whose bright parts are
+    raised — stone faces against dark mortar, plank faces against gaps — is a
+    good enough height field. `NORMAL_STRENGTH` is the one knob.
+    """
+    img = bpy.data.images.load(str(source), check_existing=False)
+    w, h = img.size
+    px = [0.0] * (w * h * 4)
+    img.pixels.foreach_get(px)
+
+    lum = [0.0] * (w * h)
+    for i in range(w * h):
+        j = i * 4
+        lum[i] = 0.2126 * px[j] + 0.7152 * px[j + 1] + 0.0722 * px[j + 2]
+
+    out = [0.0] * (w * h * 4)
+    for y in range(h):
+        yn, yp = ((y - 1) % h) * w, ((y + 1) % h) * w
+        row = y * w
+        for x in range(w):
+            xn, xp = (x - 1) % w, (x + 1) % w
+            dx = lum[row + xp] - lum[row + xn]
+            dy = lum[yp + x] - lum[yn + x]
+            nx, ny, nz = -dx * NORMAL_STRENGTH, -dy * NORMAL_STRENGTH, 1.0
+            inv = 1.0 / math.sqrt(nx * nx + ny * ny + nz * nz)
+            j = (row + x) * 4
+            out[j] = nx * inv * 0.5 + 0.5
+            out[j + 1] = ny * inv * 0.5 + 0.5
+            out[j + 2] = nz * inv * 0.5 + 0.5
+            out[j + 3] = 1.0
+
+    path = out_dir / f"{material}_normal.png"
+    img.pixels.foreach_set(out)
+    img.update()
+    img.filepath_raw = str(path)
+    img.file_format = "PNG"
+    img.save()      # colorspace is never touched here — see .agent/MEMORY.md
+    return path
 
 
 def _newest_tile(material: str):
@@ -194,8 +246,15 @@ def _newest_tile(material: str):
     d = MATERIAL_DIR / material
     if not d.is_dir():
         return None
+    # Only the generated originals, which are named `<material>_<seed>.png`.
+    #
+    # An earlier version excluded `_tile.png` by name and nothing else, then a
+    # `_normal.png` appeared beside it — which sorts *after* `_1001.png`, so the
+    # newest-file rule silently picked the normal map as the base colour source.
+    # The buildings turned pale and lost their mortar and nothing failed.
+    # Matching what a source file *is* beats listing what it is not.
     tiles = sorted(p for p in d.glob(f"{material}_*.png")
-                   if not p.name.endswith("_tile.png"))
+                   if p.stem.rsplit("_", 1)[-1].isdigit())
     return tiles[-1] if tiles else None
 
 
@@ -229,10 +288,24 @@ def build_materials(obj) -> None:
             # texture and nothing else. No node here can be dropped on export
             # because there is no node here.
             tinted, _mean = _palette_tile(name, tile, rgb)
-            tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
+            nt = mat.node_tree
+            tex = nt.nodes.new("ShaderNodeTexImage")
             tex.image = tinted
-            mat.node_tree.links.new(tex.outputs["Color"],
-                                    bsdf.inputs["Base Color"])
+            nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+
+            # glTF carries a normal map as its own texture plus a scale, which
+            # is one of the few things it does understand, so this survives
+            # export where a colour mix did not.
+            npath = tile.parent / f"{name}_normal.png"
+            if npath.exists():
+                nimg = bpy.data.images.load(str(npath), check_existing=True)
+                nimg.colorspace_settings.name = "Non-Color"
+                ntex = nt.nodes.new("ShaderNodeTexImage")
+                ntex.image = nimg
+                nmap = nt.nodes.new("ShaderNodeNormalMap")
+                nmap.inputs["Strength"].default_value = 1.0
+                nt.links.new(ntex.outputs["Color"], nmap.inputs["Color"])
+                nt.links.new(nmap.outputs["Normal"], bsdf.inputs["Normal"])
 
         if name == "firelight":
             bsdf.inputs["Emission Color"].default_value = (*rgb, 1.0)
@@ -503,11 +576,60 @@ def build_keep(level: int = 1, detail: bool = True):
             (tower_w, tower_w, merlon_h))
 
     if detail:
-        # Arched door with steps up to it, and the crimson banner. All three are
-        # things the eye finds first at close range and cannot resolve at all
-        # from far away.
+        # --- the detail that makes it read as built rather than extruded ---
+        #
+        # All of this was missing in the first version, which used 660 of a 4,000
+        # triangle budget and looked like a massing study next to its own concept
+        # art. Boxes are cheap; the budget exists to be spent.
+
+        using("stone")
+
+        # Stepped plinth. Two courses, each slightly wider than the one above, so
+        # the building sits into the ground instead of on top of it.
+        for i, (inset, hgt) in enumerate(((0.00, 0.16), (0.13, 0.13))):
+            z0 = 0.16 * i
+            for sx, sy, w, dd in ((0, 1, foot, wall_t), (0, -1, foot, wall_t),
+                                  (1, 0, wall_t, foot - 2 * wall_t),
+                                  (-1, 0, wall_t, foot - 2 * wall_t)):
+                box(bm, (sx * (foot / 2 - wall_t / 2),
+                         sy * (foot / 2 - wall_t / 2), z0 + hgt / 2),
+                    (w + inset * 2 if w > wall_t else w + inset * 2,
+                     dd + inset * 2 if dd > wall_t else dd + inset * 2, hgt))
+
+        # Corner quoins — the alternating large blocks that dress a stone corner.
+        # Cheap, and the single most recognisable "this is masonry" cue there is.
+        for cx, cy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            for k in range(5):
+                z = 0.34 + k * (wall_h - 0.4) / 5
+                long_x = (k % 2 == 0)
+                box(bm, (cx * (foot / 2 - (0.30 if long_x else 0.14)),
+                         cy * (foot / 2 - (0.14 if long_x else 0.30)), z),
+                    (0.62 if long_x else 0.30, 0.30 if long_x else 0.62, 0.24))
+
+        # Buttresses, one per wall, tapering as they rise.
+        for sx, sy in ((0, -1), (1, 0), (-1, 0)):
+            bx, by = sx * (foot / 2 - 0.04), sy * (foot / 2 - 0.04)
+            prism(bm, (bx, by, 0.30), (0.46, 0.46),
+                  (bx * 0.94, by * 0.94, wall_h * 0.82), (0.30, 0.30))
+
+        # Arrow slits, sunk into the front and side walls.
+        for sx, sy, ww, dd in ((-1.1, -1, 0.16, 0.14), (1.1, -1, 0.16, 0.14),
+                               (0, -1, 0.16, 0.14)):
+            if sx == 0:
+                continue
+            box(bm, (sx, sy * (foot / 2 - wall_t) - 0.02,
+                     wall_h * 0.62), (ww, dd, 0.52))
+
+        # A recessed arched doorway: a sunk reveal, a lintel and two jambs, so
+        # the door reads as a hole in a thick wall rather than a painted panel.
+        dz = -(foot / 2 - wall_t / 2)
+        box(bm, (0.0, dz, 0.66), (1.16, wall_t + 0.06, 1.30))
+        box(bm, (0.0, dz - 0.06, 1.32), (1.30, wall_t + 0.14, 0.22))
+        for jx in (-0.62, 0.62):
+            box(bm, (jx, dz - 0.06, 0.68), (0.20, wall_t + 0.14, 1.34))
+
         using("timber")
-        box(bm, (0.0, -(foot / 2 - wall_t) + 0.02, 0.55), (0.85, 0.12, 1.10))
+        box(bm, (0.0, -(foot / 2 - wall_t) + 0.04, 0.55), (0.82, 0.10, 1.06))
         using("stone")
         for i, sz in enumerate((0.06, 0.12, 0.18)):
             box(bm, (0.0, -(foot / 2) - 0.12 + i * 0.13, sz / 2),
