@@ -684,7 +684,7 @@ def build_keep(level: int = 1, detail: bool = True):
 
 
 def build_watchtower(level: int = 1, detail: bool = True):
-    """2x2 tiles, but tall. The hardest asset for the silhouette rule.
+    """3x3 tiles. The hardest asset for the silhouette rule.
 
     Matched to `assets-src/concept/watchtower/watchtower_1004.png`: a tapered
     stone core braced by four splayed timber legs, an external ladder, a railed
@@ -693,6 +693,16 @@ def build_watchtower(level: int = 1, detail: bool = True):
     Almost all of this building's identity is in its outline, which is why the
     splay is generous. A vertical stick reads as scaffolding; a splayed one
     reads as a tower.
+
+    **It was 4.64 m tall on a 2x2 footprint and that was the bug the owner kept
+    seeing.** At 30 degrees elevation a building of height h covers roughly
+    1.7 x h tiles of ground behind it on screen, so a 2.3:1 tower swallowed
+    everything within eight tiles and looked like it was placed through its
+    neighbours. Some occlusion is inherent to an isometric camera and Clash of
+    Clans has it too — but its buildings are about as wide as they are tall.
+
+    Now 3x3 tiles and shorter, for a ratio near 1.2, which matches the granary.
+    `HEIGHT_TO_FOOTPRINT_LIMIT` in the validator stops it drifting back.
     """
     t = (max(1, min(5, level)) - 1) / 4.0
 
@@ -701,12 +711,12 @@ def build_watchtower(level: int = 1, detail: bool = True):
     using("stone")
     bm = bmesh.new()
 
-    foot = 2.0 * TILE
-    base_h = 0.14
-    core_bot, core_top = 1.15, 0.78          # the stone core tapers as it rises
-    plat_z = 2.5 + 0.7 * t
-    plat_w = 1.34
-    leg_bot = foot / 2 - 0.16
+    foot = 3.0 * TILE
+    base_h = 0.16
+    core_bot, core_top = 1.42, 0.96          # the stone core tapers as it rises
+    plat_z = 2.05 + 0.45 * t
+    plat_w = 1.72
+    leg_bot = foot / 2 - 0.34
 
     using("stone")
     box(bm, (0, 0, base_h / 2), (foot - 0.06, foot - 0.06, base_h))
@@ -795,7 +805,7 @@ def build_watchtower(level: int = 1, detail: bool = True):
 
     bm.to_mesh(obj.data)
     bm.free()
-    return obj, "small", (2, 2)
+    return obj, "small", (3, 3)
 
 
 BUILDERS = {"granary": build_granary, "keep": build_keep,
@@ -900,6 +910,14 @@ def triangles(obj) -> int:
 # building is not.
 MAX_OVERHANG = 0.35
 
+# How tall a building may be relative to the shorter side of its footprint.
+#
+# At 30 degrees elevation a building of height h covers about 1.7 x h tiles of
+# ground behind it on screen. A tall thing on a small base therefore looks placed
+# *through* whatever is behind it, however correct the tile occupancy is. The
+# watchtower was 2.3 and looked broken; the granary is 1.26 and does not.
+HEIGHT_TO_FOOTPRINT_LIMIT = 1.6
+
 
 def validate(obj, size_class: str, footprint_tiles) -> dict:
     """Every rule from CLAUDE.md and ART_BIBLE.md that a script can check.
@@ -955,6 +973,16 @@ def validate(obj, size_class: str, footprint_tiles) -> dict:
             f"footprint by {overhang:.3f} m, more than the {MAX_OVERHANG} m "
             f"allowed — it would sit on top of the next building")
 
+    height = max(zs) - min(zs)
+    ratio = height / min(fw, fd)
+    if ratio > HEIGHT_TO_FOOTPRINT_LIMIT:
+        problems.append(
+            f"is {height:.2f} m tall on a {min(fw, fd):.0f} m footprint, a "
+            f"ratio of {ratio:.2f} against a limit of "
+            f"{HEIGHT_TO_FOOTPRINT_LIMIT}. At this camera it will visually "
+            f"swallow anything placed behind it. Make it shorter or give it a "
+            f"bigger footprint")
+
     if not obj.data.uv_layers:
         problems.append("no UV layer — the model was never unwrapped")
 
@@ -972,7 +1000,8 @@ def validate(obj, size_class: str, footprint_tiles) -> dict:
         "footprint_tiles": list(footprint_tiles),
         "overhang_m": round(overhang, 3),
         "extent_m": [round(max(xs) - min(xs), 3), round(max(ys) - min(ys), 3)],
-        "height_m": round(max(zs) - min(zs), 3),
+        "height_m": round(height, 3),
+        "height_to_footprint": round(ratio, 2),
     }
 
 

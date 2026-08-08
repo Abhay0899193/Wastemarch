@@ -15,6 +15,7 @@
     4.38
   ],
   "height_m": 3.9,
+  "height_to_footprint": 0.98,
   "lod1_triangles": 132,
   "file": "assets-src/model/keep_L1.glb",
   "level": 1

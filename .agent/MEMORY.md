@@ -975,3 +975,23 @@ in every caller, and it cannot be bypassed by a caller nobody thought of.**
 
 The test now exercises the same door a player uses. A check that calls a private helper the
 player never touches will keep passing while the game is broken.
+
+### Height to footprint is a real constraint, and 1.6 is the limit
+
+At 30 degrees elevation a building of height `h` hides roughly **1.7 x h tiles of ground
+behind it** on screen. So a tall building on a small base looks placed *through* whatever
+stands behind it, however correct its tile occupancy is.
+
+The watchtower was 4.64 m on a 2x2 footprint — a ratio of 2.32 — and the owner reported it
+three separate times as an overlap bug. It was not a placement bug; the placement was right and
+the proportion was wrong. Now 3x3 and shorter, ratio 1.42.
+
+`HEIGHT_TO_FOOTPRINT_LIMIT = 1.6` in `build_asset.py` fails the build over it. Current: granary
+1.31, keep 0.98, watchtower 1.42.
+
+**Some occlusion is unavoidable and Clash of Clans has it too** — its buildings are simply about
+as wide as they are tall, so it stays mild. Zero occlusion is not achievable for anything but a
+flat object; the only lever is squatter buildings.
+
+`game/tools/pack.gd` places ten buildings shoulder to shoulder and photographs it, which is the
+case that keeps producing complaints and is too slow to set up by hand.

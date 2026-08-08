@@ -15,6 +15,7 @@
     2.14
   ],
   "height_m": 2.615,
+  "height_to_footprint": 1.31,
   "lod1_triangles": null,
   "lod1_skipped": "294 triangles is below the 400 threshold \u2014 a second mesh would cost more than it saves",
   "file": "assets-src/model/granary_L1.glb",

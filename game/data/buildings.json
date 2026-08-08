@@ -9,7 +9,9 @@
     "cost      what it takes to place, deducted immediately",
     "produces  resource and amount, added every `interval` seconds once built",
     "build_s   seconds from placement to finished",
-    "footprint tiles, and the model is expected to match it"
+    "footprint tiles, and the model is expected to match it. A building's height",
+    "          must stay under 1.6x its shortest footprint side or it visually",
+    "          swallows whatever stands behind it — build_asset.py enforces this."
   ],
   "buildings": [
     {
@@ -33,7 +35,7 @@
     {
       "id": "watchtower",
       "name": "Watchtower",
-      "footprint": [2, 2],
+      "footprint": [3, 3],
       "cost": {"grain": 40, "timber": 20},
       "build_s": 9.0,
       "produces": {"resource": "stone", "amount": 2, "interval": 8.0},
