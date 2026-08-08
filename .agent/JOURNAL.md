@@ -409,3 +409,17 @@ does an emulator close the Phase 1 gate, or does it need a physical phone?** It 
 M4 Pro silicon as the macOS leg, so it proves the toolchain and ABI, not a second chip vendor.
 `sim-core` is pure integer, which is why that risk is small — but it is the owner's call and
 the gate stays open until they make it.
+
+### Owner's decision, same session
+
+**The emulator closes the Phase 1 gate.** Recorded as
+`docs/decisions/ADR-0003-emulator-satisfies-the-phase-1-gate.md`, which states the accepted
+risk plainly: it does not prove a Qualcomm chip agrees with an Apple one. The mitigation is
+structural rather than procedural — `sim-core` has no floats, and whole-number arithmetic is
+exactly defined by the instruction set, which is the whole reason for the no-float lint.
+
+Follow-on recorded in the ADR: **re-run check 6 on the first physical phone**, as part of the
+Phase 0 hardware pass. A disagreement there reopens Phase 1.
+
+**Phase 1 is complete.** The only thing blocking forward progress is now the colour palette in
+`docs/ART_BIBLE.md`, which the owner is reviewing. Phase 2 starts when it is locked.

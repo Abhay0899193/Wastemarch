@@ -36,7 +36,7 @@ Phases 1 and 2 run at the same time. Everything else is in order.
 
 ---
 
-## Phase 0 — Foundation · week 1 · **in progress**
+## Phase 0 — Foundation · week 1 · **in progress, hardware only**
 
 Set up the project so that everything after it is easy. The repository, large-file storage,
 all the documentation you are reading, the working-memory files the engineer uses to survive
@@ -50,10 +50,11 @@ Why a grey cube? Because it proves the entire chain works end to end — project
 engine, build system, signing, installing on a device — while containing nothing that could
 itself be broken. If the cube appears, everything underneath it is sound.
 
-**Still outstanding:** iOS signing certificates and an automated build; the Android toolchain
-is not installed yet.
+**Still outstanding:** the two hardware items. iOS needs one administrator command on this Mac
+(see [ENVIRONMENT.md](ENVIRONMENT.md)); Android needs a physical phone for the speed budget.
+The Android toolchain itself is installed and produces a complete, signed app.
 
-## Phase 1 — The simulation core · weeks 2–3
+## Phase 1 — The simulation core · weeks 2–3 · **complete**
 
 Build the rules engine in Rust: whole-number arithmetic, seeded randomness, units, the grid,
 pathfinding, target selection, damage. Wire it into Godot. Add a check that runs the same
@@ -62,11 +63,13 @@ battle on a Mac, on a Linux machine, and on a phone chip, and compares the resul
 **Finished when:** the same battle produces a byte-for-byte identical result on macOS, on
 Linux, and on an ARM device.
 
-**Status, 8 August 2026:** all three agree. The third is an *emulated* Android phone running
-on the Mac — see [TESTING.md](TESTING.md) check 6. Because the Mac and phones share the same
-kind of processor, that is a real test of the phone build and not a pretend one. It is still
-the same physical chip as the macOS result, so whether it counts as "an ARM device" is a
-judgement call left to the project owner.
+**Status, 8 August 2026: complete.** All three agree on `0x6de277a1cf08225b`. The third is an
+*emulated* Android phone running on the Mac — see [TESTING.md](TESTING.md) check 6. Because
+the Mac and phones share the same kind of processor, that is a real test of the phone build
+and not a pretend one. The owner accepted it as satisfying the gate in
+[ADR-0003](decisions/ADR-0003-emulator-satisfies-the-phase-1-gate.md), which is honest about
+the one risk that leaves open. A physical phone is still required for Phase 0's speed budget,
+and the same test gets re-run there.
 
 **Seeded randomness** means the random numbers come from a starting value we choose, so the
 same starting value always produces the same sequence. It is randomness you can replay.

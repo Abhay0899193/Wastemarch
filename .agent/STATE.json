@@ -1,9 +1,9 @@
 {
-  "phase": 1,
-  "phase_name": "Deterministic sim core — ARM leg verified on an emulator; physical-phone gate is the owner's call",
-  "milestone": "Android emulator runs the real arm64 build; determinism hash agrees with macOS and Linux",
+  "phase": 2,
+  "phase_name": "Phase 1 COMPLETE (ADR-0003). Phase 2 — art pipeline — blocked on the colour palette decision.",
+  "milestone": "Phase 1 closed: hash agrees on macOS, Linux and an arm64 Android emulator",
   "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
-  "phase_gate_met": false,
+  "phase_gate_met": true,
   "last_commit": "216c12a",
   "last_session": "2026-08-08",
   "sessions_completed": 5,
@@ -56,24 +56,18 @@
     },
     {
       "id": "android-device",
-      "blocks": "phase-0 gate (Android half)",
-      "severity": "blocking for PERFORMANCE only; correctness is now answered by the emulator",
+      "blocks": "phase-0 gate only",
+      "severity": "blocking Phase 0's performance budget; no longer blocks Phase 1",
       "detail": "An arm64-v8a Android emulator (AVD wastemarch_p6a) now runs the real phone build and its determinism hash matches macOS and Linux. A physical phone is still needed for the Phase 0 budget gate — 60 fps, <=120 draw calls, <=250k tris, and thermal behaviour — none of which an emulator can answer. Whether it also closes the Phase 1 gate is an OPEN QUESTION FOR THE OWNER: the emulator is the same M4 Pro silicon as the macOS leg, so it proves the Android toolchain and ABI agree, not that a Qualcomm chip does. sim-core is pure integer, which is why that risk is small.",
       "owner": "user"
     }
   ],
   "open_decisions": [
     {
-      "id": "emulator-closes-phase-1-gate",
-      "blocks": "phase-1 gate",
-      "detail": "Does an arm64 Android emulator satisfy 'an ARM device' in MASTER_PLAN.md line 486? Hash verified green there. Same host silicon as the macOS leg is the only caveat.",
-      "urgency": "owner's call; nothing is blocked either way — Phase 2 is gated on the colour palette, not on this"
-    },
-    {
       "id": "colour-palette",
       "blocks": "phase-2 bulk asset generation",
       "detail": "Nine proposed hex values in docs/ART_BIBLE.md, deliberately unlocked. Needs owner sign-off plus a colourblind check and a phone-size test render.",
-      "urgency": "HIGHEST OUTSTANDING — Phase 2 cannot start without it, and Phase 2 is the parallel track available while hardware is blocked"
+      "urgency": "THE ONLY THING BLOCKING FORWARD PROGRESS. Phase 1 is closed; Phase 2 cannot start without it. Owner is reviewing docs/ART_BIBLE.md as of 8 Aug 2026."
     },
     {
       "id": "product-name",
@@ -83,7 +77,8 @@
   ],
   "adrs": [
     "ADR-0001 — Stack choices (accepted 2026-08-08)",
-    "ADR-0002 — Landscape 1920x1080, amends MASTER_PLAN.md §5 (accepted 2026-08-08)"
+    "ADR-0002 — Landscape 1920x1080, amends MASTER_PLAN.md §5 (accepted 2026-08-08)",
+    "ADR-0003 — An ARM Android emulator satisfies the Phase 1 gate (accepted 2026-08-08)"
   ],
   "phase_0_gate_met": false,
   "phase_0_note": "Phase 1 started partially with the owner's go-ahead. Only sim-core, which the Phase 0 gate cannot affect. The godot-rust GDExtension is deliberately NOT started — it needs the export templates and a device, which is what the gate guards.",
@@ -117,5 +112,5 @@
     "verified": "sdkVersion:'24', native-code arm64-v8a only, libsim_godot.so 100676016 bytes (was 0 before the NDK), 36 icon entries, signed",
     "note": "Debug build with symbols. Rebuilt 8 Aug 2026 session 5 against current sim-core; libsim_godot.so is 101044056 bytes. A release build will be far smaller; not measured yet."
   },
-  "phase_gate_blocked_on": "an owner decision (emulator vs physical phone) — the ARM hash itself is verified"
+  "phase_gate_blocked_on": null
 }

@@ -9,10 +9,15 @@
 the simulation produces `0x6de277a1cf08225b`, the same hash as macOS and Linux, running on a
 real `arm64-v8a` Android system. See `docs/TESTING.md` check 6.
 
-**One open question for the owner: does that close the Phase 1 gate?** The emulator is the
-same Apple M4 Pro silicon as the macOS leg, so it proves the Android toolchain and ABI agree
-but not that a Qualcomm chip does. `sim-core` is pure integer, which is exactly why that is a
-small risk. The gate is left **open** pending the owner's call and a physical phone.
+**PHASE 1 IS CLOSED.** The owner accepted the emulator as satisfying "an ARM device" —
+`docs/decisions/ADR-0003-emulator-satisfies-the-phase-1-gate.md` records the decision and the
+one risk it leaves open (same M4 Pro silicon as the macOS leg, so it proves the Android
+toolchain and ABI agree, not that a Qualcomm chip does; `sim-core` being pure integer is why
+that is small). **Re-run check 6 on the first physical phone that appears** — a disagreement
+there is an emergency, not a curiosity.
+
+**The only thing now blocking forward progress is the colour palette** in `docs/ART_BIBLE.md`.
+Phase 2 cannot start without it. The owner was reviewing it on 8 Aug 2026.
 
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
@@ -62,7 +67,7 @@ unchanged and still needs the admin password.
 - [ ] Both devices from a **CI** build
 - [ ] On-device: 60 fps, ≤120 draw calls, ≤250k tris
 
-## Phase 1 — gate NOT met (hardware only)
+## Phase 1 — GATE MET (ADR-0003)
 
 **Gate:** a headless battle produces an identical state hash on macOS, Linux **and an ARM
 device**. The first two agree on every push; the third needs a device.
@@ -75,16 +80,18 @@ device**. The first two agree on every push; the third needs a device.
 - [x] Determinism canary — **13 perturbations tried, 11 caught, 2 explained**
 - [x] GDExtension: the sim runs inside Godot and agrees with CI
 - [x] On-device hash agreement — **Android emulator, `arm64-v8a`, hash matches CI**
-- [ ] Same, on a physical phone — owner's call whether the gate needs it
+- [x] **Gate met** — ADR-0003
+- [ ] Re-run on a physical phone when one exists, as part of the Phase 0 hardware pass
 
 ### Next 3 actions
 
-1. **Owner decides** whether the emulator closes the Phase 1 gate, or whether a physical
-   phone is required. Everything else is unblocked either way.
+1. **The colour palette.** Nine values in `docs/ART_BIBLE.md`, owner reviewing. Phase 2 starts
+   the moment it is locked, and starts nowhere before it.
 2. Add an `aarch64-linux-android` cross-compile check to CI. The first emulator run failed on
    a **stale** `.so`, not a real divergence (see MEMORY) — CI building that target would have
    caught it, and would also stop the library silently regressing to zero bytes again.
-3. Start Phase 2 (art pipeline) — **blocked on the colour palette decision**, see below.
+3. Phase 2 proper: ComfyUI + Z-Image Turbo installed and reproducible, then the three
+   reference buildings.
 
 ### If the owner would rather keep building than wait
 
