@@ -779,3 +779,40 @@ small to show the defect.
 
 `game/tools/zoomcap.gd` renders the preview at 1920x1080 at a chosen ortho size. Use it, not
 `capture.gd`, whenever the question is "does this look right".
+
+## Stage 3 done properly: bake to a real unwrap (ADR-worthy, 8 Aug 2026)
+
+`tools/blender/bake_asset.py`. The owner asked the right question — *if the whole model is not
+painted like a building, what is the 3D even buying us?* — and the honest answer was: with live
+camera projection, very little. It was a 2D image on geometry, with the drawbacks of both.
+
+The pipeline now does what `MASTER_PLAN.md` §7.3 always specified:
+
+1. `smart_project` a real unwrap — every face owns its own pixels
+2. project the concept on as a **source only**
+3. **bake** it into the real unwrap
+4. bake ambient occlusion and multiply it in
+5. delete the camera-space UVs so nothing downstream can use them
+
+This removes the inset and bleed hacks *as load-bearing pieces* — they still run, but only to
+prepare the source image, and a silhouette sliver can no longer reach the model because nothing
+samples a shared image at a shared edge any more.
+
+Blender bake facts worth not rediscovering:
+
+- **Bake target is whichever Image Texture node is selected AND active** in the material node
+  tree. Hidden state with no clean API; set `node.select` and `nodes.active` explicitly.
+- **Every material on the object needs its own bake target**, or a multi-material object bakes
+  only part of itself. That is why `--from-materials` loops over all five.
+- `use_pass_direct/indirect = False`, `use_pass_color = True` for DIFFUSE, or the sun gets baked
+  into the texture and then lit again in the game.
+- Bake needs CYCLES. 24 samples is plenty for AO on box geometry.
+- `bake.margin` bleeds past each island; without it seams show.
+
+`--from-materials` bakes the tiled palette materials instead of a projection, for open
+structures like the watchtower where projection cannot work. They still get AO, which was the
+part they were missing.
+
+**Known regression to fix next: emission does not survive the bake.** The watchtower's brazier
+was an emissive material and is now flat pale in the baked albedo. Emissive parts need either a
+separate emission texture in the glTF or to stay on their own unbaked material.
