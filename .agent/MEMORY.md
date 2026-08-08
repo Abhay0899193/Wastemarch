@@ -745,3 +745,37 @@ tool. Ask what makes the defect *impossible* rather than what makes it smaller.
 ours — GPT had taken our exported `granary_L1.glb` and re-textured it. Its texture was decent
 and it had the same grey patches, because the problem was never the texture. Check `bbox` and
 triangle count before assuming an external asset is new work.
+
+### The pale slivers: fit the model INSIDE the painting, not exactly onto it
+
+`INSET = 0.02` in `project_concept.py`. Fitting the two outlines exactly leaves the outermost
+geometry sampling the painting's last pixel or the first pixel past it, which produced a pale
+sliver down the left silhouette of every building — the concept's brightly lit left wall
+bleeding outward.
+
+Bleed and inset are a **pair, not alternatives**: bleed covers gross misalignment, inset covers
+the edge itself. Neither alone removed the defect.
+
+Two wrong turns before that, both worth not repeating:
+
+- **`doubleSided` was a red herring.** glTF did export `doubleSided: true` from Blender (fixed
+  with `mat.use_backface_culling = True`, which is correct and worth keeping) but culling back
+  faces changed nothing visible. Confirming a real problem is not the same as confirming *the*
+  problem.
+- **Repainting the keep to fix the sliver made it far worse.** At the strength that preserves
+  silhouette, the painter barely paints, and the keep lost all its stonework. The sliver was a
+  few pixels; the cure removed the whole texture.
+
+Current arrangement: **keep** = its concept, projected, inset. **granary** = repainted at
+strength 0.42 then projected, because its concept fits the model badly (30.9% off). **watchtower**
+= tiled materials, because it is an open framework.
+
+### Look at art at the size it will be judged
+
+Every art defect in this project has hidden in a full-scene capture, where the buildings are a
+few hundred pixels across. The owner found three separate problems by zooming in that
+`capture.gd` had reported as fine — and I "fixed" the metric twice while looking at images too
+small to show the defect.
+
+`game/tools/zoomcap.gd` renders the preview at 1920x1080 at a chosen ortho size. Use it, not
+`capture.gd`, whenever the question is "does this look right".

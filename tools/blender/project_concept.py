@@ -52,6 +52,11 @@ BACKGROUND_TOLERANCE = 0.06
 # than a rounding error. Every such face renders as a flat grey patch.
 MAX_UNPAINTED = 0.08
 
+# How far inside the painted building the model is fitted, as a fraction of the
+# building's size. Enough to keep the outermost faces off the painting's own
+# edge, small enough that nothing visibly shifts.
+INSET = 0.02
+
 
 def picked_concept(asset: str) -> Path:
     """The image the owner chose, read from PICKS.md rather than guessed.
@@ -206,10 +211,25 @@ def concept_bounds(image) -> tuple:
     return (lo[0] / w, lo[1] / h, hi[0] / w, hi[1] / h)
 
 
-def fit_uvs(obj, model_box, concept_box) -> None:
-    """Stretch the projected UVs so the model lands on the painted building."""
+def fit_uvs(obj, model_box, concept_box, inset: float = INSET) -> None:
+    """Stretch the projected UVs so the model lands on the painted building.
+
+    **Slightly inside it, not exactly on it.** Fitting the two outlines exactly
+    leaves the model's outermost geometry sampling the last pixel of the
+    painting or the first pixel past it, and that produced a pale sliver down the
+    left silhouette of every building — the concept's brightly lit left wall
+    bleeding outward. Landing a few percent inside means every face samples real
+    paint and only the painting's outermost pixels go unused.
+
+    This is the opposite of bleeding outward, and it is the better half of the
+    pair: bleed covers gross misalignment, inset covers the edge itself.
+    """
     mx0, my0, mx1, my1 = model_box
     cx0, cy0, cx1, cy1 = concept_box
+    px = (cx1 - cx0) * inset
+    py = (cy1 - cy0) * inset
+    cx0, cx1 = cx0 + px, cx1 - px
+    cy0, cy1 = cy0 + py, cy1 - py
     sx = (cx1 - cx0) / max(1e-6, mx1 - mx0)
     sy = (cy1 - cy0) / max(1e-6, my1 - my0)
 
@@ -367,9 +387,17 @@ def main(argv) -> int:
         print(f"rendered {args.asset} for painting -> {args.render_for_paint}")
         return 0
 
+    # Resolved against the repo, so a relative path typed on the command line
+    # works the same as an absolute one.
     concept = (Path(args.paint_from) if args.paint_from
                else picked_concept(args.asset))
-    print(f"projecting {concept.relative_to(REPO)} onto {args.asset}")
+    if args.paint_from and not concept.is_absolute():
+        concept = (REPO / concept).resolve()
+    try:
+        shown = concept.relative_to(REPO)
+    except ValueError:
+        shown = concept
+    print(f"projecting {shown} onto {args.asset}")
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     obj, size_class, footprint = ba.BUILDERS[args.asset](args.level)
@@ -383,6 +411,9 @@ def main(argv) -> int:
 
     mat = bpy.data.materials.new("concept")
     mat.use_nodes = True
+    # Without this glTF exports `doubleSided: true` and the engine draws the
+    # inside of far walls, showing the projection smeared through the model.
+    mat.use_backface_culling = True
     bsdf = mat.node_tree.nodes["Principled BSDF"]
     bsdf.inputs["Roughness"].default_value = 0.9
     bsdf.inputs["Metallic"].default_value = 0.0

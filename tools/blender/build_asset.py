@@ -263,6 +263,13 @@ def build_materials(obj) -> None:
     for name, hex_colour, roughness in MATERIALS:
         mat = bpy.data.materials.new(name)
         mat.use_nodes = True
+        # Blender leaves this off, and glTF then exports `doubleSided: true`, so
+        # the engine draws the INSIDE of every far wall. With a projected texture
+        # those back faces show the painting smeared through the model, which
+        # reads as pale grey patches on the left of every building — the defect
+        # that survived edge-bleeding, proportion tuning and repainting, because
+        # none of those were what caused it.
+        mat.use_backface_culling = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         rgb = srgb_to_linear_tuple(hex_colour)
         bsdf.inputs["Base Color"].default_value = (*rgb, 1.0)
