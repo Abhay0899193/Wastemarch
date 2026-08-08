@@ -1,0 +1,12 @@
+{
+  "asset": "granary",
+  "level": 1,
+  "source": "granary_3002.png",
+  "height_m": 2.52,
+  "pixels": [
+    888,
+    676
+  ],
+  "metres_per_pixel": 0.003728,
+  "width_m": 3.31
+}

@@ -1,0 +1,12 @@
+{
+  "asset": "keep",
+  "level": 1,
+  "source": "keep_1002.png",
+  "height_m": 3.9,
+  "pixels": [
+    733,
+    641
+  ],
+  "metres_per_pixel": 0.006084,
+  "width_m": 4.46
+}

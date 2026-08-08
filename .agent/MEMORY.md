@@ -842,3 +842,32 @@ of fixes went into things that were not the main problem.
 It rendered pure white, blew out under the stronger sun, and made every building look dark by
 comparison. Now dead soil `#8B8071` from ADR-0004. The ground is most of the frame in this
 game — it can never be a placeholder while judging art.
+
+## The sprite experiment (8 Aug 2026) — concept art standing in the engine
+
+`game/world/SpritePreview.tscn` + `tools/blender/make_sprite.py`. Front row sprites cut from
+the concept art, back row the 3D models of the same buildings, same scale, same ground, same
+light. Run it and look:
+
+    $GODOT --path game res://world/SpritePreview.tscn
+
+**Result: the sprites look considerably better than the models**, and it is not close. That is
+the honest finding and it is worth keeping whichever way the decision goes.
+
+Mechanics that made it work:
+
+- The sprite is sized from the **model's** height in metres, so it stands exactly where the 3D
+  building would and is the same size. Without that it is a sticker.
+- `billboard = DISABLED` and a fixed 45° yaw. The camera never rotates, so billboarding would
+  make buildings swing as the player pans — worse than not tracking at all.
+- `ALPHA_CUT_DISCARD`, not blending. Blended transparency does not write depth, so troops would
+  draw straight through a building.
+- `cast_shadow = OFF`. A flat quad casts a flat quad's shadow and lands a pale parallelogram on
+  the ground behind every building, which gives the trick away instantly.
+- Background is keyed against the **median of the frame's border**, not the corner pixel. A
+  single corner is one sample of a noisy backdrop and made the whole 1024 frame read as subject.
+
+**The remaining halo is not a bug in the cutout.** The concepts have a soft contact shadow
+*painted into them*, which is genuinely not background, so it survives the key. That is also
+part of why they look better than the models — they carry occlusion the models only got when
+AO was baked, and more of it.

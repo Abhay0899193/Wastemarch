@@ -1,0 +1,12 @@
+{
+  "asset": "watchtower",
+  "level": 1,
+  "source": "watchtower_1004.png",
+  "height_m": 4.64,
+  "pixels": [
+    699,
+    866
+  ],
+  "metres_per_pixel": 0.005358,
+  "width_m": 3.745
+}
