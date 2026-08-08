@@ -141,8 +141,72 @@ func _run() -> void:
 	_ok("the reloaded tile is still refused",
 			not _city._can_place(cell, "granary"))
 
+	# --- upgrading ----------------------------------------------------------
+	var b: Dictionary = _city._built[0]
+	_check("a new building is level 1", b["level"], 1)
+
+	var l2_cost: Dictionary = _city._cost_at("granary", 2)
+	_ok("level 2 costs more than level 1",
+			l2_cost["timber"] > _city._cost_at("granary", 1)["timber"])
+	_ok("level 2 yields more than level 1",
+			_city._yield_at("granary", 2) > _city._yield_at("granary", 1))
+
+	_city._resources["timber"] = 0
+	_ok("cannot upgrade what you cannot pay for", not _city._upgrade(b))
+	_check("and the level did not move", b["level"], 1)
+
+	_city._resources["timber"] = 9999
+	_ok("upgrading works", _city._upgrade(b))
+	_check("the level moved", b["level"], 2)
+	_ok("and it goes back under construction", b["remaining"] > 0.0)
+	_ok("upgrading again is refused while it builds", not _city._upgrade(b))
+
+	_advance(_city._build_s_at("granary", 2) + 1.0)
+	_ok("the upgrade finished", b["remaining"] <= 0.0)
+
+	var grain_l2: int = _city._resources["grain"]
+	_advance(5.5)
+	_check("a level 2 granary produces its level 2 yield",
+			_city._resources["grain"] - grain_l2, _city._yield_at("granary", 2))
+
+	# A building with art at one level only still upgrades — it just does not
+	# change shape. Nothing should reach for a model that was never built.
+	_ok("a level 5 croft falls back to the art that exists",
+			_city._model_for("croft", 5) == _city._model_for("croft", 1))
+	_ok("the keep does have level 3 art",
+			_city._model_for("keep", 4) != _city._model_for("keep", 1))
+
+	# --- saving carries the level ------------------------------------------
+	_city._save()
+	_city._load()
+	_check("the level survived a save and load", _city._built[0]["level"], 2)
+
+	# --- migrating an old save ---------------------------------------------
+	# A version 1 save, written by hand exactly as the old build wrote them:
+	# no `level` anywhere.
+	var old := {"version": 1, "resources": {"grain": 7, "timber": 8, "stone": 9,
+											"iron": 0},
+				"buildings": [{"id": "granary", "cell": [3, 3],
+							   "remaining": 0.0, "tick": 5.0}]}
+	var f := FileAccess.open("user://city_save.json", FileAccess.WRITE)
+	f.store_string(JSON.stringify(old))
+	f.close()
+	_city._load()
+	_check("a version 1 save still loads", _city._built.size(), 1)
+	_check("and its building is level 1", _city._built[0]["level"], 1)
+	_check("and its resources came through", _city._resources["grain"], 7)
+
+	# A save from a future version is refused rather than guessed at.
+	var future := {"version": 99, "resources": {}, "buildings": []}
+	f = FileAccess.open("user://city_save.json", FileAccess.WRITE)
+	f.store_string(JSON.stringify(future))
+	f.close()
+	_city._load()
+	_check("a future save is refused and changes nothing",
+			_city._built.size(), 1)
+
 	if _failures == 0:
-		print("PASS — place, refuse, build, produce, save and load all work")
+		print("PASS — place, refuse, build, produce, upgrade, save, load and migrate all work")
 		quit(0)
 	else:
 		printerr("FAILED — %d check(s)" % _failures)

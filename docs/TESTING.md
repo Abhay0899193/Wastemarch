@@ -235,8 +235,16 @@ $GODOT --headless --path game --script res://tools/city_smoke.gd
 
 **What it protects against:** the first part of the project with real changing state — resources
 that go down when you spend and up when you wait, ground that can only hold one building, timers
-that finish. All of it is quick to break and slow to notice by hand: a build-timer fault takes
-twelve seconds to see and a saving fault takes a restart.
+that finish, levels that cost more and yield more, and a save format that has to keep reading
+files written by older builds. All of it is quick to break and slow to notice by hand: a
+build-timer fault takes twelve seconds to see and a saving fault takes a restart.
+
+**It writes an old save by hand and loads it.** The migration check does not save-then-load with
+today's code — that would pass even if migration did nothing. It writes a version 1 file in the
+exact shape the old build wrote, with no `level` field anywhere, and checks it comes back as a
+level 1 building. It also writes a version 99 file and checks the game refuses it instead of
+guessing, because silently dropping fields a newer build wrote is how a downgrade eats
+somebody's town.
 
 It plays a short game with nobody watching: places a building, tries to place a second one on
 top of it, tries to build off the edge of the map, tries to build something it cannot afford,

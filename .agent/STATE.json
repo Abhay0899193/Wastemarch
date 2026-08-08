@@ -1,12 +1,12 @@
 {
   "phase": 3,
   "phase_name": "Phase 3 \u2014 City builder. Playable POC done; Phase 2 pipeline complete, its art approval still the owner's.",
-  "milestone": "Phase 3: six buildings placeable, props, CoC ground and proportions, no placement stall",
+  "milestone": "Phase 3 mechanically complete: six buildings, upgrade levels, selection panel, save v2 with a tested migration",
   "phase_gate": "Phase 3: play twenty minutes on your own phone and want to keep going",
   "phase_gate_met": false,
   "last_commit": "216c12a",
   "last_session": "2026-08-09",
-  "sessions_completed": 9,
+  "sessions_completed": 10,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
   "versions": {
@@ -37,12 +37,12 @@
     "arch": "arm64"
   },
   "verification_at_close": {
-    "date": "2026-08-09 (session 9)",
+    "date": "2026-08-09 (session 10)",
     "no_floats_lint": "pass",
     "cargo_test": "pass \u2014 125 passed, 1 ignored",
     "palette_check": "pass",
     "godot_sim_smoke": "PASS \u2014 hash 0x6de277a1cf08225b matches CI",
-    "city_smoke": "PASS \u2014 22 checks",
+    "city_smoke": "PASS \u2014 35 checks: place, refuse, build, produce, upgrade, level-aware yield, save round trip, hand-written v1 migration, refused v99",
     "asset_pipeline": "pass \u2014 eight assets: keep 1488, watchtower 558, granary 294, logging_camp 204, croft 126, mine 108, pine 48, boulder 24",
     "silhouette": "pass across six buildings, 21 pairs; worst keep L1 vs L5 0.74, worst new pair croft vs logging_camp 0.69",
     "frame_time": "placement 41 ms after _preload_models; was a 1376 ms stall. game/tools/prof.gd measures it"
@@ -161,5 +161,15 @@
     "mechanical_half": "MET",
     "approval_half": "NOT MET \u2014 MASTER_PLAN requires three reference buildings the owner approves. The owner said repeatedly they are not good enough; choosing tiled materials was a decision to move on, not a sign-off.",
     "settled": "tiled palette materials baked to a real unwrap with AO and emission; concept projection dropped; proportions reset to measured CoC values 9 Aug 2026"
+  },
+  "save_format": {
+    "version": 2,
+    "written_by": "game/city/city.gd, SAVE_VERSION",
+    "history": {
+      "1": "the first format",
+      "2": "buildings carry a level"
+    },
+    "rule": "one migration step per version applied in order in _migrate(); a future version is refused, never guessed at",
+    "tested": "city_smoke.gd writes a v1 payload by hand \u2014 a save-then-load round trip with current code would pass even if migration did nothing"
   }
 }

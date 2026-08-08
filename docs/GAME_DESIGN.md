@@ -93,6 +93,16 @@ pays for another, so the loop closes:
 and Phase 5 sets the real curve against a spreadsheet. What matters now is only that there is
 always a reason to place something.
 
+**Every building upgrades to level 5.** Tap a finished building and a short row appears
+*underneath it* — its name, its level, and one button with the next level's price on it. Each
+level costs more, takes longer, and yields more; the multipliers are in the same data file, and
+Phase 5 replaces them with an explicit per-level table.
+
+**The art does not have to keep up with the levels.** A building uses the best model it has at
+or below its level. The keep has models for levels 1, 3 and 5, so it visibly changes twice; the
+croft has one, so it does not change at all yet. Making thirty models to prove a counter works
+would be the wrong order to do things in.
+
 ### Adjacency bonuses — the part that makes layout interesting
 
 Buildings care about their neighbours:

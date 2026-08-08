@@ -5,10 +5,12 @@ extends Node3D
 ##
 ##   $GODOT --path game res://city/City.tscn
 ##
-## Pick a building from the bar, move the mouse to aim, click to place. Drag with
-## the right button to pan, scroll to zoom. Buildings take time to finish and
-## then produce a resource; what they produce pays for the next one, so the loop
-## closes. `S` saves, `L` loads, `Escape` quits.
+## Pick a building from the bar, move the mouse to aim, click to place. Click a
+## finished building to select it and a short row appears underneath with its
+## level and an upgrade button. Drag with the right button to pan, scroll to
+## zoom. Buildings take time to finish and then produce a resource; what they
+## produce pays for the next one, so the loop closes. `S` saves, `L` loads,
+## `Escape` quits.
 ##
 ## **What this is and is not.** It is the smallest thing that is actually
 ## playable: place, wait, collect, place again. `MASTER_PLAN.md` Phase 3 also
@@ -67,6 +69,14 @@ var _obstacles: Dictionary = {}             ## Vector2i -> prop id, blocks build
 var _scenes: Dictionary = {}                ## id -> PackedScene, loaded once
 var _resource_labels: Dictionary = {}
 var _status: Label = null
+## The selected building is remembered by its **cell**, not by holding on to the
+## dictionary. Godot compares dictionaries by reference and `_load` rebuilds
+## every one of them, so a held reference would quietly point at a building that
+## no longer exists. A cell is a fact about the world.
+var _chosen_cell := Vector2i(9999, 9999)
+var _panel: VBoxContainer = null
+var _panel_title: Label = null
+var _panel_button: Button = null
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +90,7 @@ func _ready() -> void:
 	_load_definitions()
 	_preload_models()
 	_build_hud()
+	_build_panel()
 	_refresh_hud()
 	set_process(true)
 
@@ -225,9 +236,10 @@ func _load_definitions() -> void:
 ## a loading screen will eventually live.
 func _preload_models() -> void:
 	for id in _order:
-		var path := MODEL_DIR + id + "_L1.glb"
-		if ResourceLoader.exists(path):
-			_scenes[id] = load(path)
+		for level in range(1, _max_level(id) + 1):
+			var path := "%s%s_L%d.glb" % [MODEL_DIR, id, level]
+			if ResourceLoader.exists(path) and not _scenes.has(path):
+				_scenes[path] = load(path)
 
 
 func _cell_to_world(cell: Vector2i, footprint: Array) -> Vector3:
@@ -258,11 +270,63 @@ func _can_place(cell: Vector2i, id: String) -> bool:
 	return _can_afford(id)
 
 
-func _can_afford(id: String) -> bool:
-	for res in (_defs[id]["cost"] as Dictionary):
-		if _resources.get(res, 0) < _defs[id]["cost"][res]:
+# ---------------------------------------------------------------------------
+# Levels
+#
+# Every number a level changes comes out of `buildings.json` — a base value and
+# a multiplier per level — so none of it is written here. `CLAUDE.md` forbids
+# balance numbers in code, and this is the file that would otherwise collect
+# them.
+#
+# **The art does not have to keep up with the levels.** A building may have a
+# model for level 1 only, or for 1, 3 and 5 as the keep does. `_model_for` takes
+# the highest one at or below the level being asked for, so a level 4 keep uses
+# the level 3 model and a level 4 croft uses its level 1 model. Building thirty
+# models to prove that a level counter works would be the wrong order to do
+# things in.
+# ---------------------------------------------------------------------------
+
+func _growth(def: Dictionary, key: String, level: int) -> float:
+	return pow(float(def["upgrade"][key]), float(level - 1))
+
+
+func _cost_at(id: String, level: int) -> Dictionary:
+	var def: Dictionary = _defs[id]
+	var factor := _growth(def, "cost", level)
+	var out := {}
+	for res in (def["cost"] as Dictionary):
+		out[res] = int(round(float(def["cost"][res]) * factor))
+	return out
+
+
+func _build_s_at(id: String, level: int) -> float:
+	return float(_defs[id]["build_s"]) * _growth(_defs[id], "build_s", level)
+
+
+func _yield_at(id: String, level: int) -> int:
+	var def: Dictionary = _defs[id]
+	return int(round(float(def["produces"]["amount"])
+			* _growth(def, "produces", level)))
+
+
+func _max_level(id: String) -> int:
+	return int(_defs[id]["max_level"])
+
+
+func _can_pay(cost: Dictionary) -> bool:
+	for res in cost:
+		if _resources.get(res, 0) < cost[res]:
 			return false
 	return true
+
+
+func _pay(cost: Dictionary) -> void:
+	for res in cost:
+		_resources[res] -= cost[res]
+
+
+func _can_afford(id: String) -> bool:
+	return _can_pay(_cost_at(id, 1))
 
 
 ## Where the mouse is pointing, as a grid cell. The ground is the y=0 plane, so
@@ -285,6 +349,8 @@ func _cell_under_mouse() -> Vector2i:
 
 func _select(id: String) -> void:
 	_selected = id
+	if id != "":
+		_choose(Vector2i(9999, 9999))
 	_clear_ghost()
 	if id == "":
 		return
@@ -303,14 +369,26 @@ func _clear_ghost() -> void:
 	_ghost = null
 
 
-func _spawn_model(id: String) -> Node3D:
-	if not _scenes.has(id):
-		var path := MODEL_DIR + id + "_L1.glb"
-		if not ResourceLoader.exists(path):
-			push_warning("no model for %s at %s" % [id, path])
-			return null
-		_scenes[id] = load(path)
-	return (_scenes[id] as PackedScene).instantiate()
+## The best model this building has at or below `level`.
+##
+## Returns the path, not the scene, so the caller can compare it against the one
+## already standing and skip the swap when nothing changed.
+func _model_for(id: String, level: int) -> String:
+	for n in range(level, 0, -1):
+		var path := "%s%s_L%d.glb" % [MODEL_DIR, id, n]
+		if ResourceLoader.exists(path):
+			return path
+	return ""
+
+
+func _spawn_model(id: String, level: int = 1) -> Node3D:
+	var path := _model_for(id, level)
+	if path == "":
+		push_warning("no model for %s at any level up to %d" % [id, level])
+		return null
+	if not _scenes.has(path):
+		_scenes[path] = load(path)
+	return (_scenes[path] as PackedScene).instantiate()
 
 
 ## What a building looks like while it is being built.
@@ -373,8 +451,7 @@ func _place(cell: Vector2i, id: String) -> bool:
 		return false
 
 	var def: Dictionary = _defs[id]
-	for res in (def["cost"] as Dictionary):
-		_resources[res] -= def["cost"][res]
+	_pay(_cost_at(id, 1))
 	for c in _cells_for(cell, def["footprint"]):
 		_occupied[c] = id
 
@@ -385,7 +462,7 @@ func _place(cell: Vector2i, id: String) -> bool:
 	_placed.add_child(node)
 
 	_built.append({
-		"id": id, "cell": [cell.x, cell.y], "node": node,
+		"id": id, "cell": [cell.x, cell.y], "node": node, "level": 1,
 		"remaining": float(def["build_s"]),
 		"tick": float(def["produces"]["interval"]),
 		"label": _under_construction(node, float(def["build_s"])),
@@ -408,6 +485,7 @@ func _place(cell: Vector2i, id: String) -> bool:
 
 func _process(delta: float) -> void:
 	_update_ghost()
+	_place_panel()
 	for b in _built:
 		if b["remaining"] > 0.0:
 			b["remaining"] -= delta
@@ -422,8 +500,49 @@ func _process(delta: float) -> void:
 				var p: Dictionary = _defs[b["id"]]["produces"]
 				b["tick"] = float(p["interval"])
 				_resources[p["resource"]] = _resources.get(p["resource"], 0) \
-						+ int(p["amount"])
+						+ _yield_at(b["id"], int(b["level"]))
 				_refresh_hud()
+
+
+## Upgrade a finished building one level.
+##
+## The model is only swapped when the new level actually has different art —
+## `_model_for` falls back down the levels — so a level 4 keep is a visible
+## change and a level 4 croft is not. That is deliberate: a level counter should
+## not be blocked on thirty models existing.
+func _upgrade(b: Dictionary) -> bool:
+	var id: String = b["id"]
+	var level := int(b["level"])
+	if level >= _max_level(id):
+		_set_status("%s is at its highest level" % _defs[id]["name"])
+		return false
+	if b["remaining"] > 0.0:
+		_set_status("%s is still being built" % _defs[id]["name"])
+		return false
+
+	var next := level + 1
+	var cost := _cost_at(id, next)
+	if not _can_pay(cost):
+		_set_status("Not enough for %s level %d" % [_defs[id]["name"], next])
+		return false
+	_pay(cost)
+	b["level"] = next
+
+	var cell := Vector2i(int(b["cell"][0]), int(b["cell"][1]))
+	if _model_for(id, next) != _model_for(id, level):
+		var old: Node3D = b["node"]
+		if is_instance_valid(old):
+			old.queue_free()
+		var node := _spawn_model(id, next)
+		node.position = _cell_to_world(cell, _defs[id]["footprint"])
+		_placed.add_child(node)
+		b["node"] = node
+
+	b["remaining"] = _build_s_at(id, next)
+	b["label"] = _under_construction(b["node"], b["remaining"])
+	_set_status("%s upgrading to level %d" % [_defs[id]["name"], next])
+	_refresh_hud()
+	return true
 
 
 func _finish(b: Dictionary) -> void:
@@ -440,6 +559,7 @@ func _finish(b: Dictionary) -> void:
 			for i in range(mesh.get_surface_override_material_count()):
 				mesh.set_surface_override_material(i, null)
 	_set_status("%s finished" % _defs[b["id"]]["name"])
+	_refresh_panel()
 
 
 func _update_ghost() -> void:
@@ -519,6 +639,97 @@ func _refresh_hud() -> void:
 			res.capitalize(), _resources.get(res, 0)]
 
 
+## The panel that appears under a building you tap.
+##
+## **Under the building, not at the edge of the screen.** Clash of Clans puts a
+## short row of buttons directly beneath whatever you selected — Info, Upgrade,
+## and the cost — so your eye never leaves the thing you are deciding about.
+## Copying that is nearly free: the panel is one `Control` and its position is
+## `unproject_position` of the building's own world position, re-read every frame
+## because the camera pans and zooms under it.
+func _build_panel() -> void:
+	_panel = VBoxContainer.new()
+	_panel.visible = false
+	_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	_hud.add_child(_panel)
+
+	_panel_title = Label.new()
+	_panel_title.add_theme_font_size_override("font_size", 16)
+	_panel_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_panel.add_child(_panel_title)
+
+	_panel_button = Button.new()
+	_panel_button.custom_minimum_size = Vector2(150, 40)
+	_panel_button.pressed.connect(func() -> void:
+		var b: Variant = _building_at(_chosen_cell)
+		if b != null:
+			_upgrade(b)
+			_refresh_panel())
+	_panel.add_child(_panel_button)
+
+
+## Which placed building, if any, occupies a cell.
+func _building_at(cell: Vector2i) -> Variant:
+	for b in _built:
+		var origin := Vector2i(int(b["cell"][0]), int(b["cell"][1]))
+		for c in _cells_for(origin, _defs[b["id"]]["footprint"]):
+			if c == cell:
+				return b
+	return null
+
+
+func _choose(cell: Vector2i) -> void:
+	_chosen_cell = cell
+	_refresh_panel()
+
+
+func _refresh_panel() -> void:
+	if _panel == null:
+		return
+	var found: Variant = _building_at(_chosen_cell)
+	if found == null:
+		_panel.visible = false
+		return
+	var b: Dictionary = found
+	var id: String = b["id"]
+	var level := int(b["level"])
+	_panel.visible = true
+	_panel_title.text = "%s — level %d" % [_defs[id]["name"], level]
+	if level >= _max_level(id):
+		_panel_button.text = "Highest level"
+		_panel_button.disabled = true
+	else:
+		var cost := _cost_at(id, level + 1)
+		var parts: Array[String] = []
+		for res in cost:
+			parts.append("%d %s" % [cost[res], res.substr(0, 2)])
+		_panel_button.text = "Upgrade  " + " ".join(parts)
+		_panel_button.disabled = b["remaining"] > 0.0 or not _can_pay(cost)
+
+
+## Keeps the panel under its building while the camera moves.
+func _place_panel() -> void:
+	if _panel == null or not _panel.visible:
+		return
+	var found: Variant = _building_at(_chosen_cell)
+	if found == null:
+		_panel.visible = false
+		return
+	var b: Dictionary = found
+	var node: Node3D = b["node"]
+	if not is_instance_valid(node):
+		_panel.visible = false
+		return
+	# The building's origin is the centre of its footprint on the ground, which
+	# on screen sits *inside* the model. Projecting the near corner of the
+	# footprint instead puts the panel below the building rather than across it.
+	var foot: Array = _defs[b["id"]]["footprint"]
+	var near := node.global_position + Vector3(
+			float(foot[0]) * TILE * 0.5, 0.0, float(foot[1]) * TILE * 0.5)
+	var screen := _camera.unproject_position(near)
+	_panel.position = screen - Vector2(_panel.size.x * 0.5, -14.0)
+
+
 func _set_status(text: String) -> void:
 	if _status:
 		_status.text = text
@@ -528,14 +739,23 @@ func _set_status(text: String) -> void:
 # Saving
 # ---------------------------------------------------------------------------
 
+## The version this build writes. Bump it in the same commit as the change that
+## made the old shape wrong, and add a step to `_migrate`.
+##
+##   1  the first format
+##   2  buildings carry a `level`
+const SAVE_VERSION := 2
+
+
 func _save() -> void:
 	var rows: Array = []
 	for b in _built:
-		rows.append({"id": b["id"], "cell": b["cell"],
+		rows.append({"id": b["id"], "cell": b["cell"], "level": b["level"],
 					 "remaining": b["remaining"], "tick": b["tick"]})
 	# `version` is here from the first save on purpose. Adding it later means a
 	# migration that cannot tell old saves apart from new ones.
-	var payload := {"version": 1, "resources": _resources, "buildings": rows}
+	var payload := {"version": SAVE_VERSION, "resources": _resources,
+					"buildings": rows}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	f.store_string(JSON.stringify(payload, "  "))
 	f.close()
@@ -548,9 +768,8 @@ func _load() -> void:
 		return
 	var payload: Dictionary = JSON.parse_string(
 			FileAccess.get_file_as_string(SAVE_PATH))
-	if payload.get("version", 0) != 1:
-		_set_status("Save is version %s, this build reads 1"
-				% payload.get("version", "?"))
+	payload = _migrate(payload)
+	if payload.is_empty():
 		return
 
 	for b in _built:
@@ -566,18 +785,49 @@ func _load() -> void:
 		var def: Dictionary = _defs[id]
 		for c in _cells_for(cell, def["footprint"]):
 			_occupied[c] = id
-		var node := _spawn_model(id)
+		var node := _spawn_model(id, int(row["level"]))
 		node.position = _cell_to_world(cell, def["footprint"])
 		_placed.add_child(node)
 		var entry := {"id": id, "cell": [cell.x, cell.y], "node": node,
+					  "level": int(row["level"]),
 					  "remaining": float(row["remaining"]),
 					  "tick": float(row["tick"])}
 		if entry["remaining"] > 0.0:
 			entry["label"] = _under_construction(node, float(entry["remaining"]))
 		_built.append(entry)
 
+	_chosen_cell = Vector2i(9999, 9999)
+	_refresh_panel()
 	_refresh_hud()
 	_set_status("Loaded %d buildings" % _built.size())
+
+
+## Bring a save of any older version up to `SAVE_VERSION`, or return `{}`.
+##
+## **One step per version, applied in order, never a special case per field.**
+## The temptation with the first migration is to write `if not row.has("level")`
+## somewhere in the loading code and move on. That works exactly once; the second
+## time, nothing can tell a version 1 save from a version 2 one that happens to
+## be missing a field, and every later reader has to guess. A version number and
+## a chain of steps is the only shape that keeps working.
+##
+## A save from the *future* is refused rather than guessed at. Silently dropping
+## fields a newer build wrote is how a downgrade eats somebody's town.
+func _migrate(payload: Dictionary) -> Dictionary:
+	var version := int(payload.get("version", 0))
+	if version < 1 or version > SAVE_VERSION:
+		_set_status("Save is version %s, this build reads 1 to %d"
+				% [payload.get("version", "?"), SAVE_VERSION])
+		return {}
+
+	if version == 1:
+		# Version 1 had no levels; everything in one is level 1.
+		for row in payload["buildings"]:
+			row["level"] = 1
+		version = 2
+
+	payload["version"] = version
+	return payload
 
 
 # ---------------------------------------------------------------------------
@@ -592,6 +842,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_camera.size = minf(_zoom_out, _camera.size * 1.1)
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			if _selected == "":
+				# Not placing anything, so a click is a selection.
+				_choose(_cell_under_mouse())
 			if _selected != "":
 				var cell := _cell_under_mouse()
 				if _place(cell, _selected):
@@ -606,6 +859,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					_set_status("Outside the buildable ground")
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			_select("")
+			_choose(Vector2i(9999, 9999))
 			_set_status("")
 	elif event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event

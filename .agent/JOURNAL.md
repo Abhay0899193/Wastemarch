@@ -923,3 +923,46 @@ and I still wrote it. `prof.gd` now sets them in `_process` with a comment sayin
 **Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
 smoke 22 checks · `build.py --all` green across eight assets · silhouette green across six
 buildings · six placed in one frame with no stall over 50 ms.
+
+---
+
+## 2026-08-09 — Session 10 — levels, selection, and a migration that is actually tested
+
+Phase 3's three remaining mechanical items, done together because they are one piece of work:
+you cannot upgrade what you cannot select, and a level is the first thing the save format has
+had to grow.
+
+**Levels.** `max_level` and an `upgrade` multiplier block per building in `buildings.json` —
+cost, build time and yield each get `multiplier^(level-1)`. A multiplier is a *placeholder
+shape*, not a balance decision, and the file says so: Phase 5 replaces the block with an
+explicit per-level table. The point today is that the city can read a level at all.
+
+**The art does not have to keep up.** `_model_for(id, level)` walks down from the level asked
+for to the best model that exists, so the keep changes shape at 3 and 5 and the croft never
+does. Building thirty models to prove a counter works is the wrong order.
+
+**Selection is the Clash of Clans pattern** — a name, a level and one button, *underneath the
+building*, so your eye never leaves the thing you are deciding about. The panel is one Control
+positioned from `unproject_position` each frame. Projecting the building's origin put it across
+the model; projecting the near corner of its footprint puts it below, which is what they do.
+
+**Selection is remembered by cell, not by holding the dictionary.** Godot compares dictionaries
+by reference and `_load` rebuilds every one of them, so a held reference would have pointed at a
+building that no longer existed. A cell is a fact about the world.
+
+**Save version 2, with a migration chain.** One step per version, applied in order — the
+temptation is `if not row.has("level")` somewhere in the loader, which works exactly once and
+then nothing can tell a version 1 save from a version 2 one missing a field. A save from the
+*future* is refused rather than guessed at.
+
+**The migration test writes the old file by hand.** A save-then-load round trip with today's
+code would pass even if `_migrate` did nothing at all. `city_smoke.gd` writes a version 1
+payload in the shape the old build wrote, and a version 99 one, and checks both are handled.
+
+**On the stall that came back and went away.** One run showed 1,344 ms on first placement again;
+three subsequent runs showed 45 to 60 ms with nothing changed. It is the pipeline cache going
+cold after an asset rebuild, not a regression. Worth knowing before chasing it: measure twice.
+
+**Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
+smoke **35 checks** including upgrade, level-aware production, save round trip, a hand-written
+version 1 save and a refused version 99 · no placement frame over 60 ms.

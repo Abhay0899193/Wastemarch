@@ -50,6 +50,12 @@ func _process(_d: float) -> bool:
 	if _f == 10:
 		(_c.get_node("Camera3D") as Camera3D).size = 20.0
 		get_root().set_content_scale_size(Vector2i(1920, 1080))
+	if _f == 12:
+		# Finish everything and select one, so the shot shows the panel.
+		for b in _c._built:
+			b["remaining"] = -1.0
+			_c._finish(b)
+		_c._choose(Vector2i(-8, -8))
 	if _f == 16 and OS.get_cmdline_user_args().size() > 0:
 		get_root().get_texture().get_image().save_png(OS.get_cmdline_user_args()[0])
 		print("wrote")

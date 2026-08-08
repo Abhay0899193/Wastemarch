@@ -8,14 +8,24 @@
     "",
     "cost      what it takes to place, deducted immediately",
     "produces  resource and amount, added every `interval` seconds once built",
-    "build_s   seconds from placement to finished. Kept short on purpose while",
-    "          this is a proof of concept: a wait you cannot see the end of reads",
-    "          as a fault, and these were long enough that the owner reported the",
+    "build_s   seconds from placement to finished. Kept short on purpose while this",
+    "          is a proof of concept: a wait you cannot see the end of reads as a",
+    "          fault, and these were long enough that the owner reported the",
     "          under-construction state as a rendering bug. Phase 5 sets the real",
     "          curve, with a progress bar and a Finish Now button beside it.",
+    "max_level how far it can be upgraded",
+    "upgrade   what each level multiplies. Level N costs cost * upgrade.cost^(N-1),",
+    "          takes build_s * upgrade.build_s^(N-1), and yields produces.amount *",
+    "          upgrade.produces^(N-1).",
+    "",
+    "          A multiplier is a PLACEHOLDER SHAPE, not a balance decision. Phase 5",
+    "          replaces this block with an explicit per-level table. It exists so",
+    "          the city can read a level at all, without inventing thirty rows of",
+    "          numbers that are going to be thrown away.",
+    "",
     "footprint tiles, and the model is expected to match it. A building's height",
-    "          must stay under 1.6x its shortest footprint side or it visually",
-    "          swallows whatever stands behind it — build_asset.py enforces this."
+    "          and spread are checked against docs/ART_BIBLE.md by build_asset.py,",
+    "          which fails the build rather than warning."
   ],
   "buildings": [
     {
@@ -25,6 +35,8 @@
       "cost": {"stone": 60},
       "build_s": 8.0,
       "produces": {"resource": "timber", "amount": 2, "interval": 6.0},
+      "max_level": 5,
+      "upgrade": {"cost": 1.8, "build_s": 2.0, "produces": 1.5},
       "blurb": "The hold itself. Cuts and stores timber from the old fields."
     },
     {
@@ -34,6 +46,8 @@
       "cost": {"timber": 30},
       "build_s": 3.0,
       "produces": {"resource": "grain", "amount": 3, "interval": 5.0},
+      "max_level": 5,
+      "upgrade": {"cost": 1.8, "build_s": 2.0, "produces": 1.5},
       "blurb": "Keeps the grain dry. Feeds everything else you build."
     },
     {
@@ -43,6 +57,8 @@
       "cost": {"grain": 40, "timber": 20},
       "build_s": 5.0,
       "produces": {"resource": "stone", "amount": 2, "interval": 8.0},
+      "max_level": 5,
+      "upgrade": {"cost": 1.8, "build_s": 2.0, "produces": 1.5},
       "blurb": "Eyes on the treeline. The crew quarry stone between watches."
     },
     {
@@ -52,6 +68,8 @@
       "cost": {"timber": 25},
       "build_s": 4.0,
       "produces": {"resource": "grain", "amount": 4, "interval": 6.0},
+      "max_level": 5,
+      "upgrade": {"cost": 1.8, "build_s": 2.0, "produces": 1.5},
       "blurb": "Raised beds in the old field lines. Grain, and a reason to stay."
     },
     {
@@ -61,6 +79,8 @@
       "cost": {"grain": 35, "stone": 15},
       "build_s": 5.0,
       "produces": {"resource": "timber", "amount": 3, "interval": 6.0},
+      "max_level": 5,
+      "upgrade": {"cost": 1.8, "build_s": 2.0, "produces": 1.5},
       "blurb": "The only good wood is at the treeline, and the treeline notices."
     },
     {
@@ -70,6 +90,8 @@
       "cost": {"stone": 40, "timber": 40},
       "build_s": 6.0,
       "produces": {"resource": "iron", "amount": 1, "interval": 10.0},
+      "max_level": 5,
+      "upgrade": {"cost": 1.8, "build_s": 2.0, "produces": 1.5},
       "blurb": "A shored shaft into the old workings. Slow, and the only iron there is."
     }
   ],
