@@ -34,6 +34,7 @@ func _process(_d: float) -> bool:
 		print("frame ", _f, " STALL ", t - _t, " ms")
 	_t = t
 	if _f == 5:
+		# Leave Durn on his first line, so the shot shows the tutorial.
 		_c._resources = {"grain": 99999, "timber": 99999, "stone": 99999, "iron": 99999}
 	if _f == 6:
 		# Top-left corners, spaced for the largest footprint in each row.
@@ -56,11 +57,6 @@ func _process(_d: float) -> bool:
 		for b in _c._built:
 			b["remaining"] = -1.0
 			_c._finish(b)
-		for i in range(_c._built.size()):
-			for _n in range(i):
-				_c._upgrade(_c._built[i])
-				_c._built[i]["remaining"] = -1.0
-				_c._finish(_c._built[i])
 		_c._choose(Vector2i(-8, -8))
 	if _f == 16 and OS.get_cmdline_user_args().size() > 0:
 		get_root().get_texture().get_image().save_png(OS.get_cmdline_user_args()[0])

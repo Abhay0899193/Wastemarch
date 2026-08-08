@@ -1033,3 +1033,23 @@ on save and the comment goes silently. Durable "why" belongs in the `.gd`.
 
 `game/tools/pack.gd` places ten buildings shoulder to shoulder and photographs it, which is the
 case that keeps producing complaints and is too slow to set up by hand.
+
+### A new `class_name` is invisible until the editor scans
+
+`City.tscn` silently loaded with a **plain Node3D root** the first time `class_name CityTutorial`
+existed — its script failed to load, so `_city._resources` did not exist and the smoke test blamed
+the wrong thing. The global script class cache is only rebuilt by an editor pass:
+
+```bash
+$GODOT --headless --path game --editor --quit
+```
+
+Same rule already recorded for `.gdextension` files. **Any new `class_name` needs the scan before
+`--script` will see it.**
+
+### `set_anchors_preset` does not set the size
+
+A `Control` created in code with `set_anchors_preset(PRESET_FULL_RECT)` keeps `size == (0, 0)`, and
+every anchored child then lays out against nothing — the tutorial was `visible == true` and drew
+nothing at all. Use **`set_anchors_and_offsets_preset`**. Cost half an hour of looking for a
+z-order or parenting problem that was not there.

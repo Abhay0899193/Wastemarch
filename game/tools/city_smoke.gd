@@ -73,6 +73,18 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	# --- Durn ---------------------------------------------------------------
+	# The tutorial is data, so this checks the machinery rather than the script:
+	# that a goal is recognised, that doing the thing advances it, and that a
+	# returning player is not taught to pan again.
+	var tut: CityTutorial = _city._tutorial
+	_ok("the tutorial exists", tut != null)
+	var step_before: int = tut.step()
+	_ok("it is waiting on something", step_before < 7)
+	_city.pan_to(Vector2(400, 400))            # any camera move satisfies step 1
+	tut._process(0.016)
+	_ok("moving the camera advances Durn", tut.step() > step_before)
+
 	var res: Dictionary = _city._resources
 	_check("starting timber", res.get("timber", 0), 90)
 
@@ -193,6 +205,8 @@ func _run() -> void:
 	f.close()
 	_city._load()
 	_check("a version 1 save still loads", _city._built.size(), 1)
+	_ok("and a save from before the tutorial existed skips it",
+			_city._tutorial.step() >= 7)
 	_check("and its building is level 1", _city._built[0]["level"], 1)
 	_check("and its resources came through", _city._resources["grain"], 7)
 
@@ -250,6 +264,9 @@ func _run() -> void:
 	# Zoom keeps the point under the cursor where it is, so zooming at a corner
 	# does not throw away what you were looking at.
 	var at := Vector2(1300, 250)
+	# From a known size, so an earlier check's zoom cannot decide whether this
+	# one clamps.
+	cam.size = (_city._zoom_in + _city._zoom_out) * 0.5
 	var before_zoom: Vector3 = _city._ground_at(at)
 	_city.zoom_by(0.5, at)
 	_ok("zooming in keeps the point under the cursor",

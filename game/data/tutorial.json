@@ -1,0 +1,58 @@
+{
+  "_comment": [
+    "Durn's build tutorial. The script is docs/STORY.md; the shape is measured off",
+    "Clash of Clans in docs/reference/COC_TEARDOWN.md, whose five rules this obeys:",
+    "",
+    "  1. never an empty screen — the village exists before the player does",
+    "  2. one action available at a time, everything else dimmed",
+    "  3. a reason to build the thing you are told to build",
+    "  4. show the locks — what is coming is advertising, not friction",
+    "  5. ask for nothing until you have given something",
+    "",
+    "This is the BUILD tutorial only. The cinematic opening — the cart, the rain,",
+    "the sound in the Duskwood — is Phase 6 and lives in STORY.md until then.",
+    "",
+    "say    what Durn says. Keep it to two lines at phone size.",
+    "goal   what the player must do before the next line arrives:",
+    "         none      advance on the button",
+    "         camera    move the view at all",
+    "         placed    place a building of `id`",
+    "         finished  have a finished building of `id`",
+    "         selected  select any finished building",
+    "         level     have a building of `id` at `level` or better",
+    "point  what the arrow points at: `card:<id>` or `building:<id>`, or nothing"
+  ],
+  "steps": [
+    {
+      "say": "Right. Before anything else — drag the ground about, and roll the wheel. A builder who cannot see the site is no builder at all.",
+      "goal": {"type": "camera"}
+    },
+    {
+      "say": "Now look down. Those straight lines under the grass are drainage cuts. Somebody farmed this, and farmed it well. Put a croft on it.",
+      "goal": {"type": "placed", "id": "croft"},
+      "point": "card:croft"
+    },
+    {
+      "say": "Aye. Now leave it alone. It will take four seconds, which is three more than you will want to give it.",
+      "goal": {"type": "finished", "id": "croft"}
+    },
+    {
+      "say": "Grain is no use in a heap. You will want timber, and the only good wood is at the treeline. That is not my problem today.",
+      "goal": {"type": "placed", "id": "logging_camp"},
+      "point": "card:logging_camp"
+    },
+    {
+      "say": "Now tap the croft. Everything in this holding can be made better than it is, and most of it should be.",
+      "goal": {"type": "selected"},
+      "point": "building:croft"
+    },
+    {
+      "say": "Upgrade it. It will cost you, it will take longer, and it will pay more. You can see the numbers before you spend — I insisted.",
+      "goal": {"type": "level", "id": "croft", "level": 2}
+    },
+    {
+      "say": "That is the whole job, lad. Build it, wait for it, improve it. I will be over there, complaining about the drainage.",
+      "goal": {"type": "none"}
+    }
+  ]
+}

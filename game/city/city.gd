@@ -94,6 +94,7 @@ var _zoom_out := 32.0                       ## fully out — set in _ready
 var _zoom_in := 8.0                         ## fully in — set in _ready
 var _obstacles: Dictionary = {}             ## Vector2i -> prop id, blocks building
 var _scenes: Dictionary = {}                ## id -> PackedScene, loaded once
+var _cards: Dictionary = {}                 ## id -> its card in the bottom bar
 var _resource_labels: Dictionary = {}
 var _status: Label = null
 ## The selected building is remembered by its **cell**, not by holding on to the
@@ -104,6 +105,7 @@ var _chosen_cell := Vector2i(9999, 9999)
 var _panel: VBoxContainer = null
 var _panel_title: Label = null
 var _panel_gain: Label = null
+var _tutorial: CityTutorial = null
 var _panel_button: Button = null
 var _grabbing := false                      ## right or middle button held
 var _grab := Vector3.ZERO                   ## the ground point being dragged
@@ -123,6 +125,7 @@ func _ready() -> void:
 	_build_hud()
 	_build_panel()
 	_refresh_hud()
+	_start_tutorial()
 	set_process(true)
 
 
@@ -757,7 +760,14 @@ func _build_hud() -> void:
 	_hud.add_child(bar)
 
 	for id in _order:
-		bar.add_child(_build_button(id))
+		var button := _build_button(id)
+		_cards[id] = button
+		bar.add_child(button)
+
+
+## The bottom-bar card for a building, so the tutorial can point at it.
+func card_for(id: String) -> Button:
+	return _cards.get(id)
 
 
 func _build_button(id: String) -> Control:
@@ -895,6 +905,13 @@ func _place_panel() -> void:
 	_panel.position = screen - Vector2(_panel.size.x * 0.5, -14.0)
 
 
+## Durn, over the top of everything. Added last so it draws over the HUD.
+func _start_tutorial() -> void:
+	_tutorial = CityTutorial.new()
+	_hud.add_child(_tutorial)
+	_tutorial.setup(self)
+
+
 func _set_status(text: String) -> void:
 	if _status:
 		_status.text = text
@@ -909,7 +926,8 @@ func _set_status(text: String) -> void:
 ##
 ##   1  the first format
 ##   2  buildings carry a `level`
-const SAVE_VERSION := 2
+##   3  the save carries how far through the tutorial the player got
+const SAVE_VERSION := 3
 
 
 func _save() -> void:
@@ -920,7 +938,8 @@ func _save() -> void:
 	# `version` is here from the first save on purpose. Adding it later means a
 	# migration that cannot tell old saves apart from new ones.
 	var payload := {"version": SAVE_VERSION, "resources": _resources,
-					"buildings": rows}
+					"buildings": rows,
+					"tutorial_step": _tutorial.step() if _tutorial else 0}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	f.store_string(JSON.stringify(payload, "  "))
 	f.close()
@@ -961,6 +980,8 @@ func _load() -> void:
 			entry["label"] = _under_construction(node, float(entry["remaining"]))
 		_built.append(entry)
 
+	if _tutorial:
+		_tutorial.skip_to(int(payload.get("tutorial_step", 0)))
 	_chosen_cell = Vector2i(9999, 9999)
 	_refresh_panel()
 	_refresh_hud()
@@ -990,6 +1011,12 @@ func _migrate(payload: Dictionary) -> Dictionary:
 		for row in payload["buildings"]:
 			row["level"] = 1
 		version = 2
+
+	if version == 2:
+		# Version 2 predates the tutorial. Anyone who has a version 2 save has
+		# already played, so they are past it rather than at the start of it.
+		payload["tutorial_step"] = 9999
+		version = 3
 
 	payload["version"] = version
 	return payload
