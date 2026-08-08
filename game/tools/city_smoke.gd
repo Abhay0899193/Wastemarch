@@ -205,6 +205,31 @@ func _run() -> void:
 	_check("a future save is refused and changes nothing",
 			_city._built.size(), 1)
 
+	# --- an upgrade has to be visible --------------------------------------
+	# The report was "there is no change in the building after an upgrade", and
+	# it was true: only the keep has art past level 1. These check that a
+	# building with no level-2 model still changes.
+	var croft_cell := Vector2i(12, -12)
+	_city._resources = {"grain": 9999, "timber": 9999, "stone": 9999, "iron": 9999}
+	_ok("placed a croft to look at", _city._place(croft_cell, "croft"))
+	var cb: Dictionary = _city._building_at(croft_cell)
+	_advance(_city._build_s_at("croft", 1) + 1.0)
+	var scale_1: float = (cb["node"] as Node3D).scale.x
+	_ok("the croft has no level 2 model",
+			_city._model_for("croft", 2) == _city._model_for("croft", 1))
+	_ok("upgrading the croft works", _city._upgrade(cb))
+	_advance(_city._build_s_at("croft", 2) + 1.0)
+	_ok("but the building still changes size",
+			absf((cb["node"] as Node3D).scale.x - scale_1) > 0.001)
+	var tinted := false
+	for child in (cb["node"] as Node3D).find_children("*", "MeshInstance3D", true, false):
+		var mi := child as MeshInstance3D
+		for i in range(mi.get_surface_override_material_count()):
+			var mat := mi.get_surface_override_material(i)
+			if mat is BaseMaterial3D and not (mat as BaseMaterial3D).albedo_color.is_equal_approx(Color.WHITE):
+				tinted = true
+	_ok("and it keeps its level tint after finishing", tinted)
+
 	# --- the camera ---------------------------------------------------------
 	# **The test is the definition of correct panning:** whatever ground you
 	# grabbed stays under the cursor. The old pan multiplied mouse pixels by

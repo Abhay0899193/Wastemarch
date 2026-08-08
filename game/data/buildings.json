@@ -95,5 +95,26 @@
       "blurb": "A shored shaft into the old workings. Slow, and the only iron there is."
     }
   ],
+  "_level_look_comment": [
+    "How a building LOOKS at each level, when it has no separate model for that",
+    "level. Distinct art per level is 30 models and about 300 MB of baked",
+    "textures for buildings that are still placeholder, so it is not what we do",
+    "yet — docs/BACKLOG.md. What we do instead is what Clash of Clans does for",
+    "most of its own level-ups: the building gets a little bigger and its colour",
+    "moves. Both read at a glance, and neither costs an asset.",
+    "",
+    "scale must keep fill * scale under the 0.9 ceiling in build_asset.py. At",
+    "      fill 0.8 that allows 1.12.",
+    "tint  multiplies the baked texture, so it shifts the building without",
+    "      flattening it. It walks from bone grey towards Ostmere gold — a place",
+    "      that is doing better than it was."
+  ],
+  "level_look": [
+    {"scale": 1.00, "tint": [1.00, 1.00, 1.00]},
+    {"scale": 1.03, "tint": [1.03, 1.01, 0.97]},
+    {"scale": 1.06, "tint": [1.07, 1.02, 0.93]},
+    {"scale": 1.09, "tint": [1.11, 1.04, 0.89]},
+    {"scale": 1.12, "tint": [1.16, 1.06, 0.84]}
+  ],
   "starting_resources": {"grain": 120, "timber": 90, "stone": 70, "iron": 0}
 }

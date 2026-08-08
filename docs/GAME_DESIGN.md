@@ -99,9 +99,21 @@ level costs more, takes longer, and yields more; the multipliers are in the same
 Phase 5 replaces them with an explicit per-level table.
 
 **The art does not have to keep up with the levels.** A building uses the best model it has at
-or below its level. The keep has models for levels 1, 3 and 5, so it visibly changes twice; the
-croft has one, so it does not change at all yet. Making thirty models to prove a counter works
-would be the wrong order to do things in.
+or below its level. The keep has models for levels 1, 3 and 5; the other five have one each.
+
+**But an upgrade still has to be visible, and at first it was not.** Five of the six buildings
+looked identical at every level and nothing on screen said otherwise, which reads as a bug
+whether or not it is one. Two things fix it without an asset:
+
+- **The building gets a little bigger and its colour moves** at each level — up to 12% larger
+  and a step towards Ostmere gold by level 5. This is what Clash of Clans does for most of its
+  own level-ups. The values are in `buildings.json` under `level_look`.
+- **The panel says what the upgrade buys**, as before and after: *"Timber 2 → 3 every 6s"*.
+  Their upgrade dialog shows "400 + 400" rather than "800", and that is most of why an upgrade
+  feels like something happened. A level number on its own does not.
+
+Distinct art for every level is thirty models and a few hundred megabytes of baked texture for
+buildings that are still placeholder. That is in [BACKLOG.md](BACKLOG.md), not done now.
 
 ### Adjacency bonuses — the part that makes layout interesting
 

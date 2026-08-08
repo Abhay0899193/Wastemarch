@@ -1010,3 +1010,30 @@ Panning is also clamped so the view cannot leave the map, six metres past the ed
 
 **Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
 smoke **48 checks** including three drags, two zooms, the zoom limits and the pan clamp.
+
+---
+
+## 2026-08-09 — Session 12 — an upgrade you can see
+
+**"There is no change in the building after update."** True, and for two reasons. Only the keep
+has art past level 1, so five of six buildings were identical at every level; and nothing on
+screen said what an upgrade had bought, so even the keep's change at level 3 arrived unexplained.
+
+Distinct art per level is 30 models and a few hundred megabytes of baked texture for buildings
+that are still placeholder — in `docs/BACKLOG.md`, not done. What Clash of Clans does for most
+of its own level-ups is cheaper and works:
+
+- **The building grows and its colour moves** — up to 12% larger by level 5 and a step towards
+  Ostmere gold. Values in `buildings.json` under `level_look`, because they are values. The
+  scale ceiling is not arbitrary: `fill 0.8 x 1.12 = 0.896`, just inside the 0.9 the validator
+  allows.
+- **The panel says what changed**, before and after: *"Timber 2 → 3 every 6s"*. Theirs shows
+  "400 + 400" rather than "800" and that is most of why an upgrade feels like an event.
+
+**One bug found while writing it.** `_finish` cleared every surface override to reveal the baked
+texture — which also cleared the level tint, so a building reverted to its level 1 colour the
+instant its upgrade finished. Exactly the reported bug, arriving by a second route. `_finish`
+now re-applies the level look after clearing.
+
+**Verified.** city smoke **53 checks**, including one that upgrades a croft — a building with no
+level 2 model — and asserts it changes size and keeps its tint after finishing.

@@ -244,6 +244,14 @@ bases. The locked palette (ADR-0004) does not yet contain enough separable hues 
 them, and adding any means re-running `tools/art/palette_check.py` for colourblind safety.
 **Reconsider:** with the second batch of buildings, when the need is concrete.
 
+### A distinct model for every upgrade level
+Today a building uses the best model at or below its level — the keep changes at 3 and 5, the
+others never — and the level is carried by a size and colour step instead. Real per-level art
+is six buildings times five levels: thirty models, and at today's texture sizes a few hundred
+megabytes of baked PNG. Worth it for art we are keeping; not worth it for placeholders.
+**Reconsider:** once the building art is approved, and after the texture sizes are looked at —
+a 126-triangle croft currently carries a 4.8 MB albedo.
+
 ### Design the buildings squat rather than squashing them
 Each asset now declares its own proportion target, but the models are still hand-tuned at the
 old sizes and scaled down. Roof pitches flatten and small details lose shape. Re-tune each

@@ -80,6 +80,7 @@ const MODEL_DIR := "res://assets/models/"
 @onready var _hud: Control = $HUD/Root
 
 var _defs: Dictionary = {}                  ## id -> definition
+var _level_look: Array = []                 ## per-level scale and tint, from data
 var _order: Array[String] = []
 var _resources: Dictionary = {}
 var _occupied: Dictionary = {}              ## Vector2i -> building id
@@ -102,6 +103,7 @@ var _status: Label = null
 var _chosen_cell := Vector2i(9999, 9999)
 var _panel: VBoxContainer = null
 var _panel_title: Label = null
+var _panel_gain: Label = null
 var _panel_button: Button = null
 var _grabbing := false                      ## right or middle button held
 var _grab := Vector3.ZERO                   ## the ground point being dragged
@@ -314,6 +316,7 @@ func _load_definitions() -> void:
 		_defs[entry["id"]] = entry
 		_order.append(entry["id"])
 	_resources = (data["starting_resources"] as Dictionary).duplicate()
+	_level_look = data["level_look"]
 
 
 # ---------------------------------------------------------------------------
@@ -488,7 +491,45 @@ func _spawn_model(id: String, level: int = 1) -> Node3D:
 		return null
 	if not _scenes.has(path):
 		_scenes[path] = load(path)
-	return (_scenes[path] as PackedScene).instantiate()
+	var node := (_scenes[path] as PackedScene).instantiate() as Node3D
+	_apply_level_look(node, level)
+	return node
+
+
+## Make an upgrade visible on a building that has no separate model for its
+## level.
+##
+## **"There is no change in the building after an upgrade" was a fair report.**
+## Only the keep has art past level 1, so five of the six buildings looked
+## identical at every level, and nothing on screen said otherwise.
+##
+## Distinct art for every level is thirty models and a few hundred megabytes of
+## baked texture, for buildings that are still placeholder — that is in
+## `docs/BACKLOG.md`, not in this session. What Clash of Clans does for most of
+## its own level-ups is cheaper and works: the building gets a little bigger and
+## its colour moves. Both read at a glance and neither costs an asset.
+##
+## The numbers are in `buildings.json` under `level_look`, because they are
+## values and `CLAUDE.md` does not allow values here.
+func _apply_level_look(node: Node3D, level: int) -> void:
+	if _level_look.is_empty():
+		return
+	var look: Dictionary = _level_look[clampi(level - 1, 0, _level_look.size() - 1)]
+	node.scale = Vector3.ONE * float(look["scale"])
+
+	var t: Array = look["tint"]
+	var tint := Color(float(t[0]), float(t[1]), float(t[2]))
+	if tint.is_equal_approx(Color.WHITE):
+		return
+	for child in node.find_children("*", "MeshInstance3D", true, false):
+		var mesh := child as MeshInstance3D
+		for i in range(mesh.get_surface_override_material_count()):
+			var src := mesh.mesh.surface_get_material(i) if mesh.mesh else null
+			if src == null:
+				continue
+			var mat: BaseMaterial3D = src.duplicate()
+			mat.albedo_color = tint
+			mesh.set_surface_override_material(i, mat)
 
 
 ## What a building looks like while it is being built.
@@ -638,6 +679,11 @@ func _upgrade(b: Dictionary) -> bool:
 		node.position = _cell_to_world(cell, _defs[id]["footprint"])
 		_placed.add_child(node)
 		b["node"] = node
+	else:
+		# Same model, new level: the look still has to move, or the upgrade is
+		# invisible. This branch is the common one — only the keep has art past
+		# level 1.
+		_apply_level_look(b["node"], next)
 
 	b["remaining"] = _build_s_at(id, next)
 	b["label"] = _under_construction(b["node"], b["remaining"])
@@ -653,12 +699,15 @@ func _finish(b: Dictionary) -> void:
 	b["label"] = null
 	var node: Node3D = b["node"]
 	if is_instance_valid(node):
-		# Drop the override entirely rather than tint it back: the baked texture
-		# is on the mesh's own material, and an override would hide it forever.
+		# Clear the construction override, then put the level's look back.
+		# Dropping the override alone would also drop the level tint, and the
+		# building would quietly revert to its level 1 colour the moment it
+		# finished — which is exactly the bug being fixed.
 		for child in node.find_children("*", "MeshInstance3D", true, false):
 			var mesh := child as MeshInstance3D
 			for i in range(mesh.get_surface_override_material_count()):
 				mesh.set_surface_override_material(i, null)
+		_apply_level_look(node, int(b["level"]))
 	_set_status("%s finished" % _defs[b["id"]]["name"])
 	_refresh_panel()
 
@@ -759,6 +808,15 @@ func _build_panel() -> void:
 	_panel_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_panel.add_child(_panel_title)
 
+	# **What the upgrade actually buys, as before and after.** Their upgrade
+	# dialog shows "400 + 400", not "800", and that is most of why an upgrade
+	# feels like something happened. A level number on its own does not.
+	_panel_gain = Label.new()
+	_panel_gain.add_theme_font_size_override("font_size", 13)
+	_panel_gain.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_panel_gain.modulate = Color(0.72, 0.92, 0.66)
+	_panel.add_child(_panel_gain)
+
 	_panel_button = Button.new()
 	_panel_button.custom_minimum_size = Vector2(150, 40)
 	_panel_button.pressed.connect(func() -> void:
@@ -794,12 +852,18 @@ func _refresh_panel() -> void:
 	var b: Dictionary = found
 	var id: String = b["id"]
 	var level := int(b["level"])
+	var produces: Dictionary = _defs[id]["produces"]
 	_panel.visible = true
 	_panel_title.text = "%s — level %d" % [_defs[id]["name"], level]
 	if level >= _max_level(id):
+		_panel_gain.text = "%d %s every %.0fs" % [
+				_yield_at(id, level), produces["resource"], produces["interval"]]
 		_panel_button.text = "Highest level"
 		_panel_button.disabled = true
 	else:
+		_panel_gain.text = "%s  %d \u2192 %d every %.0fs" % [
+				produces["resource"].capitalize(), _yield_at(id, level),
+				_yield_at(id, level + 1), produces["interval"]]
 		var cost := _cost_at(id, level + 1)
 		var parts: Array[String] = []
 		for res in cost:
