@@ -65,11 +65,39 @@ This is not a stylistic preference, it is a legibility requirement. On a phone, 
 are small and often partly hidden. If two buildings share a silhouette, players misread
 their own base.
 
-This test is **scripted and automatic** — it runs as part of asset validation, not as a
-thing someone remembers to do.
-
 Practically this means: each building needs one distinctive shape feature. A roof angle, a
 chimney, a tower, an overhang. Not decoration on a shared box.
+
+### How a script can run a test about recognition
+
+```bash
+$BLENDER --background --factory-startup --python tools/blender/render_and_silhouette.py
+```
+
+Whether *you* recognise a shape is not something a script can judge. What a script can judge
+is the thing that makes recognition impossible: **two buildings whose black shapes are nearly
+the same**. So the check renders every building as a solid black 64-pixel shape at the game
+camera and compares every pair. Sharing more than **80%** of a silhouette fails the build.
+
+Two details make the difference between this measuring the rule and measuring nothing:
+
+- **Every building is framed at the same scale.** The first version fitted the frame to each
+  subject, which drew a 4.2-metre watchtower and a 2.5-metre shed at the same size. Size is a
+  large part of how you tell buildings apart on a screen where they all stand on the same
+  ground, and normalising it away made the test measure something the player never sees.
+  Fixing it moved granary-versus-keep from 0.69 to **0.33** — the test had been reporting the
+  wrong answer, in the safe direction, which is the worst kind.
+- **A building is compared against its own upgrade levels too.** A level 5 keep must still be
+  recognisably a keep, and still be tellable from a level 1 one. Measured at **0.71** — the
+  closest pair in the set, and correctly so.
+
+Current results, 8 August 2026:
+
+| | granary | watchtower | keep L1 | keep L5 |
+|---|---|---|---|---|
+| **granary** | — | 0.54 | 0.33 | 0.24 |
+| **watchtower** | | — | 0.38 | 0.28 |
+| **keep L1** | | | — | **0.71** |
 
 ---
 

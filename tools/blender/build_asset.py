@@ -56,17 +56,46 @@ def new_mesh(name):
     return obj
 
 
+def prism(bm, bottom_centre, bottom_xy, top_centre, top_xy):
+    """A six-sided solid whose top face may differ from its bottom. 12 triangles.
+
+    This one primitive covers everything the buildings need: a plain box when the
+    two faces match, a taper when the top is smaller, and a leaning strut when
+    the two centres are offset. Three helpers collapsed into one is three fewer
+    places for an off-by-a-half-extent mistake to hide.
+    """
+    (bx, by, bz), (tx, ty, tz) = bottom_centre, top_centre
+    hbx, hby = bottom_xy[0] / 2, bottom_xy[1] / 2
+    htx, hty = top_xy[0] / 2, top_xy[1] / 2
+    corners = ((-1, -1), (1, -1), (1, 1), (-1, 1))
+    lo = [bm.verts.new((bx + x * hbx, by + y * hby, bz)) for x, y in corners]
+    hi = [bm.verts.new((tx + x * htx, ty + y * hty, tz)) for x, y in corners]
+    bm.faces.new(tuple(reversed(lo)))
+    bm.faces.new(tuple(hi))
+    for i in range(4):
+        j = (i + 1) % 4
+        bm.faces.new((lo[i], lo[j], hi[j], hi[i]))
+    return lo + hi
+
+
 def box(bm, centre, size):
     """An axis-aligned box. 12 triangles."""
     cx, cy, cz = centre
-    sx, sy, sz = (s / 2 for s in size)
-    verts = [bm.verts.new((cx + x * sx, cy + y * sy, cz + z * sz))
-             for x, y, z in ((-1, -1, -1), (1, -1, -1), (1, 1, -1), (-1, 1, -1),
-                             (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1))]
-    for a, b, c, d in ((0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1),
-                       (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)):
-        bm.faces.new((verts[a], verts[b], verts[c], verts[d]))
-    return verts
+    sx, sy, sz = size
+    return prism(bm, (cx, cy, cz - sz / 2), (sx, sy),
+                 (cx, cy, cz + sz / 2), (sx, sy))
+
+
+def pyramid(bm, centre, size, height):
+    """A square-based pyramid — the watchtower's roof. 6 triangles."""
+    cx, cy, cz = centre
+    hx, hy = size[0] / 2, size[1] / 2
+    base = [bm.verts.new((cx + x * hx, cy + y * hy, cz))
+            for x, y in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    apex = bm.verts.new((cx, cy, cz + height))
+    bm.faces.new(tuple(reversed(base)))
+    for i in range(4):
+        bm.faces.new((base[i], base[(i + 1) % 4], apex))
 
 
 def gable_roof(bm, centre, size, ridge_height):
@@ -170,7 +199,182 @@ def build_granary(level: int = 1, detail: bool = True):
     return obj, "small", (2, 2)
 
 
-BUILDERS = {"granary": build_granary}
+
+def build_keep(level: int = 1, detail: bool = True):
+    """4x4 tiles. The player's anchor building, at five upgrade levels.
+
+    Matched to two concepts, not one: `keep_1002` is the early keep and
+    `keep_1003` the late one — see `assets-src/concept/PICKS.md`. Everything that
+    differs between them is a number here, interpolated by `level`:
+
+        level 1  compact, low walls, short tower, sparse crenellation
+        level 5  taller walls, tower risen well clear, dense crenellation
+
+    That is the whole argument for scripted models. Five hand-made keeps would
+    drift apart in a way nobody could point at; five values of `t` cannot.
+    """
+    t = (max(1, min(5, level)) - 1) / 4.0        # 0 at level 1, 1 at level 5
+
+    obj = new_mesh("keep")
+    bm = bmesh.new()
+
+    foot = 4.0 * TILE
+    wall_t = 0.42
+    # Proportions checked against the concepts rather than guessed: keep_1002 is
+    # roughly as tall as it is wide, so a 4 m keep wants to reach about 4 m at
+    # level 1. The first pass came out at 2.9 m and read as a bunker.
+    wall_h = 1.9 + 0.9 * t
+    tower_w = 1.5
+    tower_h = wall_h + 1.7 + 1.1 * t
+    merlon_w, merlon_h = 0.30, 0.30
+    per_side = 8
+
+    inner = foot / 2 - wall_t
+
+    # Four walls around a courtyard, rather than one solid block. The gap is
+    # visible from the game camera and it is what makes the keep read as a place
+    # with an inside.
+    for sx, sy, w, d in ((0, 1, foot, wall_t), (0, -1, foot, wall_t),
+                         (1, 0, wall_t, foot - 2 * wall_t),
+                         (-1, 0, wall_t, foot - 2 * wall_t)):
+        box(bm, (sx * (foot / 2 - wall_t / 2), sy * (foot / 2 - wall_t / 2),
+                 wall_h / 2), (w, d, wall_h))
+
+    box(bm, (0, 0, 0.09), (foot - 2 * wall_t, foot - 2 * wall_t, 0.18))  # court
+
+    def crenellate(cx, cy, span, along_x, count, top_z):
+        """A row of merlons, or a solid parapet when detail is off.
+
+        At LOD distance an individual merlon is smaller than a pixel, so the
+        gaps between them cannot be seen — but the *thickened wall top* still
+        can. A solid band reads better there than a handful of lonely blocks,
+        and it is a quarter of the triangles.
+        """
+        if not detail:
+            box(bm, (cx, cy, top_z + merlon_h / 2),
+                (span if along_x else wall_t, wall_t if along_x else span,
+                 merlon_h))
+            return
+        step = span / count
+        for i in range(count):
+            off = -span / 2 + step * (i + 0.5)
+            box(bm, (cx + off if along_x else cx, cy if along_x else cy + off,
+                     top_z + merlon_h / 2),
+                (merlon_w if along_x else wall_t,
+                 wall_t if along_x else merlon_w, merlon_h))
+
+    n = per_side if detail else 1
+    crenellate(0, foot / 2 - wall_t / 2, foot, True, n, wall_h)
+    crenellate(0, -(foot / 2 - wall_t / 2), foot, True, n, wall_h)
+    crenellate(foot / 2 - wall_t / 2, 0, foot - 2 * wall_t, False, n, wall_h)
+    crenellate(-(foot / 2 - wall_t / 2), 0, foot - 2 * wall_t, False, n, wall_h)
+
+    # The tower. Set further back into the courtyard as the keep grows, which is
+    # the clearest single difference between the two reference concepts.
+    ty = -0.15 + 0.45 * t
+    box(bm, (0.25, ty, tower_h / 2), (tower_w, tower_w, tower_h))
+    if detail:
+        step = tower_w / 3
+        for i in range(3):
+            for ex, ey in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                off = -tower_w / 2 + step * (i + 0.5)
+                box(bm, (0.25 + (off if ex == 0 else ex * tower_w / 2 * 0.86),
+                         ty + (off if ey == 0 else ey * tower_w / 2 * 0.86),
+                         tower_h + merlon_h / 2),
+                    (0.26, 0.26, merlon_h))
+    else:
+        box(bm, (0.25, ty, tower_h + merlon_h / 2),
+            (tower_w, tower_w, merlon_h))
+
+    if detail:
+        # Arched door with steps up to it, and the crimson banner. All three are
+        # things the eye finds first at close range and cannot resolve at all
+        # from far away.
+        box(bm, (0.0, -(foot / 2 - wall_t) + 0.02, 0.55), (0.85, 0.12, 1.10))
+        for i, sz in enumerate((0.06, 0.12, 0.18)):
+            box(bm, (0.0, -(foot / 2) - 0.12 + i * 0.13, sz / 2),
+                (1.0, 0.26, sz))
+        box(bm, (0.25 + tower_w / 2 + 0.02, ty, tower_h * 0.74),
+            (0.04, 0.42, 0.62))
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj, "large", (4, 4)
+
+
+def build_watchtower(level: int = 1, detail: bool = True):
+    """2x2 tiles, but tall. The hardest asset for the silhouette rule.
+
+    Matched to `assets-src/concept/watchtower/watchtower_1004.png`: a tapered
+    stone core braced by four splayed timber legs, an external ladder, a railed
+    platform with a brazier, and a small conical roof.
+
+    Almost all of this building's identity is in its outline, which is why the
+    splay is generous. A vertical stick reads as scaffolding; a splayed one
+    reads as a tower.
+    """
+    t = (max(1, min(5, level)) - 1) / 4.0
+
+    obj = new_mesh("watchtower")
+    bm = bmesh.new()
+
+    foot = 2.0 * TILE
+    base_h = 0.14
+    core_bot, core_top = 1.15, 0.78          # the stone core tapers as it rises
+    plat_z = 2.5 + 0.7 * t
+    plat_w = 1.34
+    leg_bot = foot / 2 - 0.16
+
+    box(bm, (0, 0, base_h / 2), (foot - 0.06, foot - 0.06, base_h))
+    prism(bm, (0, 0, base_h), (core_bot, core_bot),
+          (0, 0, plat_z - 0.1), (core_top, core_top))
+
+    # Four splayed legs, wide at the ground and gathered under the platform.
+    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        prism(bm, (sx * leg_bot, sy * leg_bot, base_h), (0.17, 0.17),
+              (sx * (plat_w / 2 - 0.08), sy * (plat_w / 2 - 0.08), plat_z),
+              (0.13, 0.13))
+
+    box(bm, (0, 0, plat_z + 0.06), (plat_w + 0.30, plat_w + 0.30, 0.12))
+
+    # Roof on four corner posts, leaving the platform open on all sides so the
+    # brazier inside it is visible from every angle the camera allows.
+    eave = plat_z + 0.72
+    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        box(bm, (sx * (plat_w / 2 - 0.07), sy * (plat_w / 2 - 0.07),
+                 plat_z + 0.42), (0.1, 0.1, 0.66))
+    pyramid(bm, (0, 0, eave), (plat_w + 0.46, plat_w + 0.46), 0.52)
+
+    box(bm, (0, 0, plat_z + 0.32), (0.36, 0.36, 0.4))        # brazier
+
+    if detail:
+        # Railings, ladder and pennant. The railing in particular is 40% of the
+        # triangle count and none of the silhouette.
+        for sx, sy, w, d in ((0, 1, plat_w, 0.07), (0, -1, plat_w, 0.07),
+                             (1, 0, 0.07, plat_w), (-1, 0, 0.07, plat_w)):
+            box(bm, (sx * plat_w / 2, sy * plat_w / 2, plat_z + 0.34),
+                (w, d, 0.07))
+        for i in range(4):
+            off = -plat_w / 2 + plat_w * (i + 0.5) / 4
+            box(bm, (off, -plat_w / 2, plat_z + 0.24), (0.05, 0.05, 0.36))
+        # Ladder: two rails and rungs, leaning against the north-west leg.
+        for rx in (-0.20, 0.20):
+            prism(bm, (rx - 0.55, 0.62, base_h), (0.06, 0.06),
+                  (rx - 0.30, 0.30, plat_z), (0.06, 0.06))
+        for i in range(5):
+            f = (i + 0.5) / 5
+            box(bm, (-0.55 + 0.25 * f, 0.62 - 0.32 * f,
+                     base_h + (plat_z - base_h) * f), (0.44, 0.05, 0.04))
+        box(bm, (0, 0, eave + 0.52 + 0.24), (0.05, 0.05, 0.48))   # pennant pole
+        box(bm, (0.17, 0, eave + 0.52 + 0.34), (0.30, 0.03, 0.18))
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj, "small", (2, 2)
+
+
+BUILDERS = {"granary": build_granary, "keep": build_keep,
+            "watchtower": build_watchtower}
 
 
 # ---------------------------------------------------------------------------

@@ -493,3 +493,21 @@ caught it instantly, which is the whole argument for validating at build time.
 Same rule as `.gdextension` files: `--headless --path game --quit` does **not** import a new
 `.glb`. Run `--headless --path game --editor --quit` once; that writes the `.import` file and
 the `.godot/imported/*.scn`.
+
+### Blender 5.2: the render engine is `BLENDER_EEVEE`, not `BLENDER_EEVEE_NEXT`
+
+Valid values are exactly `('BLENDER_EEVEE', 'BLENDER_WORKBENCH', 'CYCLES')`. The 4.x-era name
+`BLENDER_EEVEE_NEXT`, which most examples online still use, raises `TypeError`. Exactly the
+5.x drift this file warned about.
+
+### A silhouette test must frame every subject at the SAME scale
+
+`tools/blender/render_and_silhouette.py` first fitted the camera to each building, so a 4.2 m
+watchtower and a 2.5 m shed rendered the same size. Size is a large part of how buildings are
+told apart in a game where they share the ground, so normalising it away measured something
+the player never sees. Fixing it moved granary-vs-keep from **0.69 to 0.33** — the test had
+been giving the wrong answer *in the safe direction*, which is the kind that never gets
+noticed.
+
+Compare a building against its own upgrade levels too: `keep_L1` vs `keep_L5` is 0.71, the
+closest pair in the set and correctly so — the same building, grown.

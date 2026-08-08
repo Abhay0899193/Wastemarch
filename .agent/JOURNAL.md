@@ -548,3 +548,41 @@ either way, so it is cheap to defer to stage 3 and expensive to guess at.
 `granary_L1.glb` — 162 of 1,500 triangles, 2×2 tiles, 0.17 m overhang, sitting on z=0 —
 imports into Godot cleanly and produces a `.scn`. Prompt → concept → parametric model →
 validated → glTF → engine, with nothing done by hand.
+
+### The keep, the watchtower, and a test that was measuring the wrong thing
+
+All three reference buildings now build parametrically and validate. The keep interpolates
+between the owner's two picks: 3.9 m at level 1, 5.9 m at level 5, identical triangle count,
+which is the entire argument for scripted models made concrete.
+
+First keep came out 2.9 m tall on a 4 m footprint and read as a bunker. Checked against the
+concept rather than adjusted by feel — `keep_1002` is roughly as tall as it is wide — and the
+numbers were changed to match.
+
+Three primitives (`box`, taper, leaning strut) collapsed into one `prism`, which is three
+fewer places for an off-by-a-half-extent error. The granary came out at exactly 162 triangles
+afterwards, which is how I know the refactor changed nothing.
+
+**Merlons are the interesting case for the LOD rule.** Crenellation *is* a keep's silhouette,
+so it cannot simply be dropped at distance — but an individual merlon is smaller than a pixel
+there. So LOD1 replaces the row of merlons with a solid parapet band: the thickened wall top
+still reads, the gaps were never visible anyway, and it is a quarter of the triangles. 660
+triangles down to 132.
+
+### The silhouette check exists now, and its first version was wrong
+
+`ART_BIBLE.md` has claimed since Phase 0 that the silhouette test is "scripted and automatic".
+It was not. It is now.
+
+The insight that makes it automatable: a script cannot judge whether a person recognises a
+shape, but it can measure the thing that makes recognition impossible — two buildings whose
+black shapes are nearly the same. Overlap over 80% fails.
+
+**The first version framed each building to fill the frame**, so a 4.2 m watchtower and a
+2.5 m shed rendered the same size. Size is most of how buildings are told apart on a screen
+where they all stand on the same ground. Fixing it moved granary-versus-keep from 0.69 to
+0.33: the test had been giving the wrong answer *in the safe direction*, which is the kind
+nobody ever catches, because it only ever says "fine".
+
+Also worth its own line: `BLENDER_EEVEE_NEXT` does not exist in 5.2 — it is `BLENDER_EEVEE`.
+Precisely the 4.x-to-5.x drift MEMORY warned would cost time in Phase 2.

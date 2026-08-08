@@ -1,0 +1,23 @@
+{
+  "triangles": 660,
+  "budget": 4000,
+  "size_class": "large",
+  "surface_area_m2": 194.639,
+  "texels_needed": 12755848,
+  "atlas_slot_texels": 40342265,
+  "uv_coverage": 0.3162,
+  "equivalent_square_px": 6352,
+  "footprint_tiles": [
+    4,
+    4
+  ],
+  "overhang_m": 0.25,
+  "extent_m": [
+    4.0,
+    4.25
+  ],
+  "height_m": 5.9,
+  "lod1_triangles": 132,
+  "file": "assets-src/model/keep_L5.glb",
+  "level": 5
+}
