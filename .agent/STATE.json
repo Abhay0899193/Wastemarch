@@ -1,7 +1,7 @@
 {
   "phase": 2,
   "phase_name": "Phase 2 — art pipeline. Palette locked; nothing is blocked.",
-  "milestone": "Phase 2: three buildings with palette materials, in-engine at 2548 tris / 10 draw calls",
+  "milestone": "Phase 2 stage 3: four tileable palette-tinted materials on three buildings, in engine",
   "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
   "phase_gate_met": true,
   "last_commit": "216c12a",
@@ -133,7 +133,7 @@
   "asset_pipeline_status": {
     "stage_1_concept": "WORKING — tools/pipeline/concept.py, mflux + Z-Image Turbo, ~2min/image, provenance recorded",
     "stage_2_model": "WORKING for all three reference buildings — granary 162/1500, watchtower 354/1500, keep 660/4000 with LOD1 132. Keep interpolates 3.9m at L1 to 5.9m at L5.",
-    "stage_3_texture": "STARTED at the lazy rung — five palette materials assigned per part in the builder, literal ADR-0004 hex. AI texture refinement deferred: Qwen-Image-Edit is NOT cached (multi-GB download) and mflux takes init images rather than true ControlNet conditioning.",
+    "stage_3_texture": "WORKING — four Z-Image tiles (stone, timber, thatch, cloth), desaturated, brightness-normalised and tinted to the locked palette when written. Base colour is that texture and nothing else, because glTF cannot carry a shader graph. 512 texels/m, tiles every 2m.",
     "stage_4_export": "folded into stage 2 for now; glTF export + validation happen at build time",
     "stage_5_icons": "NOT STARTED",
     "stage_6_godot_validate": "WORKING — game/world/AssetPreview.tscn, run with a window (not --headless, the counters need a graphics device). 2548 tris, 10 draw calls.",

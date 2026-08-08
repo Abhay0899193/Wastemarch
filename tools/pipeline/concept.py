@@ -73,26 +73,42 @@ def model_is_permitted(repo: str) -> tuple[bool, str]:
     return True, ""
 
 
-def style_prompt() -> str:
-    """The shared header, which is everything below the `---` line."""
-    text = (PROMPTS / "style.md").read_text()
-    _, _, body = text.partition("\n---\n")
-    return " ".join(body.split())
-
-
-def asset_prompt(asset_id: str) -> str:
-    path = PROMPTS / "buildings" / f"{asset_id}.md"
-    if not path.exists():
-        sys.exit(f"No prompt file for '{asset_id}'. Expected {path}\n"
-                 f"Known assets: {', '.join(known_assets()) or '(none yet)'}")
+def _body(path: Path) -> str:
+    """A prompt file is prose for a human, then `---`, then the prompt itself."""
     text = path.read_text()
     _, _, body = text.partition("\n---\n")
     return " ".join((body or text).split())
 
 
-def known_assets() -> list[str]:
-    d = PROMPTS / "buildings"
-    return sorted(p.stem for p in d.glob("*.md")) if d.exists() else []
+def style_prompt(kind: str) -> str:
+    """The shared header for this kind of asset.
+
+    Buildings and materials need opposite headers — one says "a single object
+    centred in frame at the game camera", the other says "a flat seamless
+    surface with no object in it at all" — so a kind may override the default.
+    """
+    specific = PROMPTS / kind / "style.md"
+    return _body(specific if specific.exists() else PROMPTS / "style.md")
+
+
+def asset_prompt(kind: str, asset_id: str) -> str:
+    path = PROMPTS / kind / f"{asset_id}.md"
+    if not path.exists():
+        sys.exit(f"No prompt file for '{asset_id}'. Expected {path}\n"
+                 f"Known {kind}: {', '.join(known_assets(kind)) or '(none yet)'}")
+    return _body(path)
+
+
+def known_assets(kind: str) -> list[str]:
+    d = PROMPTS / kind
+    return sorted(p.stem for p in d.glob("*.md") if p.stem != "style") \
+        if d.exists() else []
+
+
+# Where each kind's output lives. Materials are not concepts — a concept is a
+# picture to model from and gets thrown away, a material ships.
+OUT_DIRS = {"buildings": REPO / "assets-src" / "concept",
+            "materials": REPO / "assets-src" / "material"}
 
 
 def workflow_hash(prompt: str, params: dict) -> str:
@@ -112,8 +128,8 @@ def record(entry: dict) -> None:
     PROVENANCE.write_text(json.dumps(existing, indent=2) + "\n")
 
 
-def generate(asset_id: str, seed: int, params: dict, prompt: str) -> Path:
-    out_dir = OUT_ROOT / asset_id
+def generate(kind: str, asset_id: str, seed: int, params: dict, prompt: str) -> Path:
+    out_dir = OUT_DIRS[kind] / asset_id
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{asset_id}_{seed}.png"
 
@@ -152,6 +168,7 @@ def generate(asset_id: str, seed: int, params: dict, prompt: str) -> Path:
         sys.exit(f"Generation failed for {asset_id} seed {seed}.")
 
     record({
+        "kind": kind,
         "asset": asset_id,
         "file": str(out.relative_to(REPO)),
         "model": MODEL_REPO,
@@ -171,6 +188,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("asset", nargs="?", help="asset id, e.g. granary")
+    ap.add_argument("--kind", default="buildings", choices=sorted(OUT_DIRS),
+                    help="buildings (default) or materials")
     ap.add_argument("--seeds", type=int, default=1,
                     help="how many seeds to try (default 1)")
     ap.add_argument("--from-seed", type=int, default=1001)
@@ -179,9 +198,8 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.list or not args.asset:
-        print("Assets with a prompt file:")
-        for a in known_assets():
-            print(f"  {a}")
+        for k in sorted(OUT_DIRS):
+            print(f"{k}: " + (", ".join(known_assets(k)) or "(none)"))
         return 0
 
     ok, why = model_is_permitted(MODEL_REPO)
@@ -192,11 +210,11 @@ def main() -> int:
         sys.exit(f"{BINARY} not found. See docs/ENVIRONMENT.md, 'Image generation'.")
 
     params = {**DEFAULTS, "steps": args.steps}
-    prompt = f"{style_prompt()} {asset_prompt(args.asset)}"
+    prompt = f"{style_prompt(args.kind)} {asset_prompt(args.kind, args.asset)}"
 
     print(f"{args.asset}: {args.seeds} seed(s), recipe {workflow_hash(prompt, params)}")
     for i in range(args.seeds):
-        generate(args.asset, args.from_seed + i, params, prompt)
+        generate(args.kind, args.asset, args.from_seed + i, params, prompt)
 
     print(f"\nProvenance appended to {PROVENANCE.relative_to(REPO)}")
     print("Pick the best, then commit it. Rejects stay uncommitted.")

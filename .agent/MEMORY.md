@@ -535,3 +535,50 @@ The brazier is that building's whole "life" signal.
 No amount of care in elevation finds this. `tools/blender/render_and_silhouette.py` renders at
 the game camera for exactly this reason, and it is worth looking at its output after any
 proportion change, not only when the silhouette numbers move.
+
+## Blender image writing — five attempts, one cause. Do not re-derive.
+
+Writing a modified texture to disk from Blender silently produced **four identical solid-black
+PNGs of exactly 27,749 bytes**. The cause, found only by measuring:
+
+**Assigning `image.colorspace_settings.name` on a file-backed image makes Blender re-read the
+buffer from disk, discarding every pixel just written.**
+
+The read was never the problem — `pixels.foreach_get` returned a correct mean of 0.372
+throughout. The reload *after* the write was.
+
+Working recipe, in this order:
+
+```python
+img = bpy.data.images.load(path, check_existing=False)   # source FILE, not GENERATED
+px = [0.0] * (w * h * 4); img.pixels.foreach_get(px)
+...modify px...
+img.pixels.foreach_set(px)
+img.update()
+img.filepath_raw = str(out_path); img.file_format = "PNG"; img.save()
+# and NEVER touch colorspace_settings anywhere in here
+```
+
+Also true and wasted two of the five attempts: an image made with `bpy.data.images.new()` has
+source `GENERATED`, and `save()` writes its generated buffer rather than assigned `.pixels`,
+even after `update()`. Load a real file and modify it in place instead.
+
+**`build_asset.py` now reads the saved file back and fails if its mean brightness is outside
+0.02–0.98.** Same lesson as the zero-byte `.so` in the APK: *a file existing is not evidence
+that anything is in it.* That check is what turned this from silent black buildings into a
+named error.
+
+### glTF cannot carry a shader graph — bake colour into the texture
+
+The exported `.glb` was read back and every material said `baseColorFactor = [1,1,1,1]`:
+Blender's exporter had **dropped the palette multiply** and kept only the texture. glTF can
+represent `baseColorTexture x baseColorFactor` and essentially nothing else, so any node chain
+doing colour work is lost on export.
+
+Two versions looked correct in Blender and exported wrong — the second rendered the buildings
+pure black in Godot. **The preview and the game disagreed and the preview was the one lying.**
+
+Fix: tiles arrive already tinted, written by `_palette_tile()`. Base colour is that texture and
+nothing else, so there is no node left for an exporter to drop. **Read the `.glb` back when a
+material looks wrong** — the JSON chunk is plain text and it answers in seconds what an hour of
+staring at renders will not.

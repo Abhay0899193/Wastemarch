@@ -3,10 +3,8 @@
   "budget": 1500,
   "size_class": "small",
   "surface_area_m2": 43.345,
-  "texels_needed": 2840677,
-  "atlas_slot_texels": 7062737,
-  "uv_coverage": 0.4022,
-  "equivalent_square_px": 2658,
+  "texel_density": 512.0,
+  "tiles_every_m": 2.0,
   "footprint_tiles": [
     2,
     2

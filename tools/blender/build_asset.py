@@ -31,6 +31,24 @@ OUT_DIR = REPO / "assets-src" / "model"
 
 # From docs/ART_BIBLE.md. These are the numbers the build fails on.
 TEXEL_DENSITY = 256          # pixels per world metre, uniform, no exceptions
+
+# Materials are tileable, so texel density is a property of the projection, not
+# of each asset's unwrap: a texture of TEXTURE_PX pixels covering TILE_METRES of
+# surface gives exactly TEXEL_DENSITY. Setting these two makes the density exact
+# everywhere by construction, rather than something to measure and hope about.
+TEXTURE_PX = 1024
+
+# How much surface one copy of a tile covers. Set by how big the *material*
+# should look — dressed stone blocks are roughly half a metre, so a tile showing
+# eight of them across wants to span about two metres.
+#
+# **With tiling, texel density is free.** The 256 px/m rule was written for
+# unique unwraps, where more density means a bigger atlas. A tile costs the same
+# memory however often it repeats, so tiling twice as often doubles the apparent
+# resolution for nothing. That is why this is 2 m and not 4 m.
+TILE_METRES = 2.0
+ACHIEVED_TEXEL_DENSITY = TEXTURE_PX / TILE_METRES        # 512 px/m
+MATERIAL_DIR = REPO / "assets-src" / "material"
 LOD1_RATIO = 0.4             # LOD1 must be no more than 40% of the original
 
 # Below this, a model does not get an LOD1 at all. A second mesh costs memory
@@ -87,6 +105,100 @@ def srgb_to_linear_tuple(hex_colour: str):
     return tuple(out)
 
 
+def _palette_tile(material: str, source: Path, rgb):
+    """The generated tile, desaturated, brightness-normalised, and tinted to the
+    locked palette colour. Written to disk and used directly as base colour.
+
+    **Everything about this shape is forced by one measured fact.** The exported
+    `.glb` was read back and every material said
+    `baseColorFactor = [1, 1, 1, 1]`: Blender's glTF exporter had **silently
+    dropped the palette multiply** and kept only the texture. Two earlier
+    versions built the colour with shader nodes — a Hue/Saturation and Mix chain,
+    then a single Mix — and both looked correct in Blender and exported wrong,
+    the second one rendering the buildings pure black in Godot.
+
+    That is the worst failure mode available: the preview and the game disagree,
+    and the preview is the one lying. So no node does any colour work. The tile
+    arrives already the right colour, base colour is just that texture, and there
+    is nothing left for an exporter to drop.
+
+    Normalising to a mean of 1.0 before tinting is what makes the palette exact:
+    the average colour of the finished tile is the locked hex, and the generated
+    texture can only vary brightness around it, never shift the hue.
+    """
+    # Loaded fresh, not `check_existing`, because this image is about to be
+    # rewritten in place and a shared copy would be corrupted for other callers.
+    #
+    # **Modified in place rather than written to a new image**, which is not a
+    # style choice. An image made with `images.new()` has source GENERATED, and
+    # `save()` writes its generated buffer rather than whatever was assigned to
+    # `.pixels` — even after `update()`. Four materials came out as identical
+    # solid-black files of exactly the same byte length. An image loaded from a
+    # file has source FILE, and saving it writes the pixels it actually holds.
+    src = bpy.data.images.load(str(source), check_existing=False)
+    w, h = src.size
+    px = [0.0] * (w * h * 4)
+    src.pixels.foreach_get(px)
+
+    total = 0.0
+    for i in range(0, len(px), 4):
+        lum = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
+        px[i] = px[i + 1] = px[i + 2] = lum
+        total += lum
+    mean = total / (w * h)
+
+    gain = 1.0 / max(1e-3, mean)
+    for i in range(0, len(px), 4):
+        v = min(2.0, px[i] * gain)
+        px[i] = min(1.0, v * rgb[0])
+        px[i + 1] = min(1.0, v * rgb[1])
+        px[i + 2] = min(1.0, v * rgb[2])
+        px[i + 3] = 1.0
+
+    out_path = source.parent / f"{material}_tile.png"
+    # Colourspace is NOT touched here. The source is already sRGB, and assigning
+    # `colorspace_settings.name` on a file-backed image makes Blender re-read the
+    # buffer from disk, silently discarding every pixel just written. That is
+    # what produced four identical solid-black tiles across three attempts; the
+    # read was never the problem, the reload after it was.
+    src.pixels.foreach_set(px)
+    src.update()
+    src.filepath_raw = str(out_path)
+    src.file_format = "PNG"
+    src.save()
+    out = src
+
+    # Read it back and check it is not blank. This class of bug — a pipeline
+    # stage that writes a valid file containing nothing — is the reason the
+    # Android library once shipped as zero bytes. A file existing is not
+    # evidence that it has anything in it.
+    check = bpy.data.images.load(str(out_path), check_existing=False)
+    cpx = [0.0] * (check.size[0] * check.size[1] * 4)
+    check.pixels.foreach_get(cpx)
+    lum = sum(cpx[0::4]) / (len(cpx) / 4)
+    bpy.data.images.remove(check)
+    if not 0.02 < lum < 0.98:
+        raise SystemExit(
+            f"VALIDATION FAILED: {out_path.name} saved with mean brightness "
+            f"{lum:.3f} — it is blank. The pixels never reached the file.")
+
+    return out, mean
+
+
+def _newest_tile(material: str):
+    """The generated tile for a material, or None if it has not been made yet.
+
+    Picks the highest-numbered seed so that regenerating with a new seed takes
+    effect without editing anything here.
+    """
+    d = MATERIAL_DIR / material
+    if not d.is_dir():
+        return None
+    tiles = sorted(p for p in d.glob(f"{material}_*.png")
+                   if not p.name.endswith("_tile.png"))
+    return tiles[-1] if tiles else None
+
+
 def build_materials(obj) -> None:
     """Attach the five palette materials, in order, so indices line up."""
     for name, hex_colour, roughness in MATERIALS:
@@ -99,6 +211,29 @@ def build_materials(obj) -> None:
         # phone, where there are no reflections worth having anyway.
         bsdf.inputs["Roughness"].default_value = max(0.35, roughness)
         bsdf.inputs["Metallic"].default_value = 0.0
+
+        # A generated tile, if one exists, contributing DETAIL ONLY.
+        #
+        # The first version wired the texture straight into Base Color, and the
+        # generated stone — a pale, clean #EFEBE4 — simply replaced bone grey.
+        # That is precisely the palette drift this whole approach was chosen to
+        # make impossible, arriving through the back door.
+        #
+        # So the texture is stripped of its colour, normalised so its average
+        # brightness is exactly 1.0, and multiplied into the palette value. The
+        # average colour of the finished material is then the locked hex by
+        # construction, and the texture can only add variation around it.
+        tile = _newest_tile(name)
+        if tile is not None:
+            # The tile is already the right colour, so base colour is the
+            # texture and nothing else. No node here can be dropped on export
+            # because there is no node here.
+            tinted, _mean = _palette_tile(name, tile, rgb)
+            tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
+            tex.image = tinted
+            mat.node_tree.links.new(tex.outputs["Color"],
+                                    bsdf.inputs["Base Color"])
+
         if name == "firelight":
             bsdf.inputs["Emission Color"].default_value = (*rgb, 1.0)
             bsdf.inputs["Emission Strength"].default_value = 1.6
@@ -484,13 +619,24 @@ BUILDERS = {"granary": build_granary, "keep": build_keep,
 # ---------------------------------------------------------------------------
 
 def unwrap(obj) -> None:
+    """Project UVs in world units so tileable materials tile correctly.
+
+    **Not `smart_project`, and the difference matters.** `smart_project` packs
+    every face into the 0..1 square, which is what you want when an asset has its
+    own painted texture — each face gets a unique slice. Wastemarch's buildings
+    share four tileable materials instead, so what they need is the opposite: UVs
+    that run on with the geometry, in metres, so a wall twice as long shows twice
+    as much stone rather than the same stone stretched.
+
+    `cube_project` does exactly that. `cube_size` is in world units, so setting
+    it to TILE_METRES makes the texel density exact everywhere, on every asset,
+    without measuring anything.
+    """
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-    # angle_limit is radians in the 5.x API. 66 degrees is Blender's own default
-    # and splits boxes at their corners, which is what we want.
-    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.02)
+    bpy.ops.uv.cube_project(cube_size=TILE_METRES)
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
@@ -513,7 +659,7 @@ def uv_area(obj) -> float:
     return total
 
 
-def atlas_demand(obj) -> dict:
+def _unused_atlas_demand(obj) -> dict:
     """How much of the shared texture atlas this asset needs at 256 px/metre.
 
     **The unit here matters and it is easy to get wrong.** An earlier version
@@ -618,7 +764,8 @@ def validate(obj, size_class: str, footprint_tiles) -> dict:
         "budget": budget,
         "size_class": size_class,
         "surface_area_m2": round(surface_area(obj), 3),
-        **atlas_demand(obj),
+        "texel_density": ACHIEVED_TEXEL_DENSITY,
+        "tiles_every_m": TILE_METRES,
         "footprint_tiles": list(footprint_tiles),
         "overhang_m": round(overhang, 3),
         "extent_m": [round(max(xs) - min(xs), 3), round(max(ys) - min(ys), 3)],
@@ -717,8 +864,8 @@ def main(argv) -> int:
     lod_note = (f"LOD1 {report['lod1_triangles']}" if report["lod1_triangles"]
                 else "no LOD1 needed")
     print(f"\nOK — {report['triangles']}/{report['budget']} triangles, {lod_note}, "
-          f"{report['atlas_slot_texels'] / 1e6:.2f}M atlas texels "
-          f"(~{report['equivalent_square_px']}px square)")
+          f"{ACHIEVED_TEXEL_DENSITY:.0f} texels/m "
+          f"(tiles every {TILE_METRES:.0f} m)")
     return 0
 
 

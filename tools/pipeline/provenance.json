@@ -238,5 +238,90 @@
     },
     "generated_utc": "2026-08-08T07:10:05Z",
     "seconds": 137.2
+  },
+  {
+    "kind": "materials",
+    "asset": "stone",
+    "file": "assets-src/material/stone/stone_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "74543444012b0244",
+    "prompt": "a seamless tileable texture, flat orthographic top-down view of a surface, evenly and diffusely lit with no shadows and no highlights, no directional light, completely flat lighting, uniform across the whole image, edges that repeat without a visible seam, no object, no scene, no horizon, no perspective, no vignette, muted and desaturated, matte, no text, no watermark, no border old dressed stone blockwork in irregular courses, pale bone grey limestone, weathered and chipped at the edges, thin dark mortar joints, patches of lichen, worn smooth in places",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T08:09:57Z",
+    "seconds": 93.9
+  },
+  {
+    "kind": "materials",
+    "asset": "timber",
+    "file": "assets-src/material/timber/timber_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "ee97bc4fd5503314",
+    "prompt": "a seamless tileable texture, flat orthographic top-down view of a surface, evenly and diffusely lit with no shadows and no highlights, no directional light, completely flat lighting, uniform across the whole image, edges that repeat without a visible seam, no object, no scene, no horizon, no perspective, no vignette, muted and desaturated, matte, no text, no watermark, no border weathered vertical timber planking, greyed and silvered by years of rain, visible grain and splits, occasional dark iron nail heads, narrow gaps between boards, no varnish, no colour",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T08:11:31Z",
+    "seconds": 113.5
+  },
+  {
+    "kind": "materials",
+    "asset": "thatch",
+    "file": "assets-src/material/thatch/thatch_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "58073f4f4d3c5cbe",
+    "prompt": "a seamless tileable texture, flat orthographic top-down view of a surface, evenly and diffusely lit with no shadows and no highlights, no directional light, completely flat lighting, uniform across the whole image, edges that repeat without a visible seam, no object, no scene, no horizon, no perspective, no vignette, muted and desaturated, matte, no text, no watermark, no border dry straw thatch laid in overlapping courses, dulled ochre and grey straw, fibrous and slightly uneven, bound in tight bundles, aged and dusty rather than golden",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T08:13:26Z",
+    "seconds": 101.3
+  },
+  {
+    "kind": "materials",
+    "asset": "cloth",
+    "file": "assets-src/material/cloth/cloth_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "a1c94781d7d9c420",
+    "prompt": "a seamless tileable texture, flat orthographic top-down view of a surface, evenly and diffusely lit with no shadows and no highlights, no directional light, completely flat lighting, uniform across the whole image, edges that repeat without a visible seam, no object, no scene, no horizon, no perspective, no vignette, muted and desaturated, matte, no text, no watermark, no border heavy woven wool cloth, deep muted crimson, visible warp and weft, slightly faded and dusty, a few frayed threads, no pattern, no emblem",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T08:15:07Z",
+    "seconds": 110.2
+  },
+  {
+    "kind": "materials",
+    "asset": "stone",
+    "file": "assets-src/material/stone/stone_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "e1d4dfe0ea860ce1",
+    "prompt": "a seamless tileable texture, flat orthographic top-down view of a surface, evenly and diffusely lit with no shadows and no highlights, no directional light, completely flat lighting, uniform across the whole image, edges that repeat without a visible seam, no object, no scene, no horizon, no perspective, no vignette, muted and desaturated, matte, no text, no watermark, no border a rough stone wall of small irregular blocks, each block roughly the size of two hands, laid in uneven courses, many blocks per row and many rows, deep dark recessed mortar joints between every block, chipped and pitted surfaces, dark staining, patches of grey-green lichen in the joints, rubble masonry rather than cut ashlar, dry and dusty, no polish",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T08:19:05Z",
+    "seconds": 94.4
   }
 ]

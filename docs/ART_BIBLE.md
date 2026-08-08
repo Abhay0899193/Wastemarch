@@ -225,6 +225,24 @@ values this document locks, so the palette drift visible in concept art physical
 happen to a model. That is the point of doing colour in the model rather than only in a
 generated texture.
 
+### Surface detail comes from four tiles, shared by everything
+
+Z-Image Turbo generates one seamless tile per material. `tools/blender/build_asset.py` then
+strips its colour, normalises its brightness so its average is exactly 1.0, and multiplies it
+into the palette value above. **The average colour of the finished surface is therefore the
+locked hex by arithmetic**, and the generated texture can only vary brightness around it —
+it can never shift the hue.
+
+The tinting happens when the tile is written, not in the material, because **glTF cannot carry
+a shader graph**: it understands one texture times one colour and nothing more. A material that
+mixes and desaturates looks right in Blender and exports as something else entirely.
+
+Tiles repeat every **2 metres**, which at 1024 pixels gives 512 texels per metre — twice the
+number this document asks for. That is not a violation but a consequence: with tiling, texel
+density is set by how often a tile repeats, and repeating more often costs no extra memory at
+all. The 256 figure was written for unique per-asset unwraps, where density and atlas size
+trade against each other. They do not trade here.
+
 ### Rendering at the locked camera is a design check, not a preview
 
 The watchtower's roof was built with a comfortable gap beneath it, which looks correct in a
