@@ -117,6 +117,13 @@ def generate(asset_id: str, seed: int, params: dict, prompt: str) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{asset_id}_{seed}.png"
 
+    # mflux does not overwrite: given an existing target it writes `name_1.png`
+    # instead, silently. The provenance record would then name a file the run did
+    # not produce, and a re-run of a seed would accumulate copies rather than
+    # reproduce in place. Regenerating a seed must be idempotent, so clear the
+    # target first.
+    out.unlink(missing_ok=True)
+
     env = os.environ.copy()
     # The weights live in the sibling project's cache, which is 53 GB and is
     # deliberately not duplicated. Offline mode is what stops the hub from

@@ -12,7 +12,231 @@
       "width": 1024,
       "height": 1024
     },
-    "generated_utc": "2026-08-08T06:16:46Z",
-    "seconds": 119.7
+    "generated_utc": "2026-08-08T06:39:44Z",
+    "seconds": 139.5
+  },
+  {
+    "asset": "keep",
+    "file": "assets-src/concept/keep/keep_1002.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1002,
+    "workflow_hash": "80c521459f4653d2",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a squat stone keep with a single square tower, thick weathered walls of pale bone-grey stone, one corner visibly rebuilt with newer mismatched blocks, low pitched slate roof, narrow arrow slits, a heavy timber door standing open with warm firelight spilling out, a crimson banner hanging from the tower, small and worn, the whole building solid and defensible and clearly lived in again after being abandoned",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:42:04Z",
+    "seconds": 141.1
+  },
+  {
+    "asset": "keep",
+    "file": "assets-src/concept/keep/keep_1003.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1003,
+    "workflow_hash": "80c521459f4653d2",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a squat stone keep with a single square tower, thick weathered walls of pale bone-grey stone, one corner visibly rebuilt with newer mismatched blocks, low pitched slate roof, narrow arrow slits, a heavy timber door standing open with warm firelight spilling out, a crimson banner hanging from the tower, small and worn, the whole building solid and defensible and clearly lived in again after being abandoned",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:44:25Z",
+    "seconds": 111.4
+  },
+  {
+    "asset": "keep",
+    "file": "assets-src/concept/keep/keep_1004.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1004,
+    "workflow_hash": "80c521459f4653d2",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a squat stone keep with a single square tower, thick weathered walls of pale bone-grey stone, one corner visibly rebuilt with newer mismatched blocks, low pitched slate roof, narrow arrow slits, a heavy timber door standing open with warm firelight spilling out, a crimson banner hanging from the tower, small and worn, the whole building solid and defensible and clearly lived in again after being abandoned",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:46:16Z",
+    "seconds": 102.8
+  },
+  {
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "1119c8777f9f95cd",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small raised timber granary on short stone staddle stones, walls of dry ochre planking silvered with age, steep thatched roof, an external grain chute angled down one side, sacks stacked under the overhang, a low door, no windows, unmistakably a store for grain rather than a place anyone sleeps",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:48:00Z",
+    "seconds": 109.5
+  },
+  {
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_1002.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1002,
+    "workflow_hash": "1119c8777f9f95cd",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small raised timber granary on short stone staddle stones, walls of dry ochre planking silvered with age, steep thatched roof, an external grain chute angled down one side, sacks stacked under the overhang, a low door, no windows, unmistakably a store for grain rather than a place anyone sleeps",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:49:50Z",
+    "seconds": 153.7
+  },
+  {
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_1003.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1003,
+    "workflow_hash": "1119c8777f9f95cd",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small raised timber granary on short stone staddle stones, walls of dry ochre planking silvered with age, steep thatched roof, an external grain chute angled down one side, sacks stacked under the overhang, a low door, no windows, unmistakably a store for grain rather than a place anyone sleeps",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:52:23Z",
+    "seconds": 143.9
+  },
+  {
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_1004.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1004,
+    "workflow_hash": "1119c8777f9f95cd",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small raised timber granary on short stone staddle stones, walls of dry ochre planking silvered with age, steep thatched roof, an external grain chute angled down one side, sacks stacked under the overhang, a low door, no windows, unmistakably a store for grain rather than a place anyone sleeps",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:54:47Z",
+    "seconds": 97.6
+  },
+  {
+    "asset": "watchtower",
+    "file": "assets-src/concept/watchtower/watchtower_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "4b64c1106c69bbce",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a tall narrow timber and stone watchtower on a square base, open railed platform at the top under a small conical shingle roof, an exposed ladder running up one side, a brazier burning on the platform casting warm light downward, a crimson pennant at the peak, weathered and functional, tall and thin against the sky",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:56:26Z",
+    "seconds": 97.2
+  },
+  {
+    "asset": "watchtower",
+    "file": "assets-src/concept/watchtower/watchtower_1002.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1002,
+    "workflow_hash": "4b64c1106c69bbce",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a tall narrow timber and stone watchtower on a square base, open railed platform at the top under a small conical shingle roof, an exposed ladder running up one side, a brazier burning on the platform casting warm light downward, a crimson pennant at the peak, weathered and functional, tall and thin against the sky",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:58:03Z",
+    "seconds": 100.1
+  },
+  {
+    "asset": "watchtower",
+    "file": "assets-src/concept/watchtower/watchtower_1003.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1003,
+    "workflow_hash": "4b64c1106c69bbce",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a tall narrow timber and stone watchtower on a square base, open railed platform at the top under a small conical shingle roof, an exposed ladder running up one side, a brazier burning on the platform casting warm light downward, a crimson pennant at the peak, weathered and functional, tall and thin against the sky",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:59:43Z",
+    "seconds": 97.7
+  },
+  {
+    "asset": "watchtower",
+    "file": "assets-src/concept/watchtower/watchtower_1004.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1004,
+    "workflow_hash": "4b64c1106c69bbce",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a tall narrow timber and stone watchtower on a square base, open railed platform at the top under a small conical shingle roof, an exposed ladder running up one side, a brazier burning on the platform casting warm light downward, a crimson pennant at the peak, weathered and functional, tall and thin against the sky",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T07:01:21Z",
+    "seconds": 99.2
+  },
+  {
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_2001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 2001,
+    "workflow_hash": "aa47c1882d7845d3",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small raised timber grain store, its most prominent feature a long wooden grain chute angled steeply down from an upper hatch to ground level, the building lifted clear of the ground on short mushroom-shaped stone staddle stones, walls of dry ochre planking silvered with age, steep thatched roof, plain blank windowless walls, a single small hatch high on the gable, stacked grain sacks and a wooden scoop beneath the overhang, unlit and unheated, a storehouse and not a dwelling",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T07:05:24Z",
+    "seconds": 144.9
+  },
+  {
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_2002.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 2002,
+    "workflow_hash": "aa47c1882d7845d3",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small raised timber grain store, its most prominent feature a long wooden grain chute angled steeply down from an upper hatch to ground level, the building lifted clear of the ground on short mushroom-shaped stone staddle stones, walls of dry ochre planking silvered with age, steep thatched roof, plain blank windowless walls, a single small hatch high on the gable, stacked grain sacks and a wooden scoop beneath the overhang, unlit and unheated, a storehouse and not a dwelling",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T07:07:49Z",
+    "seconds": 135.5
+  },
+  {
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_2003.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 2003,
+    "workflow_hash": "aa47c1882d7845d3",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small raised timber grain store, its most prominent feature a long wooden grain chute angled steeply down from an upper hatch to ground level, the building lifted clear of the ground on short mushroom-shaped stone staddle stones, walls of dry ochre planking silvered with age, steep thatched roof, plain blank windowless walls, a single small hatch high on the gable, stacked grain sacks and a wooden scoop beneath the overhang, unlit and unheated, a storehouse and not a dwelling",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T07:10:05Z",
+    "seconds": 137.2
   }
 ]
