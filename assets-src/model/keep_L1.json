@@ -2,21 +2,26 @@
   "triangles": 1488,
   "budget": 4000,
   "size_class": "large",
-  "surface_area_m2": 248.736,
+  "surface_area_m2": 120.582,
   "texel_density": 512.0,
   "tiles_every_m": 2.0,
   "footprint_tiles": [
     4,
     4
   ],
-  "overhang_m": 0.25,
+  "overhang_m": 0.0,
+  "footprint_fill": 0.8,
   "extent_m": [
-    4.38,
-    4.38
+    3.2,
+    3.2
   ],
-  "height_m": 3.9,
-  "height_to_footprint": 0.98,
+  "height_m": 2.4,
+  "height_to_footprint": 0.6,
   "lod1_triangles": 132,
+  "reproportion": {
+    "xy_scale": 0.7306,
+    "z_scale": 0.6154
+  },
   "file": "assets-src/model/keep_L1.glb",
   "level": 1
 }

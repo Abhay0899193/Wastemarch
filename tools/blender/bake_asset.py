@@ -236,7 +236,7 @@ def main(argv) -> int:
         raise SystemExit(f"No builder for '{args.asset}'")
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    obj, size_class, footprint = ba.BUILDERS[args.asset](args.level)
+    obj, size_class, footprint, _ = ba.build(args.asset, args.level)
 
     global BAKE_PX
     BAKE_PX = BAKE_PX_BY_CLASS[size_class]

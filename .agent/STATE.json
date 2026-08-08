@@ -1,17 +1,17 @@
 {
   "phase": 3,
-  "phase_name": "Phase 3 — City builder. Playable POC done; Phase 2 pipeline complete, its art approval still the owner's.",
-  "milestone": "Phase 3 POC: place, build, produce, save, load — 22 headless checks green",
+  "phase_name": "Phase 3 \u2014 City builder. Playable POC done; Phase 2 pipeline complete, its art approval still the owner's.",
+  "milestone": "Phase 3 POC + Clash of Clans measured and matched: camera confirmed, zoom 4x, buildings reproportioned",
   "phase_gate": "Phase 3: play twenty minutes on your own phone and want to keep going",
   "phase_gate_met": false,
   "last_commit": "216c12a",
-  "last_session": "2026-08-08",
-  "sessions_completed": 6,
+  "last_session": "2026-08-09",
+  "sessions_completed": 7,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
   "versions": {
     "godot": "4.7.1.stable.official.a13da4feb",
-    "godot_export_templates": "4.7.1.stable — COMPLETE, all 35 files (ios.zip, android, macos, linux, windows, web)",
+    "godot_export_templates": "4.7.1.stable \u2014 COMPLETE, all 35 files (ios.zip, android, macos, linux, windows, web)",
     "blender": "5.2.0 LTS (2026-07-14)",
     "rustc": "1.95.0",
     "cargo": "1.95.0",
@@ -37,29 +37,28 @@
     "arch": "arm64"
   },
   "verification_at_close": {
-    "date": "2026-08-08",
+    "date": "2026-08-09",
     "no_floats_lint": "pass",
-    "cargo_test": "pass — 125 passed, 1 ignored",
-    "clippy": "pass with -D warnings after a forced re-lint",
-    "cargo_fmt": "pass",
-    "palette_check": "pass — every pair separable, ART_BIBLE in step",
-    "godot_sim_smoke": "PASS — hash 0x6de277a1cf08225b matches CI",
-    "city_smoke": "PASS — 22 checks: place, refuse overlap, refuse edge, refuse cost, build, produce, save/load",
-    "asset_pipeline": "pass — granary 294, keep 1488, watchtower 558 triangles; all imported and verified"
+    "cargo_test": "pass \u2014 125 passed, 1 ignored",
+    "palette_check": "pass",
+    "godot_sim_smoke": "PASS \u2014 hash 0x6de277a1cf08225b matches CI",
+    "city_smoke": "PASS \u2014 22 checks",
+    "asset_pipeline": "pass \u2014 rebuilt at the new proportions; granary 294, keep 1488, watchtower 558 triangles",
+    "silhouette": "pass \u2014 worst pair keep L1 vs L5 0.71; worst non-self pair watchtower vs keep 0.52"
   },
   "open_blockers": [
     {
       "id": "ios-admin",
       "blocks": "phase-0 gate",
       "severity": "blocking, needs an administrator",
-      "detail": "Owner has NO ADMIN RIGHTS. Xcode 26.3 + iOS SDK 26.2 present, but /Library/Developer/PrivateFrameworks/{CoreDevice,CoreSimulator}.framework are absent and only an admin can install them. xcodebuild refuses to start without CoreSimulator even for a device-only unsigned build, so NO iOS build of any kind is possible. The paid Developer Program does NOT work around this — TestFlight still needs an .ipa, which needs xcodebuild. FIX: an admin runs `sudo xcodebuild -runFirstLaunch` once; after that a FREE Apple ID / Personal Team suffices. Verified working without admin: Godot generates the full iOS Xcode project, device+sim xcframeworks, MoltenVK and PCK; stops only on missing app icons.",
-      "owner": "user — needs someone with admin on this Mac"
+      "detail": "Owner has NO ADMIN RIGHTS. Xcode 26.3 + iOS SDK 26.2 present, but /Library/Developer/PrivateFrameworks/{CoreDevice,CoreSimulator}.framework are absent and only an admin can install them. xcodebuild refuses to start without CoreSimulator even for a device-only unsigned build, so NO iOS build of any kind is possible. The paid Developer Program does NOT work around this \u2014 TestFlight still needs an .ipa, which needs xcodebuild. FIX: an admin runs `sudo xcodebuild -runFirstLaunch` once; after that a FREE Apple ID / Personal Team suffices. Verified working without admin: Godot generates the full iOS Xcode project, device+sim xcframeworks, MoltenVK and PCK; stops only on missing app icons.",
+      "owner": "user \u2014 needs someone with admin on this Mac"
     },
     {
       "id": "android-device",
       "blocks": "phase-0 gate only",
       "severity": "blocking Phase 0's performance budget; no longer blocks Phase 1",
-      "detail": "An arm64-v8a Android emulator (AVD wastemarch_p6a) now runs the real phone build and its determinism hash matches macOS and Linux. A physical phone is still needed for the Phase 0 budget gate — 60 fps, <=120 draw calls, <=250k tris, and thermal behaviour — none of which an emulator can answer. Whether it also closes the Phase 1 gate is an OPEN QUESTION FOR THE OWNER: the emulator is the same M4 Pro silicon as the macOS leg, so it proves the Android toolchain and ABI agree, not that a Qualcomm chip does. sim-core is pure integer, which is why that risk is small.",
+      "detail": "An arm64-v8a Android emulator (AVD wastemarch_p6a) now runs the real phone build and its determinism hash matches macOS and Linux. A physical phone is still needed for the Phase 0 budget gate \u2014 60 fps, <=120 draw calls, <=250k tris, and thermal behaviour \u2014 none of which an emulator can answer. Whether it also closes the Phase 1 gate is an OPEN QUESTION FOR THE OWNER: the emulator is the same M4 Pro silicon as the macOS leg, so it proves the Android toolchain and ABI agree, not that a Qualcomm chip does. sim-core is pure integer, which is why that risk is small.",
       "owner": "user"
     }
   ],
@@ -72,18 +71,19 @@
     {
       "id": "art-bar",
       "blocks": "the Phase 2 approval half, not Phase 3 progress",
-      "detail": "Owner is not happy with the buildings. Options recorded: more hand-authored geometry per building, a lower height-to-footprint limit for a squatter look, or revisiting the sprite path in game/world/SpritePreview.tscn which the owner saw and judged better.",
-      "urgency": "not blocking — Phase 3 can proceed on these assets and swap them later"
+      "detail": "Owner was not happy with the buildings. Of the three recorded options, squatter buildings is DONE (measured 0.6 limit, 9 Aug) and sprites are REJECTED (ADR-0005). More hand-authored geometry remains open. The two measured gaps left are painted two-tone texture and ground props. NEXT STEP IS THE OWNER LOOKING AT THE REPROPORTIONED CITY.",
+      "urgency": "not blocking \u2014 but every queued art task depends on this answer"
     }
   ],
   "adrs": [
-    "ADR-0001 — Stack choices (accepted 2026-08-08)",
-    "ADR-0002 — Landscape 1920x1080, amends MASTER_PLAN.md §5 (accepted 2026-08-08)",
-    "ADR-0003 — An ARM Android emulator satisfies the Phase 1 gate (accepted 2026-08-08)",
-    "ADR-0004 — Colour palette locked (accepted 2026-08-08)"
+    "ADR-0001 \u2014 Stack choices (accepted 2026-08-08)",
+    "ADR-0002 \u2014 Landscape 1920x1080, amends MASTER_PLAN.md \u00a75 (accepted 2026-08-08)",
+    "ADR-0003 \u2014 An ARM Android emulator satisfies the Phase 1 gate (accepted 2026-08-08)",
+    "ADR-0004 \u2014 Colour palette locked (accepted 2026-08-08)",
+    "ADR-0005 \u2014 Clash of Clans as the measured reference (accepted 2026-08-09)"
   ],
   "phase_0_gate_met": false,
-  "phase_0_note": "Phase 1 started partially with the owner's go-ahead. Only sim-core, which the Phase 0 gate cannot affect. The godot-rust GDExtension is deliberately NOT started — it needs the export templates and a device, which is what the gate guards.",
+  "phase_0_note": "Phase 1 started partially with the owner's go-ahead. Only sim-core, which the Phase 0 gate cannot affect. The godot-rust GDExtension is deliberately NOT started \u2014 it needs the export templates and a device, which is what the gate guards.",
   "sim_core_numeric_contract": {
     "note": "Frozen. Changing any of this invalidates every recorded battle and the golden hash.",
     "fixed_point_bits": 12,
@@ -92,13 +92,13 @@
     "rounding": "mul and div both round half toward positive infinity",
     "overflow": "panics in every profile, never truncates",
     "rng": "PCG32, multiplier 6364136223846793005, default stream 0xda3e39cb94b95bdb",
-    "hasher": "FNV-1a 64, hand-written — never std DefaultHasher, which is not stable across platforms",
+    "hasher": "FNV-1a 64, hand-written \u2014 never std DefaultHasher, which is not stable across platforms",
     "golden_hash": "0x6de277a1cf08225b in determinism.rs::tests::EXPECTED_HASH (also game/tools/sim_smoke.gd)"
   },
   "export_chain_verified": {
     "date": "2026-08-08",
     "how": "macOS export with signing disabled, to separate 'cannot export' from 'signing not configured'",
-    "result": "PASS — 177MB .app built, launched, initialised 'Metal 4.0 - Forward Mobile' on M4 Pro, no errors",
+    "result": "PASS \u2014 177MB .app built, launched, initialised 'Metal 4.0 - Forward Mobile' on M4 Pro, no errors",
     "not_verified": "Cube not visually confirmed from the EXPORTED bundle: an exported app ignores --script so capture.gd cannot run, and screencapture is blocked by macOS Screen Recording permission. The cube IS confirmed from the editor binary against the same scene file that was packed.",
     "conclusion": "Project, templates and export pipeline are sound. iOS is blocked purely on signing."
   },
@@ -117,35 +117,46 @@
   "phase_gate_blocked_on": null,
   "art_direction": {
     "decided": "2026-08-08",
-    "premium_means": "production polish, not brightness — muted wasteland kept; closest reference is a stylised torchlit village, not SimCity's high-key look",
+    "premium_means": "production polish, not brightness \u2014 muted wasteland kept; closest reference is a stylised torchlit village, not SimCity's high-key look",
     "density": "Clash-like, ~40 buildings, 44x44 grid, as MASTER_PLAN specifies",
-    "parked": "player-built forward bases (SimCity-style town + CoC-style outposts) — owner's idea, evaluated and recorded in docs/BACKLOG.md, reconsider end of Phase 4",
-    "palette_check": "python3 tools/art/palette_check.py, runs in CI, fails on confusable pairs or on ART_BIBLE.md drift"
+    "parked": "player-built forward bases (SimCity-style town + CoC-style outposts) \u2014 owner's idea, evaluated and recorded in docs/BACKLOG.md, reconsider end of Phase 4",
+    "palette_check": "python3 tools/art/palette_check.py, runs in CI, fails on confusable pairs or on ART_BIBLE.md drift",
+    "reference": {
+      "decided": "2026-08-09",
+      "source": "16 CoC opening screenshots, iPhone 2796x1290 landscape",
+      "camera": "orthographic, 30 deg elevation, 45 deg yaw \u2014 MEASURED AND ALREADY MATCHING OURS",
+      "zoom": "4.0x range exactly; fully out frames the whole 44x44 grid; opens fully out",
+      "height_to_footprint": "0.6 (was 1.6). Their Town Hall 0.55, Barracks 0.44",
+      "footprint_fill": "0.8 (new). Their Town Hall art covers 0.69 of its plot",
+      "shadows": "none \u2014 they cast no ground shadows at all; our Sun no longer does either",
+      "doc": "docs/reference/COC_TEARDOWN.md",
+      "sprites": "rejected again in ADR-0005, reversibly"
+    }
   },
   "image_generation": {
-    "tool": "mflux (MLX, Apple-native) — NOT ComfyUI, which is not installed and has not been needed",
+    "tool": "mflux (MLX, Apple-native) \u2014 NOT ComfyUI, which is not installed and has not been needed",
     "model": "filipstrand/Z-Image-Turbo-mflux-4bit, Apache 2.0",
     "weights": "~/mentoros-imagegen/hf-cache (53GB, shared with the mentoros sibling, not duplicated)",
     "measured": "16s/step at 1024x1024, 8 steps ~2min, peak MLX 10.70GB of 24GB",
     "entrypoint": "python3 tools/pipeline/concept.py <asset> --seeds N",
-    "licence_guard": "concept.py refuses any model not on CLAUDE.md's permitted list — Flux Kontext is cached on this machine for another project",
+    "licence_guard": "concept.py refuses any model not on CLAUDE.md's permitted list \u2014 Flux Kontext is cached on this machine for another project",
     "open": "MASTER_PLAN stage 3 conditions textures on baked depth/normal/AO via ControlNet; mflux supports that for FLUX only, not Z-Image or Qwen-Edit. ComfyUI may still be needed then. Deliberately not pre-solved."
   },
   "asset_pipeline_status": {
-    "stage_1_concept": "WORKING — tools/pipeline/concept.py, mflux + Z-Image Turbo, ~2min/image, provenance recorded",
-    "stage_2_model": "WORKING for all three reference buildings — granary 162/1500, watchtower 354/1500, keep 660/4000 with LOD1 132. Keep interpolates 3.9m at L1 to 5.9m at L5.",
-    "stage_3_texture": "SETTLED — every building is textured from the five tiled palette materials (ADR-0004 hex), then baked to a real UV unwrap at 2048 with ambient occlusion and emission. tools/blender/bake_asset.py, default path. Concept-art projection was tried and dropped by the owner: it held from one camera angle only, needed an inset hack, and gave a different look per building depending on how well each concept fitted its model. Concepts are now modelling reference, which is what concept art is normally for.",
+    "stage_1_concept": "WORKING \u2014 tools/pipeline/concept.py, mflux + Z-Image Turbo, ~2min/image, provenance recorded",
+    "stage_2_model": "WORKING for all three reference buildings \u2014 granary 162/1500, watchtower 354/1500, keep 660/4000 with LOD1 132. Keep interpolates 3.9m at L1 to 5.9m at L5.",
+    "stage_3_texture": "SETTLED \u2014 every building is textured from the five tiled palette materials (ADR-0004 hex), then baked to a real UV unwrap at 2048 with ambient occlusion and emission. tools/blender/bake_asset.py, default path. Concept-art projection was tried and dropped by the owner: it held from one camera angle only, needed an inset hack, and gave a different look per building depending on how well each concept fitted its model. Concepts are now modelling reference, which is what concept art is normally for.",
     "stage_4_export": "folded into stage 2 for now; glTF export + validation happen at build time",
     "stage_5_icons": "NOT STARTED",
-    "stage_6_godot_validate": "WORKING — game/world/AssetPreview.tscn, run with a window (not --headless, the counters need a graphics device). 2548 tris, 10 draw calls.",
-    "picks": "assets-src/concept/PICKS.md — granary_1004, watchtower_1004, keep_1002 (early) + keep_1003 (late)",
-    "silhouette_test": "WORKING — tools/blender/render_and_silhouette.py, fails over 80% pairwise overlap. Worst pair is keep L1 vs L5 at 0.71, correctly.",
-    "sprite_experiment": "game/world/SpritePreview.tscn — concept art as sprites beside the models. Sprites looked clearly better; the owner still chose 3D. Kept as evidence, not as a path."
+    "stage_6_godot_validate": "WORKING \u2014 game/world/AssetPreview.tscn, run with a window (not --headless, the counters need a graphics device). 2548 tris, 10 draw calls.",
+    "picks": "assets-src/concept/PICKS.md \u2014 granary_1004, watchtower_1004, keep_1002 (early) + keep_1003 (late)",
+    "silhouette_test": "WORKING \u2014 tools/blender/render_and_silhouette.py, fails over 80% pairwise overlap. Worst pair is keep L1 vs L5 at 0.71, correctly.",
+    "sprite_experiment": "game/world/SpritePreview.tscn \u2014 concept art as sprites beside the models. Sprites looked clearly better; the owner still chose 3D. Kept as evidence, not as a path."
   },
   "phase_2_status": {
-    "gate_command": "python3 tools/pipeline/build.py --all — works, ~10s per building",
+    "gate_command": "python3 tools/pipeline/build.py --all \u2014 works, ~10s per building",
     "mechanical_half": "MET",
-    "approval_half": "NOT MET — MASTER_PLAN requires three reference buildings the owner approves. The owner said repeatedly they are not good enough; choosing tiled materials was a decision to move on, not a sign-off.",
-    "settled": "tiled palette materials baked to a real unwrap with AO and emission; concept-art projection tried and dropped"
+    "approval_half": "NOT MET \u2014 MASTER_PLAN requires three reference buildings the owner approves. The owner said repeatedly they are not good enough; choosing tiled materials was a decision to move on, not a sign-off.",
+    "settled": "tiled palette materials baked to a real unwrap with AO and emission; concept projection dropped; proportions reset to measured CoC values 9 Aug 2026"
   }
 }

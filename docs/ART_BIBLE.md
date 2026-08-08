@@ -43,8 +43,21 @@ Everything is designed for one camera and one camera only.
 | Type | **Orthographic** |
 | Elevation | **30°** above the horizon |
 | Yaw (rotation around) | **45°** |
+| Tile shape on screen | **2 wide : 1 tall**, which follows from the 30° |
 | Movement | Pan and pinch-zoom. **No rotation.** |
+| Zoom range | **exactly 4×**, fully out to fully in |
+| Fully zoomed out shows | the whole 44 × 44 grid with ~6% margin |
+| Opening view | fully zoomed out |
 | Screen | Landscape, 1920 × 1080 base — see [ADR-0002](decisions/ADR-0002-landscape-orientation.md) |
+
+> **This was checked against Clash of Clans and is correct to the degree.** Their tile
+> diamonds measure 2:1 on screen, which is what a 30° elevation produces and nothing else
+> does. The zoom range was measured at 4.00×. See
+> [COC_TEARDOWN.md](reference/COC_TEARDOWN.md) for the method.
+>
+> The zoom limits are computed at runtime in `game/city/city.gd` from the grid size and the
+> shape of the screen, because a phone is about 2.17:1 and a tablet 1.33:1 — a single number
+> would be wrong on one of them.
 
 **Orthographic** means there is no perspective: parallel lines stay parallel and something
 far away is drawn exactly the same size as something near. It is what gives isometric games
@@ -98,6 +111,44 @@ Current results, 8 August 2026:
 | **granary** | — | 0.54 | 0.33 | 0.24 |
 | **watchtower** | | — | 0.38 | 0.28 |
 | **keep L1** | | | — | **0.71** |
+
+---
+
+## Proportion — the rule that decides whether a base looks like a town
+
+**A building may be no taller than 0.6 × the shorter side of its footprint, and its geometry
+may fill no more than 80% of the tiles it occupies.** Both are enforced by
+`tools/blender/build_asset.py` and both **fail** the build.
+
+These are the two most important numbers in this document, and neither was chosen — both were
+measured off Clash of Clans screenshots at known zoom. Their Town Hall is 0.55 as tall as its
+4×4 plot is wide and its art covers 69% of that plot. Ours were previously allowed 1.6 and
+were *encouraged* to overhang their tiles.
+
+**Why height is expensive.** At 30° elevation a building of height *h* hides roughly 1.7 × *h*
+tiles of ground behind it. The ground behind is where the next building goes. So a keep at
+1.0 blots out seven tiles of its own neighbourhood and a keep at 0.6 blots out four — the
+difference between a base that reads as a pile and one that reads as a settlement.
+
+**Why the 80% matters.** The ring of grass left round each building is what stops two
+neighbours merging into one shape at phone size. It does the job the old overhang allowance
+was preventing.
+
+| Building | Footprint | Height | Ratio |
+|---|---|---|---|
+| Granary | 2×2 | 1.20 m | 0.60 |
+| Watchtower | 3×3 | 1.80 m | 0.60 |
+| Keep | 4×4 | 2.40 m | 0.60 |
+
+**Thin things are still allowed to be tall in spirit but not yet in code.** A chimney, a
+flagpole or a pipe hides almost nothing and CoC uses them freely. The current rule measures
+the whole bounding box, so it forbids them. That is a known, deliberate over-restriction —
+loosen it to "solid mass under 0.6, thin details to 0.9" when a building actually needs it,
+not before.
+
+**Every building lands exactly on the limit at the moment,** because `reproportion()` squashes
+down to the cap rather than to a per-building target. That flattens variety, and it is marked
+in the code as work to do once the proportions are approved.
 
 ---
 
@@ -207,6 +258,15 @@ white blobs. Matte is the premium look here.
 **Maximum five hues per asset** forces restraint. Colour discipline is the difference between
 "art directed" and "generated."
 
+**One of those five is the building's identity, and it goes on the roof.** In Clash of Clans
+you name a building by its roof colour before you can make out its shape — Town Hall orange,
+Barracks red, elixir purple — against neutral grey-and-brown bases and a single flat green
+ground. Our palette is muted by [ADR-0004](decisions/ADR-0004-colour-palette.md) and the
+setting demands it stays muted, so we cannot copy their saturation. We can copy the
+*structure*: neutral base, one identifying hue on the roof, nothing on the ground competing
+with it. **The palette does not yet supply enough separable roof hues to do this** — that is
+an open piece of work, recorded in `docs/BACKLOG.md`.
+
 ### The five materials, and why there are exactly five
 
 Every building is made of these and nothing else. The cap above *is* this list — adding a
@@ -306,8 +366,15 @@ So almost every light in Wastemarch is **painted, not calculated**:
 | Lit windows, embers, glowing runes | **Emissive** — the texture is simply told to be bright. Costs nothing extra | Unlimited |
 | The pool of light a fire throws on the ground | A soft decal or painted texture patch | Unlimited |
 | Soft shadow under a building | Painted into the ground texture, not calculated | Unlimited |
-| Sun and its shadows | One real directional light | **1** |
+| The sun | One real directional light, from the **upper left**, **casting no shadow** | **1** |
 | Hero fires — the Chapter 1 fire, the forge, story beats | Real point lights | **≤ 6 on screen** |
+
+**The sun casts no shadow, and that is deliberate.** Clash of Clans casts none either — not
+from buildings, not from trees, not from troops. The dark under a building is painted into the
+building, which for us is the ambient occlusion bake. Long cast shadows are the fastest way to
+make an isometric base look muddy, they double the apparent size of every building, and a
+shadow pass is one of the more expensive things a phone does. Measured in
+[COC_TEARDOWN.md](reference/COC_TEARDOWN.md).
 
 **Emissive** means the surface emits light of its own rather than reflecting any. On a phone
 this is nearly free, and combined with a gentle bloom it is indistinguishable from a real

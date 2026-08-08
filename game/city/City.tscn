@@ -71,7 +71,7 @@ position = Vector3(0, 20, 0)
 rotation_degrees = Vector3(-45, -50, 0)
 light_color = Color(1, 0.95, 0.87, 1)
 light_energy = 2.0
-shadow_enabled = true
+shadow_enabled = false          ; deliberate — see city.gd
 directional_shadow_mode = 0
 
 [node name="Ground" type="MeshInstance3D" parent="."]

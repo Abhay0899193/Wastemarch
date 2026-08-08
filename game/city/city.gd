@@ -20,9 +20,28 @@ extends Node3D
 ## Balance lives in `game/data/buildings.json` and every number in it is
 ## placeholder — `CLAUDE.md` forbids magic numbers in code, and Phase 5 tunes the
 ## real curve.
+##
+## **The Sun in `City.tscn` deliberately casts no shadow.** Clash of Clans casts
+## none either — not from buildings, trees or troops — and the dark under a
+## building is painted into the building instead. Ours comes from the ambient
+## occlusion bake, which is the same trick. Long cast shadows are the fastest way
+## to make an isometric base look muddy, and a shadow pass is one of the more
+## expensive things a phone does. Measured and argued in
+## `docs/reference/COC_TEARDOWN.md`.
 
 const GRID_SIZE := 44
 const TILE := 1.0
+
+## How far fully zoomed in is from fully zoomed out. **4.0 is measured** — the
+## same Clash of Clans building was matched between their most zoomed-out and
+## most zoomed-in screenshots and came out at exactly a quarter the size. See
+## `docs/reference/COC_TEARDOWN.md`. Ours used to be a free 10x range, which let
+## the player zoom out until the city was a smudge and in until it was furniture.
+const ZOOM_RANGE := 4.0
+
+## Slack around the grid at full zoom-out, so the border is visible rather than
+## exactly clipped. Theirs is about 6%.
+const ZOOM_OUT_MARGIN := 1.06
 const DATA_PATH := "res://data/buildings.json"
 const SAVE_PATH := "user://city_save.json"
 const MODEL_DIR := "res://assets/models/"
@@ -42,6 +61,8 @@ var _ghost: Node3D = null
 var _ghost_cell := Vector2i(9999, 9999)
 var _ghost_valid := false
 var _camera_home := Vector3.ZERO
+var _zoom_out := 32.0                       ## fully out — set in _ready
+var _zoom_in := 8.0                         ## fully in — set in _ready
 var _resource_labels: Dictionary = {}
 var _status: Label = null
 
@@ -52,10 +73,29 @@ var _status: Label = null
 
 func _ready() -> void:
 	_camera_home = _camera.position
+	_set_zoom_limits()
 	_load_definitions()
 	_build_hud()
 	_refresh_hud()
 	set_process(true)
+
+
+## Fully zoomed out frames the whole grid; fully zoomed in is `ZOOM_RANGE` closer.
+##
+## Seen from 30 degrees up and 45 degrees round, a square grid of N tiles is a
+## diamond `N * sqrt(2)` wide and half that tall in world units. A Godot
+## orthographic camera's `size` is its *vertical* extent, so on a narrow screen
+## the width is what runs out first and the limit has to come from the aspect —
+## which is why this is computed rather than typed in. A phone is about 2.17:1
+## and lands on 32; a 16:9 screen lands on 37.
+func _set_zoom_limits() -> void:
+	var diamond_w := float(GRID_SIZE) * TILE * sqrt(2.0)
+	var diamond_h := diamond_w * 0.5
+	var view := get_viewport().get_visible_rect().size
+	var aspect: float = maxf(0.1, view.x / view.y)
+	_zoom_out = maxf(diamond_h, diamond_w / aspect) * ZOOM_OUT_MARGIN
+	_zoom_in = _zoom_out / ZOOM_RANGE
+	_camera.size = _zoom_out                 # they open fully zoomed out, so do we
 
 
 func _load_definitions() -> void:
@@ -385,9 +425,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_camera.size = maxf(6.0, _camera.size * 0.9)
+			_camera.size = maxf(_zoom_in, _camera.size * 0.9)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_camera.size = minf(60.0, _camera.size * 1.1)
+			_camera.size = minf(_zoom_out, _camera.size * 1.1)
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			if _selected != "":
 				var cell := _cell_under_mouse()

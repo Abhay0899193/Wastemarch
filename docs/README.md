@@ -21,6 +21,7 @@ it gets fixed.
 | [ENVIRONMENT.md](ENVIRONMENT.md) | Exactly which tools are installed on your Mac, which versions, and where. |
 | [TESTING.md](TESTING.md) | The checks that run before anything is committed, and how to run them yourself. |
 | [BACKLOG.md](BACKLOG.md) | Good ideas that are deliberately not being worked on yet. |
+| [reference/COC_TEARDOWN.md](reference/COC_TEARDOWN.md) | Clash of Clans' opening ten minutes pulled apart into numbers: camera, zoom, proportions, and the flow screen by screen. |
 | [decisions/](decisions/) | A numbered record of every significant decision and why it was made. |
 
 ## The two documents that outrank everything here
@@ -42,6 +43,7 @@ supersedes the old one. That way the reasoning survives even when the decision d
 - [ADR-0002 — Landscape orientation](decisions/ADR-0002-landscape-orientation.md)
 - [ADR-0003 — An ARM emulator satisfies the Phase 1 gate](decisions/ADR-0003-emulator-satisfies-the-phase-1-gate.md)
 - [ADR-0004 — The colour palette, locked](decisions/ADR-0004-colour-palette.md)
+- [ADR-0005 — Clash of Clans as the measured reference](decisions/ADR-0005-clash-of-clans-as-the-measured-reference.md)
 
 ## A note on the `.agent/` folder
 

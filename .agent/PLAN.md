@@ -2,17 +2,20 @@
 
 ## RESUME HERE
 
-**Last session:** 8 August 2026 (session 6). Working tree clean, on `main`.
+**Last session:** 9 August 2026 (session 7). Working tree clean, on `main`.
 **Nothing is half-finished. Commits are NOT pushed — the owner pushes.**
 
-**Where we are: Phase 3, with a playable city.**
+**Where we are: Phase 3, with a playable city, now built to Clash of Clans' measured
+proportions.** The camera and zoom match theirs; the buildings are half the height they were.
 
 ```bash
 $GODOT --path game res://city/City.tscn
 ```
 
-Pick a building, click to place, right-drag to pan, wheel to zoom, `S` save, `L` load.
-Three buildings, each paying for the next.
+**The one thing to do first: look at it.** The whole session was a bet that proportion, not
+texture or polygon count, was what made our base look wrong. Place three or four buildings
+next to each other and say whether it reads better. Everything else queued up depends on that
+answer — see `docs/reference/COC_TEARDOWN.md` for what was measured and why.
 
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
@@ -36,31 +39,34 @@ set. **Force a clippy re-lint** with `touch sim/*/src/*.rs` before trusting a gr
 
 ## Next 3 actions
 
-1. **Three more buildings**, to get from three to the six Phase 3 asks for. Housing, a farm,
-   and a drill yard would exercise the adjacency rules `MASTER_PLAN.md` §Phase 5 wants.
-   Each one is a prompt file plus a builder function; the pipeline does the rest.
-2. **Upgrade levels in the city.** The models already interpolate level 1→5 and `build_s`,
-   `cost` and `produces` are per-level-able in `game/data/buildings.json`. Nothing in the city
-   reads a level yet.
-3. **Save migrations.** The save carries `version: 1` from the first write. Write the second
-   version and the migration before the format has to change under pressure.
+1. **Owner looks at the reproportioned city and says yes or no.** If yes, re-tune each
+   builder's own constants so the buildings are *designed* squat rather than squashed, and give
+   each a target height instead of all landing on the 0.6 cap.
+2. **Ground props** — trees, rocks, stumps, each on its own patch of richer grass, via
+   `MultiMeshInstance3D`. Measured as a large part of why their empty ground does not look
+   empty, and it is cheap. `docs/BACKLOG.md` has the note.
+3. **Three more buildings**, to get from three to the six Phase 3 asks for. Housing, a farm and
+   a drill yard. Each is a prompt file plus a builder function; the pipeline does the rest.
 
-## The art question, which is the owner's and not blocking
+## The art question — two of the three options are now spent
 
-The owner is **not happy with the buildings** and said so repeatedly. Phase 2's mechanical
-gate is met; its "three reference buildings you approve" half is not. Phase 3 can proceed on
-these assets and swap them later — nothing about the city depends on how they look.
+The owner is **not happy with the buildings**. Phase 2's mechanical gate is met; its "three
+reference buildings you approve" half is not.
 
-Three options are on the table, all evidenced rather than argued:
+Of the three options that were on the table:
 
-- **More hand-authored geometry.** Budgets have room: keep 1,488 of 4,000, granary 294 of
-  1,500, watchtower 558 of 1,500.
-- **Squatter buildings.** `HEIGHT_TO_FOOTPRINT_LIMIT` in `build_asset.py` is 1.6; lowering it
-  reduces how much each building hides behind it.
-- **Sprites.** `$GODOT --path game res://world/SpritePreview.tscn` stands the concept art
-  beside the models. The owner judged the sprites clearly better. `MASTER_PLAN.md` §1.3
-  argues against them and lists what they cost — day/night, zoom, per-pixel troop occlusion,
-  and every upgrade level becoming an app update.
+- **Squatter buildings — DONE, 9 Aug 2026.** Not by taste: `HEIGHT_TO_FOOTPRINT_LIMIT` is now
+  **0.6**, measured off Clash of Clans, with a new `FOOTPRINT_FILL = 0.8`. The three buildings
+  are half the height they were. `docs/reference/COC_TEARDOWN.md`.
+- **Sprites — REJECTED, ADR-0005.** Offered again by the owner and answered with the
+  measurement: the look comes from proportion, colour discipline and painted shading, all
+  available in 3D. Reversible at any time, since scripted models can be rendered to sprites at
+  the locked camera.
+- **More hand-authored geometry — still open.** Budgets have room: keep 1,488 of 4,000,
+  granary 294 of 1,500, watchtower 558 of 1,500.
+
+The two things measurement says still separate us from the reference are **painted two-tone
+texture** and **ground props**, in that order of difficulty and the reverse order of cost.
 
 ---
 

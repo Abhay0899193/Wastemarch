@@ -780,3 +780,51 @@ shoulder and photographs it in one command.
 
 125 Rust tests, palette check, sim smoke, city smoke, full asset rebuild — all green. Phase 3
 in progress. Nothing waiting on the owner except the art bar, which does not block the city.
+
+---
+
+## 2026-08-09 — Session 7 — Clash of Clans, measured rather than admired
+
+**What happened.** The owner supplied sixteen screenshots of CoC's opening and asked for the
+flow documented, the modelling studied, and anything of ours that gets in the way changed —
+explicitly including the art bible, the grid shape, sprites, camera and zoom.
+
+**Measured, not guessed.** Two techniques, both throwaway scripts in the scratchpad:
+
+- **Projection.** Footprint-diamond edge slope = 0.507 → 2:1 isometric → 30° elevation, 45°
+  yaw, orthographic. **Which is exactly what `ART_BIBLE.md` already specified.** The useful
+  negative finding of the session: the camera needed nothing.
+- **Zoom.** Template-matched the same Town Hall between their most zoomed-out and most
+  zoomed-in shots across a scale sweep. Best match 0.892 at scale **0.25** — the zoom range is
+  exactly 4×, not the 10× we allowed.
+- **Proportion.** Their Town Hall is **0.55** of its 4×4 footprint tall and covers **0.69** of
+  it. Barracks 0.44. Ours were 0.98 to 1.42 against a limit of 1.6.
+- **Shadows.** They cast none. Not buildings, not trees, not troops.
+
+**Changed.**
+
+- `HEIGHT_TO_FOOTPRINT_LIMIT` 1.6 → **0.6**; new `FOOTPRINT_FILL = 0.8` replacing the overhang
+  allowance, which permitted the opposite of what it should have.
+- New `reproportion()` squashes a finished model into both limits, and new `build()` is now the
+  single path to a finished object — `bake_asset.py` had been building its own copy and
+  skipping the squash, which failed the pipeline the first time in a usefully loud way.
+- `city.gd` computes zoom limits at runtime from the grid and the viewport aspect, 4× range,
+  opens fully zoomed out.
+- `City.tscn` sun no longer casts shadows.
+- `docs/reference/COC_TEARDOWN.md` — the full teardown, method included.
+- `ADR-0005`; `ART_BIBLE.md` camera, proportion, lighting and colour sections; `TESTING.md`;
+  three new `BACKLOG.md` items.
+
+**Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash `0x6de277a1cf08225b` ·
+city smoke 22 checks · `build.py --all` green (granary 294, keep 1488, watchtower 558 tris) ·
+silhouette worst pair keep L1 vs L5 at 0.71, new worst non-self pair watchtower vs keep 0.52.
+
+**Sprites: asked and answered.** The owner offered them again. Rejected in ADR-0005 with the
+reason that matters — the look comes from proportion, colour discipline and painted shading,
+all available in 3D — plus the fact that it is not a one-way door, because scripted Blender
+models can be rendered to sprites at the locked camera whenever we want.
+
+**Left deliberately undone.** The three buildings are *squashed* into the new proportions, not
+redesigned at them, and every one lands exactly on the cap so the set has no variety of
+proportion. Both are `ponytail:`-marked and in the backlog, to be done once the owner has
+looked at the reproportioned city.

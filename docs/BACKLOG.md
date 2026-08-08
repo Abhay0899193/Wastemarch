@@ -232,6 +232,25 @@ rare-goods trickle plus a slow-burn narrative thread.
 iCloud on iPhone, Google Play Games on Android. The master plan puts this at version 1.1.
 **Reconsider:** after launch.
 
+### Ground props — trees, rocks, stumps, flowers
+Clash of Clans scatters small props over the whole field, each sitting on its own little
+patch of richer grass. It costs almost nothing (they are `MultiMeshInstance3D` material) and
+it is a large part of why their empty ground does not look empty. See
+[reference/COC_TEARDOWN.md](reference/COC_TEARDOWN.md).
+**Reconsider:** during Phase 3, once the six buildings exist. Cheap and high impact.
+
+### Separable roof hues for building identity
+`ART_BIBLE.md` now asks for one identifying colour per building, on the roof, against neutral
+bases. The locked palette (ADR-0004) does not yet contain enough separable hues to supply
+them, and adding any means re-running `tools/art/palette_check.py` for colourblind safety.
+**Reconsider:** with the second batch of buildings, when the need is concrete.
+
+### Per-building height targets instead of one shared cap
+`reproportion()` squashes every building down to exactly 0.6 of its footprint, so the set has
+less variety of proportion than the reference does. Each builder should declare its own target
+and be built at it.
+**Reconsider:** once the owner approves the new proportions.
+
 ---
 
 ## Rejected — recorded so they do not come back
@@ -244,4 +263,4 @@ iCloud on iPhone, Google Play Games on Android. The master plan puts this at ver
 | Firebase | Ties us to Google's data practices for no benefit we cannot get from a self-hosted alternative. |
 | An AI model running inside the shipped game | Turns the app into a data-processing product under Apple's guideline 5.1.2(i), with all the compliance that implies. All AI here is build-time only. |
 | Player chat or player-created content | Requires moderation we cannot staff. |
-| Pre-rendered 2D sprites instead of real 3D | Discussed at length in the master plan §1.3. More work per asset, gigabytes of app size, and it permanently caps what we can add after launch. |
+| Pre-rendered 2D sprites instead of real 3D | Discussed at length in the master plan §1.3, and re-offered and re-rejected in [ADR-0005](decisions/ADR-0005-clash-of-clans-as-the-measured-reference.md) after measuring Clash of Clans: the look comes from proportion and painted shading, both available in 3D. Not a one-way door — the same Blender models can be rendered to sprites later without re-modelling. |

@@ -2,7 +2,7 @@
   "triangles": 558,
   "budget": 1500,
   "size_class": "small",
-  "surface_area_m2": 75.955,
+  "surface_area_m2": 42.186,
   "texel_density": 512.0,
   "tiles_every_m": 2.0,
   "footprint_tiles": [
@@ -10,13 +10,18 @@
     3
   ],
   "overhang_m": 0.0,
+  "footprint_fill": 0.8,
   "extent_m": [
-    2.94,
-    2.94
+    2.4,
+    2.4
   ],
-  "height_m": 4.25,
-  "height_to_footprint": 1.42,
+  "height_m": 1.8,
+  "height_to_footprint": 0.6,
   "lod1_triangles": 162,
+  "reproportion": {
+    "xy_scale": 0.8163,
+    "z_scale": 0.4235
+  },
   "file": "assets-src/model/watchtower_L1.glb",
   "level": 1
 }

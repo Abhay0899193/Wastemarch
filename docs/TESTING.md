@@ -223,8 +223,9 @@ and that the icon is not blank.
 
 It also fails on any rule from [ART_BIBLE.md](ART_BIBLE.md) a script can judge: over the
 triangle budget, holes in the geometry, a model that floats above the ground or sinks into it,
-a model that overhangs its own plot, or one so tall for its footprint that it would hide
-whatever stands behind it.
+a model that fills more than 80% of its own plot, or one taller than 0.6 × its footprint —
+either of which would hide whatever stands behind it. Those last two numbers are measured off
+Clash of Clans rather than chosen; see [reference/COC_TEARDOWN.md](reference/COC_TEARDOWN.md).
 
 ## 8. The city plays correctly
 

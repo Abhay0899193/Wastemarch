@@ -976,22 +976,32 @@ in every caller, and it cannot be bypassed by a caller nobody thought of.**
 The test now exercises the same door a player uses. A check that calls a private helper the
 player never touches will keep passing while the game is broken.
 
-### Height to footprint is a real constraint, and 1.6 is the limit
+### Height to footprint is a real constraint, and 0.6 is the limit
+
+*Rewritten 9 Aug 2026. It said 1.6 until Clash of Clans was actually measured; 1.6 was a guess
+that felt conservative and was two to four times too permissive. Kept as a warning about
+plausible-sounding numbers.*
 
 At 30 degrees elevation a building of height `h` hides roughly **1.7 x h tiles of ground
 behind it** on screen. So a tall building on a small base looks placed *through* whatever
 stands behind it, however correct its tile occupancy is.
 
-The watchtower was 4.64 m on a 2x2 footprint — a ratio of 2.32 — and the owner reported it
-three separate times as an overlap bug. It was not a placement bug; the placement was right and
-the proportion was wrong. Now 3x3 and shorter, ratio 1.42.
+**Measured from CoC screenshots at known zoom** (method in `docs/reference/COC_TEARDOWN.md`):
+their Town Hall is **0.55** of its 4x4 footprint tall and its art covers **0.69** of that
+footprint. Barracks 0.44. Ours were granary 1.31, watchtower 1.42, keep 0.98 — all far too
+tall, which was the whole of the look problem the owner kept reporting.
 
-`HEIGHT_TO_FOOTPRINT_LIMIT = 1.6` in `build_asset.py` fails the build over it. Current: granary
-1.31, keep 0.98, watchtower 1.42.
+Now in `build_asset.py`:
+- `HEIGHT_TO_FOOTPRINT_LIMIT = 0.6`
+- `FOOTPRINT_FILL = 0.8` — a building may not fill more than 80% of its plot. The ring of
+  grass is what stops neighbours merging. This replaced the old *overhang allowance*, which
+  permitted the exact opposite.
+- `reproportion()` squashes a finished model into both limits, and **`build()` is now the one
+  way to get a finished object** because `bake_asset.py` built its own copy and skipped the
+  squash. Two build paths for one model is a bug waiting to happen; there is now one.
 
-**Some occlusion is unavoidable and Clash of Clans has it too** — its buildings are simply about
-as wide as they are tall, so it stays mild. Zero occlusion is not achievable for anything but a
-flat object; the only lever is squatter buildings.
+**Do not add a comment block to a `.tscn`.** It loads fine, but the editor rewrites the file
+on save and the comment goes silently. Durable "why" belongs in the `.gd`.
 
 `game/tools/pack.gd` places ten buildings shoulder to shoulder and photographs it, which is the
 case that keeps producing complaints and is too slow to set up by hand.

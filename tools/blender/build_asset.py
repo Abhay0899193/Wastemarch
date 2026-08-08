@@ -914,9 +914,66 @@ MAX_OVERHANG = 0.35
 #
 # At 30 degrees elevation a building of height h covers about 1.7 x h tiles of
 # ground behind it on screen. A tall thing on a small base therefore looks placed
-# *through* whatever is behind it, however correct the tile occupancy is. The
-# watchtower was 2.3 and looked broken; the granary is 1.26 and does not.
-HEIGHT_TO_FOOTPRINT_LIMIT = 1.6
+# *through* whatever is behind it, however correct the tile occupancy is.
+#
+# **0.6 is measured, not chosen.** It comes from Clash of Clans screenshots at
+# known zoom — see `docs/reference/COC_TEARDOWN.md`. Their Town Hall is 0.55 of
+# its 4x4 footprint and their Barracks 0.44 of its 3x3. Ours were 0.98 to 1.26
+# under the old limit of 1.6, which is why our bases looked stacked and theirs
+# does not. This one number is the largest single difference between the two.
+HEIGHT_TO_FOOTPRINT_LIMIT = 0.6
+
+# How much of its footprint a building's own geometry may fill.
+#
+# Also measured: their Town Hall art is 0.69 of the 4x4 tiles it occupies, so
+# every building is ringed by a little grass. That ring is what stops two
+# neighbours merging into one blob at phone size — it is doing the job we were
+# trying to do with the overhang cap, and doing it better.
+FOOTPRINT_FILL = 0.8
+
+
+def reproportion(obj, footprint_tiles) -> dict:
+    """Squash a finished building into Clash of Clans' proportions.
+
+    Two scales, applied to the mesh itself so the object scale stays 1:
+
+      * one uniform scale across X and Y until the building sits inside
+        `FOOTPRINT_FILL` of the tiles it occupies, leaving the ring of grass
+        that keeps neighbours apart;
+      * one scale in Z until it is no taller than `HEIGHT_TO_FOOTPRINT_LIMIT`.
+
+    Only ever shrinks. A building already in proportion is untouched.
+
+    ponytail: squashing a hand-tuned model is the cheap way to *see* the new
+    proportions — it flattens roof pitches and details a little. Once the look is
+    approved, re-tune each builder's own constants and this becomes a no-op.
+    """
+    fw, fd = (t * TILE for t in footprint_tiles)
+    vs = obj.data.vertices
+    xs = [v.co.x for v in vs]
+    ys = [v.co.y for v in vs]
+    zs = [v.co.z for v in vs]
+    ex, ey, ez = max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs)
+
+    s_xy = min(1.0, FOOTPRINT_FILL * fw / ex, FOOTPRINT_FILL * fd / ey)
+    s_z = min(1.0, HEIGHT_TO_FOOTPRINT_LIMIT * min(fw, fd) / ez)
+    for v in vs:
+        v.co.x *= s_xy
+        v.co.y *= s_xy
+        v.co.z *= s_z
+    return {"xy_scale": round(s_xy, 4), "z_scale": round(s_z, 4)}
+
+
+def build(asset: str, level: int = 1):
+    """The one way to get a finished, correctly proportioned building.
+
+    Both `main()` here and `bake_asset.py` go through this, so a building cannot
+    be reproportioned on one path and not the other — which is exactly what
+    happened the first time.
+    """
+    obj, size_class, footprint = BUILDERS[asset](level)
+    squash = reproportion(obj, footprint)
+    return obj, size_class, footprint, squash
 
 
 def validate(obj, size_class: str, footprint_tiles) -> dict:
@@ -967,15 +1024,17 @@ def validate(obj, size_class: str, footprint_tiles) -> dict:
 
     overhang = max(max(xs) - fw / 2, -min(xs) - fw / 2,
                    max(ys) - fd / 2, -min(ys) - fd / 2, 0.0)
-    if overhang > MAX_OVERHANG:
+    fill = max((max(xs) - min(xs)) / fw, (max(ys) - min(ys)) / fd)
+    if fill > FOOTPRINT_FILL + 1e-3:
         problems.append(
-            f"overhangs its {footprint_tiles[0]}x{footprint_tiles[1]} tile "
-            f"footprint by {overhang:.3f} m, more than the {MAX_OVERHANG} m "
-            f"allowed — it would sit on top of the next building")
+            f"fills {fill:.0%} of its {footprint_tiles[0]}x{footprint_tiles[1]} "
+            f"tile footprint, more than the {FOOTPRINT_FILL:.0%} allowed — every "
+            f"building needs a ring of grass round it or neighbours merge into "
+            f"one shape at phone size")
 
     height = max(zs) - min(zs)
     ratio = height / min(fw, fd)
-    if ratio > HEIGHT_TO_FOOTPRINT_LIMIT:
+    if ratio > HEIGHT_TO_FOOTPRINT_LIMIT + 1e-3:
         problems.append(
             f"is {height:.2f} m tall on a {min(fw, fd):.0f} m footprint, a "
             f"ratio of {ratio:.2f} against a limit of "
@@ -999,6 +1058,7 @@ def validate(obj, size_class: str, footprint_tiles) -> dict:
         "tiles_every_m": TILE_METRES,
         "footprint_tiles": list(footprint_tiles),
         "overhang_m": round(overhang, 3),
+        "footprint_fill": round(fill, 3),
         "extent_m": [round(max(xs) - min(xs), 3), round(max(ys) - min(ys), 3)],
         "height_m": round(height, 3),
         "height_to_footprint": round(ratio, 2),
@@ -1019,8 +1079,9 @@ def make_lod1(builder, level: int):
     edge intact, and is free — the builder already knows which parts are detail,
     because a person decided that when they wrote it.
     """
-    lod, _, _ = builder(level, detail=False)
+    lod, _, footprint = builder(level, detail=False)
     lod.name = f"{lod.name}_LOD1"
+    reproportion(lod, footprint)
     if lod.data.validate(verbose=False):
         raise SystemExit(f"LOD1 for {lod.name} needed repair — the builder "
                          f"produced invalid geometry with detail off")
@@ -1059,7 +1120,7 @@ def main(argv) -> int:
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
-    obj, size_class, footprint = BUILDERS[args.asset](args.level)
+    obj, size_class, footprint, squash = build(args.asset, args.level)
     unwrap(obj)
     report = validate(obj, size_class, footprint)
 
@@ -1084,6 +1145,7 @@ def main(argv) -> int:
 
     out = OUT_DIR / f"{args.asset}_L{args.level}.glb"
     export(objs, out)
+    report["reproportion"] = squash
     report["file"] = str(out.relative_to(REPO))
     report["level"] = args.level
 
