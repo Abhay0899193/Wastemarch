@@ -605,3 +605,36 @@ triangles apiece, and they are the single most recognisable "this is masonry" cu
 
 The scene budget is even slacker: three buildings are 3,436 of 250,000 triangles. Draw calls,
 not triangles, are the real mobile constraint — spend geometry freely, add materials never.
+
+## Camera projection — concept art IS the texture (8 Aug 2026)
+
+`tools/blender/project_concept.py`. The owner said the models looked nothing like the concepts
+and was right; tiled materials plus palette tinting got the colour *correct* and nowhere near
+the concept's *look*.
+
+**The locked camera is what makes this work.** Orthographic, 30/45, no rotation, so every
+building sees the camera from the same direction wherever it stands, and zoom changes scale but
+not angle. The usual fatal objection to camera projection — right from one angle, smeared from
+every other — does not exist here. This is the largest payoff Phase 0's camera decision has had.
+
+Implementation notes worth keeping:
+
+- **`bpy.ops.uv.project_from_view` needs a 3D viewport and cannot run in background mode.**
+  Use `bpy_extras.object_utils.world_to_camera_view` per loop instead — for an orthographic
+  camera it is the same projection, and it works headless.
+- The picked concept is read out of `assets-src/concept/PICKS.md`, not guessed. The choice was
+  the owner's and is recorded; nothing in the pipeline gets an opinion about it.
+- Alignment is bounding box to bounding box: the model's outline in camera space onto the
+  painted building's outline in the image, found by thresholding against the flat background.
+- `tex.extension = "EXTEND"` — a concept is not tileable and must never wrap.
+
+### The failure mode, and why it is a feature
+
+Where a model extends past the painted building, the projection samples flat background and
+that surface comes out **blank grey**. The keep looks transformed; the granary and watchtower
+came out patchy, because their proportions were never tuned against their concepts the way the
+keep's were.
+
+So proportion accuracy is now enforced by how the asset *looks* rather than by anyone
+remembering to check. Fixing the grey means fixing the model, which is the work that should
+have happened anyway.

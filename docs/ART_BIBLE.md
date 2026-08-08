@@ -225,6 +225,40 @@ values this document locks, so the palette drift visible in concept art physical
 happen to a model. That is the point of doing colour in the model rather than only in a
 generated texture.
 
+### Buildings are painted with their own concept art
+
+**The camera makes this possible, and it is the reason the camera is locked.**
+
+Camera projection — painting a flat image onto geometry along one viewing direction — is the
+standard way to get concept art onto a model. It is normally a compromise, because the texture
+is only correct from the angle it was projected along and smears from anywhere else.
+
+**Wastemarch has no other angle.** The camera above is orthographic, fixed at 30 degrees and
+45 degrees, pan and zoom only. Under an orthographic projection every building sees the camera
+from the same direction wherever it stands on the grid, and zoom changes scale without changing
+angle. The one condition that makes camera projection unusable in most games is the condition
+this game removed on purpose in Phase 0.
+
+```bash
+$BLENDER --background --factory-startup --python tools/blender/project_concept.py -- --asset keep
+```
+
+It reads which concept the owner picked from `assets-src/concept/PICKS.md`, projects it from
+the game camera, and lines the model's outline up with the painted building's outline.
+
+**This changes what a concept image is for.** It is no longer a reference to model *from*; it
+is the asset's texture. Which means a concept that was never quite the right proportions is no
+longer a small problem — it is a visible one.
+
+> **The model must match its concept's proportions.** Where the model extends past the painted
+> building, the projection samples flat background and the surface comes out blank grey.
+> Getting a building's proportions right is now enforced by how it looks, not by anyone's
+> discipline.
+
+The two faces turned away from the camera receive the same texture stretched through the model.
+They are never visible, so it does not matter — but it does mean these models are correct *for
+this camera*, and a change to the camera rule would mean re-texturing everything.
+
 ### Surface detail comes from four tiles, shared by everything
 
 Z-Image Turbo generates one seamless tile per material. `tools/blender/build_asset.py` then
