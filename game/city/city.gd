@@ -63,6 +63,7 @@ var _ghost_valid := false
 var _camera_home := Vector3.ZERO
 var _zoom_out := 32.0                       ## fully out — set in _ready
 var _zoom_in := 8.0                         ## fully in — set in _ready
+var _obstacles: Dictionary = {}             ## Vector2i -> prop id, blocks building
 var _resource_labels: Dictionary = {}
 var _status: Label = null
 
@@ -74,6 +75,7 @@ var _status: Label = null
 func _ready() -> void:
 	_camera_home = _camera.position
 	_set_zoom_limits()
+	_scatter_props()
 	_load_definitions()
 	_build_hud()
 	_refresh_hud()
@@ -95,7 +97,105 @@ func _set_zoom_limits() -> void:
 	var aspect: float = maxf(0.1, view.x / view.y)
 	_zoom_out = maxf(diamond_h, diamond_w / aspect) * ZOOM_OUT_MARGIN
 	_zoom_in = _zoom_out / ZOOM_RANGE
-	_camera.size = _zoom_out                 # they open fully zoomed out, so do we
+	# Clash of Clans opens fully zoomed out, but onto a field already full of
+	# props and buildings. Ours starts with three buildings on 1,936 tiles, and
+	# fully out makes them specks. Halfway is the honest compromise until the
+	# city is dense enough to carry the wide shot.
+	_camera.size = _zoom_out * 0.5
+
+
+## Trees and rocks over the whole field, in two draw calls.
+##
+## **Bare ground is what makes a small base look unfinished rather than early.**
+## Clash of Clans covers its empty tiles in props and it is a large part of why
+## their first screen does not look empty — `docs/reference/COC_TEARDOWN.md`.
+##
+## `MultiMeshInstance3D` draws any number of copies of one mesh in a single call,
+## which is the only reason a hundred and fifty of these is affordable —
+## `CLAUDE.md` requires it for anything repeated.
+##
+## They are laid out from a fixed seed rather than saved, so the same village
+## always looks the same and the save file never has to carry scenery. They are
+## kept out of `_occupied` for the same reason: `_load` clears that dictionary,
+## and scenery that vanished after loading would be a bug you would find later
+## and at a worse time.
+const PROP_SEED := 20260809
+const PINES := 100
+const BOULDERS := 60
+const PROP_CLEAR_RADIUS := 10                ## tiles round the middle left bare
+
+func _scatter_props() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = PROP_SEED
+	_scatter_one("pine", PINES, rng)
+	_scatter_one("boulder", BOULDERS, rng)
+
+
+func _scatter_one(id: String, count: int, rng: RandomNumberGenerator) -> void:
+	var mesh := _mesh_of(id)
+	if mesh == null:
+		push_warning("no prop mesh for %s — nothing scattered" % id)
+		return
+
+	var cells: Array[Vector2i] = []
+	var half := GRID_SIZE / 2
+	# Rejection sampling with a cap: a tile that is taken is simply skipped. The
+	# cap is what stops an unlucky seed or a crowded field spinning forever.
+	var attempts := 0
+	while cells.size() < count and attempts < count * 30:
+		attempts += 1
+		var c := Vector2i(rng.randi_range(-half, half - 1),
+						  rng.randi_range(-half, half - 1))
+		if maxi(absi(c.x), absi(c.y)) < PROP_CLEAR_RADIUS:
+			continue                          # leave the middle buildable
+		if _obstacles.has(c):
+			continue
+		_obstacles[c] = id
+		cells.append(c)
+
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = cells.size()
+	for i in cells.size():
+		var t := Transform3D().rotated(Vector3.UP, rng.randf() * TAU)
+		var s := rng.randf_range(0.8, 1.2)
+		t = t.scaled(Vector3(s, s, s))
+		# Off-centre within its own tile, so the scatter does not read as a grid.
+		t.origin = Vector3(
+				float(cells[i].x) * TILE + TILE * 0.5 + rng.randf_range(-0.2, 0.2),
+				0.0,
+				float(cells[i].y) * TILE + TILE * 0.5 + rng.randf_range(-0.2, 0.2))
+		mm.set_instance_transform(i, t)
+
+	var node := MultiMeshInstance3D.new()
+	node.name = "Scatter_" + id
+	node.multimesh = mm
+	add_child(node)
+
+
+## The mesh inside a `.glb`, for a MultiMesh — which needs a `Mesh`, not a scene.
+##
+## The material can live on the mesh surface *or* as an override on the
+## MeshInstance3D depending on how the exporter felt, so both are checked. Miss
+## that and the props draw untextured white, which looks like a lighting bug and
+## is not one.
+func _mesh_of(id: String) -> Mesh:
+	var path := MODEL_DIR + id + "_L1.glb"
+	if not ResourceLoader.exists(path):
+		return null
+	var scene := (load(path) as PackedScene).instantiate()
+	var mesh: Mesh = null
+	for child in scene.find_children("*", "MeshInstance3D", true, false):
+		var mi := child as MeshInstance3D
+		mesh = mi.mesh
+		if mesh and mesh.surface_get_material(0) == null:
+			var over := mi.get_surface_override_material(0)
+			if over:
+				mesh.surface_set_material(0, over)
+		break
+	scene.queue_free()
+	return mesh
 
 
 func _load_definitions() -> void:
@@ -137,7 +237,7 @@ func _can_place(cell: Vector2i, id: String) -> bool:
 	for c in _cells_for(cell, _defs[id]["footprint"]):
 		if c.x < -half or c.x >= half or c.y < -half or c.y >= half:
 			return false
-		if _occupied.has(c):
+		if _occupied.has(c) or _obstacles.has(c):
 			return false
 	return _can_afford(id)
 

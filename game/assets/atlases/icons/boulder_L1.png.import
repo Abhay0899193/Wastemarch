@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ly5f2rposabj"
-path="res://.godot/imported/watchtower_L1_watchtower_L1_emit.png-5c3cc30c93af2b7d3170b62bd2839676.ctex"
+uid="uid://bsq4qx07csbc6"
+path="res://.godot/imported/boulder_L1.png-6892a3098adad178cadbcf1463412c5c.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "2f2a7213dde0bc4a09f1758a5da35ecc"
 }
 
 [deps]
 
-source_file="res://assets/models/watchtower_L1_watchtower_L1_emit.png"
-dest_files=["res://.godot/imported/watchtower_L1_watchtower_L1_emit.png-5c3cc30c93af2b7d3170b62bd2839676.ctex"]
+source_file="res://assets/atlases/icons/boulder_L1.png"
+dest_files=["res://.godot/imported/boulder_L1.png-6892a3098adad178cadbcf1463412c5c.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

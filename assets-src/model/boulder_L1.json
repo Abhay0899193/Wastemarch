@@ -1,0 +1,28 @@
+{
+  "triangles": 24,
+  "budget": 1500,
+  "size_class": "small",
+  "surface_area_m2": 1.883,
+  "texel_density": 512.0,
+  "tiles_every_m": 2.0,
+  "footprint_tiles": [
+    1,
+    1
+  ],
+  "overhang_m": 0.0,
+  "footprint_fill": 0.66,
+  "extent_m": [
+    0.66,
+    0.58
+  ],
+  "height_m": 0.58,
+  "height_to_footprint": 0.58,
+  "lod1_triangles": null,
+  "lod1_skipped": "24 triangles is below the 400 threshold \u2014 a second mesh would cost more than it saves",
+  "reproportion": {
+    "xy_scale": 1.0,
+    "z_scale": 1.0
+  },
+  "file": "assets-src/model/boulder_L1.glb",
+  "level": 1
+}

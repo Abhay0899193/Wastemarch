@@ -59,7 +59,7 @@ TEX_DIR = REPO / "assets-src" / "baked"
 # 1.8 GB in Git LFS, against `MASTER_PLAN.md` §1.3's promise of "tens of MB of
 # meshes and shared textures". The shipped app is fine — Godot recompresses to
 # ASTC on import — but the repository is not.
-BAKE_PX_BY_CLASS = {"small": 1024, "large": 2048, "troop": 512}
+BAKE_PX_BY_CLASS = {"prop": 256, "small": 1024, "large": 2048, "troop": 512}
 BAKE_PX = 2048          # replaced per-asset in main()
 AO_SAMPLES = 24          # plenty for soft contact shadows on box geometry
 AO_STRENGTH = 0.85       # 1.0 is very dark in corners; this keeps it readable

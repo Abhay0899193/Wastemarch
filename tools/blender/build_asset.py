@@ -59,7 +59,9 @@ LOD1_RATIO = 0.4             # LOD1 must be no more than 40% of the original
 # and a draw call; saving ninety triangles does not pay for that. Measured
 # against the granary, which is 162 triangles — see docs/ART_BIBLE.md.
 LOD_MIN_TRIS = 400
-BUDGETS = {"small": 1500, "large": 4000, "troop": 900}
+# `prop` is the scatter tier — trees, rocks, stumps. Hundreds are on screen at
+# once through one MultiMesh draw call, so the per-copy cost is what matters.
+BUDGETS = {"prop": 200, "small": 1500, "large": 4000, "troop": 900}
 
 # 1 Blender unit = 1 metre, and a tile is 1 metre square, so a 2x2 building is
 # 2 metres across. docs/ART_BIBLE.md.
@@ -69,14 +71,17 @@ TILE = 1.0
 # palette is not approximated here, it is used literally, which is the whole
 # reason the drift seen in the concept art cannot happen to a model.
 #
-# Five is not a coincidence: ART_BIBLE.md caps an asset at five hues, so this
-# list is the cap. Adding a sixth material means taking one away.
+# ART_BIBLE.md caps an asset at **five hues**, which is a per-asset rule, not a
+# cap on this list. `duskwood` was added for foliage on 9 Aug 2026: no new colour
+# was invented — it is Duskwood near, already locked in ADR-0004 — and no asset
+# uses more than five of these. A pine uses two.
 MATERIALS = [
     ("stone",     "#C4BCAE", 0.85),   # bone grey — walls, footings, paving
     ("timber",    "#8B8071", 0.75),   # dead soil — weathered posts and planking
     ("thatch",    "#9B8459", 0.95),   # dry ochre — roofs, sacking
     ("cloth",     "#8C2323", 0.80),   # Ostmere crimson — banners only
     ("firelight", "#F7CE7C", 0.55),   # the lit thing itself, emissive
+    ("duskwood",  "#1C2E2C", 0.95),   # Duskwood near — foliage, and only foliage
 ]
 MATERIAL_INDEX = {name: i for i, (name, _, _) in enumerate(MATERIALS)}
 
@@ -375,6 +380,31 @@ def pyramid(bm, centre, size, height):
     bm.faces.new(tuple(reversed(base)))
     for i in range(4):
         bm.faces.new((base[i], base[(i + 1) % 4], apex))
+    _tag(bm, _mark)
+
+
+def cone(bm, centre, radius, height, sides=6):
+    """A cone on `sides` faces. `2 * sides` triangles.
+
+    **Why not the four-sided `pyramid` for foliage.** A square cone shows the
+    camera exactly two faces, one lit and one nearly unlit, so a dark tree reads
+    as two separate shapes — a bright triangle with what looks like its own cast
+    shadow beside it. Six faces turns that step into a gradient and the tree
+    becomes one object again. It cost six triangles to fix.
+    """
+    _mark = len(bm.faces)
+    cx, cy, cz = centre
+    ring = []
+    for i in range(sides):
+        a = 2.0 * math.pi * i / sides
+        ring.append(bm.verts.new((cx + math.cos(a) * radius,
+                                  cy + math.sin(a) * radius, cz)))
+    apex = bm.verts.new((cx, cy, cz + height))
+    hub = bm.verts.new((cx, cy, cz))          # so the base is triangles, not an n-gon
+    for i in range(sides):
+        j = (i + 1) % sides
+        bm.faces.new((ring[i], ring[j], apex))
+        bm.faces.new((ring[j], ring[i], hub))
     _tag(bm, _mark)
 
 
@@ -808,8 +838,64 @@ def build_watchtower(level: int = 1, detail: bool = True):
     return obj, "small", (3, 3)
 
 
+def build_pine(level: int = 1, detail: bool = True):
+    """1x1 tile. A Duskwood pine, for scattering over the field by the hundred.
+
+    **This is a prop, not a building, and the difference is the triangle count.**
+    It is drawn by `MultiMeshInstance3D` in a single draw call however many there
+    are, so the cost that matters is per copy: a hundred pines at 60 triangles is
+    6,000, which is nothing, and at 600 would be a fifth of the whole screen
+    budget. Three stacked cones is the cheapest thing that still reads as a
+    conifer from 30 degrees above.
+
+    Clash of Clans covers its empty ground in these. Bare ground is what makes a
+    small base look unfinished rather than early — see
+    `docs/reference/COC_TEARDOWN.md`.
+    """
+    obj = new_mesh("pine")
+    build_materials(obj)
+    bm = bmesh.new()
+
+    using("timber")
+    box(bm, (0, 0, 0.16), (0.14, 0.14, 0.32))
+
+    using("duskwood")
+    # Three skirts, each narrower and shorter than the one below. The lowest one
+    # starts below the top of the trunk so no gap opens up at a low camera.
+    for z, r, h in ((0.26, 0.40, 0.55), (0.62, 0.31, 0.48), (0.95, 0.20, 0.42)):
+        cone(bm, (0, 0, z), r, h)
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj, "prop", (1, 1)
+
+
+def build_boulder(level: int = 1, detail: bool = True):
+    """1x1 tile. A lump of the same stone everything else is built from.
+
+    Two offset, tilted blocks. Tilting is the whole trick — an untilted box reads
+    as a crate, and the model is too small at this camera for anything subtler to
+    survive.
+    """
+    obj = new_mesh("boulder")
+    build_materials(obj)
+    bm = bmesh.new()
+
+    using("stone")
+    # A wide base block and a smaller one leaning on it, each tapered so no two
+    # faces are parallel. `prism` takes a bottom and a top rectangle, which is
+    # exactly the shape a weathered rock wants.
+    prism(bm, (0, 0, 0.0), (0.66, 0.58), (0.06, 0.04, 0.42), (0.44, 0.40))
+    prism(bm, (-0.16, 0.12, 0.30), (0.34, 0.30), (-0.22, 0.18, 0.58), (0.18, 0.16))
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj, "prop", (1, 1)
+
+
 BUILDERS = {"granary": build_granary, "keep": build_keep,
-            "watchtower": build_watchtower}
+            "watchtower": build_watchtower,
+            "pine": build_pine, "boulder": build_boulder}
 
 # Which buildings are painted with their concept art, and which keep the tiled
 # materials. This is not a preference — it is measured. `project_concept.py`
@@ -931,33 +1017,64 @@ HEIGHT_TO_FOOTPRINT_LIMIT = 0.6
 # trying to do with the overhang cap, and doing it better.
 FOOTPRINT_FILL = 0.8
 
+# Those two are the ceiling. Each asset also gets its own target, because one
+# shared cap made everything land on exactly the same proportions and a tower
+# came out looking like a shed.
+#
+# `fill`   how much of the footprint the geometry may span, side to side
+# `height` how tall it may be, as a multiple of the shorter footprint side
+#
+# **A tower earns its height by being thin.** What hides the ground behind a
+# building is its *area* on screen, not its height alone: a 3 m mast half a tile
+# wide blocks less than a 2 m barn three tiles wide. So the rule is a pair of
+# numbers per asset, not one number for everything, and a slim silhouette buys
+# height.
+PROPORTION_DEFAULT = {"fill": 0.8, "height": 0.6}
+PROPORTION = {
+    "watchtower": {"fill": 0.5, "height": 1.0},
+    "pine": {"fill": 0.8, "height": 1.2},        # a conifer is a tall thin cone
+    "boulder": {"fill": 0.75, "height": 0.6},
+}
+PROPORTION_CEILING = {"fill": 0.8, "height": 1.2}
 
-def reproportion(obj, footprint_tiles) -> dict:
-    """Squash a finished building into Clash of Clans' proportions.
 
-    Two scales, applied to the mesh itself so the object scale stays 1:
+def proportion_for(asset: str) -> dict:
+    return dict(PROPORTION.get(asset, PROPORTION_DEFAULT))
 
-      * one uniform scale across X and Y until the building sits inside
-        `FOOTPRINT_FILL` of the tiles it occupies, leaving the ring of grass
-        that keeps neighbours apart;
-      * one scale in Z until it is no taller than `HEIGHT_TO_FOOTPRINT_LIMIT`.
 
-    Only ever shrinks. A building already in proportion is untouched.
-
-    ponytail: squashing a hand-tuned model is the cheap way to *see* the new
-    proportions — it flattens roof pitches and details a little. Once the look is
-    approved, re-tune each builder's own constants and this becomes a no-op.
-    """
+def _fit_scale(obj, footprint_tiles, target):
+    """The (xy, z) factors that bring one model inside its proportion target."""
     fw, fd = (t * TILE for t in footprint_tiles)
     vs = obj.data.vertices
     xs = [v.co.x for v in vs]
     ys = [v.co.y for v in vs]
     zs = [v.co.z for v in vs]
     ex, ey, ez = max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs)
+    return (min(1.0, target["fill"] * fw / ex, target["fill"] * fd / ey),
+            min(1.0, target["height"] * min(fw, fd) / ez))
 
-    s_xy = min(1.0, FOOTPRINT_FILL * fw / ex, FOOTPRINT_FILL * fd / ey)
-    s_z = min(1.0, HEIGHT_TO_FOOTPRINT_LIMIT * min(fw, fd) / ez)
-    for v in vs:
+
+def reproportion(obj, footprint_tiles, target=None, scale=None) -> dict:
+    """Squash a finished building into Clash of Clans' proportions.
+
+    Two scales, applied to the mesh itself so the object scale stays 1:
+
+      * one uniform scale across X and Y until the building spans no more than
+        its `fill` share of the tiles it occupies, leaving the ring of grass
+        that keeps neighbours apart;
+      * one scale in Z until it is no taller than its `height` share.
+
+    The target is per asset — see `PROPORTION` — so a tower can be thin and tall
+    while a barn is wide and squat. Only ever shrinks; a building already in
+    proportion is untouched.
+
+    ponytail: squashing a hand-tuned model is the cheap way to *see* new
+    proportions — it flattens roof pitches and details a little. Once a look is
+    approved, re-tune that builder's own constants and this becomes a no-op.
+    """
+    target = target or PROPORTION_DEFAULT
+    s_xy, s_z = scale or _fit_scale(obj, footprint_tiles, target)
+    for v in obj.data.vertices:
         v.co.x *= s_xy
         v.co.y *= s_xy
         v.co.z *= s_z
@@ -971,8 +1088,24 @@ def build(asset: str, level: int = 1):
     be reproportioned on one path and not the other — which is exactly what
     happened the first time.
     """
+    target = proportion_for(asset)
+
+    # **The squash is measured on level 1 and then applied to every level.**
+    # Measuring it per level normalises every level into the same box, so a
+    # level 5 keep comes out exactly the size of a level 1 one and the whole
+    # upgrade interpolation disappears. The silhouette test caught it at 0.95
+    # overlap between keep L1 and L5 — they had become the same building.
+    #
+    # Reproportioning is a correction to the builder's *units*, not to each
+    # level, so one factor for the asset is the right shape for it.
+    scale = None
+    if level != 1:
+        base, _, base_footprint = BUILDERS[asset](1)
+        scale = _fit_scale(base, base_footprint, target)
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+
     obj, size_class, footprint = BUILDERS[asset](level)
-    squash = reproportion(obj, footprint)
+    squash = reproportion(obj, footprint, target, scale)
     return obj, size_class, footprint, squash
 
 
@@ -1025,20 +1158,20 @@ def validate(obj, size_class: str, footprint_tiles) -> dict:
     overhang = max(max(xs) - fw / 2, -min(xs) - fw / 2,
                    max(ys) - fd / 2, -min(ys) - fd / 2, 0.0)
     fill = max((max(xs) - min(xs)) / fw, (max(ys) - min(ys)) / fd)
-    if fill > FOOTPRINT_FILL + 1e-3:
+    if fill > PROPORTION_CEILING["fill"] + 1e-3:
         problems.append(
             f"fills {fill:.0%} of its {footprint_tiles[0]}x{footprint_tiles[1]} "
-            f"tile footprint, more than the {FOOTPRINT_FILL:.0%} allowed — every "
+            f"tile footprint, more than the {PROPORTION_CEILING['fill']:.0%} allowed — every "
             f"building needs a ring of grass round it or neighbours merge into "
             f"one shape at phone size")
 
     height = max(zs) - min(zs)
     ratio = height / min(fw, fd)
-    if ratio > HEIGHT_TO_FOOTPRINT_LIMIT + 1e-3:
+    if ratio > PROPORTION_CEILING["height"] + 1e-3:
         problems.append(
             f"is {height:.2f} m tall on a {min(fw, fd):.0f} m footprint, a "
-            f"ratio of {ratio:.2f} against a limit of "
-            f"{HEIGHT_TO_FOOTPRINT_LIMIT}. At this camera it will visually "
+            f"ratio of {ratio:.2f} against a ceiling of "
+            f"{PROPORTION_CEILING['height']}. At this camera it will visually "
             f"swallow anything placed behind it. Make it shorter or give it a "
             f"bigger footprint")
 
@@ -1080,8 +1213,8 @@ def make_lod1(builder, level: int):
     because a person decided that when they wrote it.
     """
     lod, _, footprint = builder(level, detail=False)
+    reproportion(lod, footprint, proportion_for(lod.name))
     lod.name = f"{lod.name}_LOD1"
-    reproportion(lod, footprint)
     if lod.data.validate(verbose=False):
         raise SystemExit(f"LOD1 for {lod.name} needed repair — the builder "
                          f"produced invalid geometry with detail off")

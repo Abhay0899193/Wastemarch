@@ -828,3 +828,58 @@ models can be rendered to sprites at the locked camera whenever we want.
 redesigned at them, and every one lands exactly on the cap so the set has no variety of
 proportion. Both are `ponytail:`-marked and in the backlog, to be done once the owner has
 looked at the reproportioned city.
+
+---
+
+## 2026-08-09 — Session 8 — the watchtower was fat, and the ground was on the wrong plane
+
+**Owner's feedback:** the watchtower reads fat now that it is short — make it skinnier; the
+grid and ground do not look good; fix the details; carry on with the next step.
+
+**The watchtower, and the rule behind it.** One shared proportion cap put every building at
+0.6 and a tower at 0.6 is a shed. What actually hides the ground behind a building is its
+*area* on screen, not its height — a thin mast blocks less than a wide barn. So proportion is
+now a **pair of numbers per asset**, `PROPORTION` in `build_asset.py`, under a hard ceiling of
+`fill 0.8, height 1.2`. The watchtower is `fill 0.5, height 1.0`: 1.5 m wide and 3.0 m tall on
+its 3x3, and it is a tower again.
+
+**Two bugs, one shape.** Both were "the same model built in more than one place":
+
+- `render_and_silhouette.py` built its subjects straight from `BUILDERS` and skipped
+  reproportion — the third such path after `bake_asset.py`. It had been measuring geometry the
+  game never shows and reporting green. Everything goes through `ba.build()` now.
+- Reproportioning **per level** normalised every upgrade level into the same box. Keep L5 came
+  out identical to L1; the silhouette test said 0.95 the instant it started telling the truth.
+  The scale is now measured once on level 1 and reused for every level. Back to 0.74.
+
+**The ground was in view space.** `VERTEX` in a Godot fragment shader is *view* space, so the
+old shader's grid and world edge were pinned to the screen: screen-aligned squares instead of
+diamonds, and the edge of the world as a horizontal line across the frame. One
+`INV_VIEW_MATRIX` multiply. This had been wrong since the shader was written and nobody saw it
+because grid *lines* look like grid lines either way.
+
+Ground now: no lines at all, 5% per-tile checker plus a random per-tile offset, three scales
+of mottling, scrub patches over soil, the Art Bible's old field lines, and Duskwood beyond the
+playable square. First frequency choice was wrong — `vnoise(p * 0.055)` spans two noise cells
+over 44 tiles, so almost the whole field took one value and read as flat sand.
+
+**Props.** `pine` (48 tris) and `boulder` (24), new `prop` size class at a 200-triangle budget
+and a 256 px bake. 100 and 60 of them, scattered from a fixed seed by `MultiMeshInstance3D` —
+two draw calls — kept in a separate `_obstacles` dictionary so `_load()` clearing `_occupied`
+cannot delete the scenery, and blocking building the way their obstacles do. Middle 20x20 left
+clear.
+
+**Foliage must be at least six-sided.** With cast shadows off, a four-sided cone still shows
+one lit face and one nearly black one, and every pine read as having its own cast shadow. Cost
+six triangles to fix, and an hour to work out that the shadows I had switched off were not
+shadows.
+
+**Also:** `duskwood` added to the material vocabulary (no new colour — Duskwood near from
+ADR-0004; the five-hue cap is per asset and a pine uses two). Ambient lifted to 0.55, since
+with no cast shadows ambient is all that fills an unlit face. Opening zoom set to halfway
+rather than their fully-out, because their fully-out frames a full village and ours frames
+three buildings on 1,936 tiles.
+
+**Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
+smoke 22 checks · `build.py --all` green across five assets · silhouette honest and passing,
+worst pair keep L1 vs L5 0.74.

@@ -232,12 +232,11 @@ rare-goods trickle plus a slow-burn narrative thread.
 iCloud on iPhone, Google Play Games on Android. The master plan puts this at version 1.1.
 **Reconsider:** after launch.
 
-### Ground props — trees, rocks, stumps, flowers
-Clash of Clans scatters small props over the whole field, each sitting on its own little
-patch of richer grass. It costs almost nothing (they are `MultiMeshInstance3D` material) and
-it is a large part of why their empty ground does not look empty. See
-[reference/COC_TEARDOWN.md](reference/COC_TEARDOWN.md).
-**Reconsider:** during Phase 3, once the six buildings exist. Cheap and high impact.
+### Props on their own patch of ground, and clearable obstacles
+Pines and boulders are scattered and block building, which is where Clash of Clans starts.
+Theirs also sit on a small patch of richer grass, which is what makes a prop look planted
+rather than pasted, and can be *cleared* for a small reward. Neither exists yet.
+**Reconsider:** with the resource loop in Phase 5 — clearing wants to pay something.
 
 ### Separable roof hues for building identity
 `ART_BIBLE.md` now asks for one identifying colour per building, on the roof, against neutral
@@ -245,11 +244,11 @@ bases. The locked palette (ADR-0004) does not yet contain enough separable hues 
 them, and adding any means re-running `tools/art/palette_check.py` for colourblind safety.
 **Reconsider:** with the second batch of buildings, when the need is concrete.
 
-### Per-building height targets instead of one shared cap
-`reproportion()` squashes every building down to exactly 0.6 of its footprint, so the set has
-less variety of proportion than the reference does. Each builder should declare its own target
-and be built at it.
-**Reconsider:** once the owner approves the new proportions.
+### Design the buildings squat rather than squashing them
+Each asset now declares its own proportion target, but the models are still hand-tuned at the
+old sizes and scaled down. Roof pitches flatten and small details lose shape. Re-tune each
+builder's own constants and `reproportion()` becomes a no-op.
+**Reconsider:** once the owner approves the proportions.
 
 ---
 

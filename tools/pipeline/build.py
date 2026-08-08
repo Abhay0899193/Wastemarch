@@ -47,7 +47,7 @@ MODEL_SRC = REPO / "assets-src" / "model"
 GAME_MODELS = REPO / "game" / "assets" / "models"
 ICONS = REPO / "game" / "assets" / "atlases" / "icons"
 
-ASSETS = ["granary", "keep", "watchtower"]
+ASSETS = ["granary", "keep", "watchtower", "pine", "boulder"]
 
 
 def run(cmd, label, keep=()):

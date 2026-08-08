@@ -124,14 +124,19 @@ def flat_material(colour):
 def subject_size(asset: str, level: int) -> tuple[float, float]:
     """Height and footprint radius in metres, without rendering anything."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    obj, _, footprint = ba.BUILDERS[asset](level)
+    # **Through `ba.build`, never `ba.BUILDERS` directly.** This was the third
+    # place that made its own copy of a model, and like the other two it skipped
+    # reproportioning — so the silhouette test was faithfully measuring geometry
+    # the game never sees. A shared builder with three entry points is a bug
+    # generator; there is one entry point now.
+    obj, _, footprint, _ = ba.build(asset, level)
     zs = [v.co.z for v in obj.data.vertices]
     return max(zs) - min(zs), max(footprint) * ba.TILE
 
 
 def render_one(asset: str, level: int, silhouette: bool, ortho_scale: float) -> Path:
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    obj, _, _ = ba.BUILDERS[asset](level)
+    obj, _, _, _ = ba.build(asset, level)
 
     zs = [v.co.z for v in obj.data.vertices]
     height = max(zs) - min(zs)

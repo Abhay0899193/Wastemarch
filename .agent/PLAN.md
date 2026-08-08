@@ -2,20 +2,26 @@
 
 ## RESUME HERE
 
-**Last session:** 9 August 2026 (session 7). Working tree clean, on `main`.
+**Last session:** 9 August 2026 (session 8). Working tree clean, on `main`.
 **Nothing is half-finished. Commits are NOT pushed — the owner pushes.**
 
-**Where we are: Phase 3, with a playable city, now built to Clash of Clans' measured
-proportions.** The camera and zoom match theirs; the buildings are half the height they were.
+**Where we are: Phase 3, with a playable city built to Clash of Clans' measured proportions,
+a ground that is no longer graph paper, and a hundred and sixty props on it.**
 
 ```bash
 $GODOT --path game res://city/City.tscn
 ```
 
-**The one thing to do first: look at it.** The whole session was a bet that proportion, not
-texture or polygon count, was what made our base look wrong. Place three or four buildings
-next to each other and say whether it reads better. Everything else queued up depends on that
-answer — see `docs/reference/COC_TEARDOWN.md` for what was measured and why.
+**The one thing to do first: look at it.**
+
+```bash
+$GODOT --path game --resolution 1920x1080 --script res://tools/pack.gd -- packed.png
+```
+
+That places ten buildings and photographs the result in one command — faster than judging it
+by hand. What is left between us and the reference, in order: **painted two-tone texture**,
+then patches of ground under each prop, then characters. See
+`docs/reference/COC_TEARDOWN.md`.
 
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
@@ -39,14 +45,14 @@ set. **Force a clippy re-lint** with `touch sim/*/src/*.rs` before trusting a gr
 
 ## Next 3 actions
 
-1. **Owner looks at the reproportioned city and says yes or no.** If yes, re-tune each
-   builder's own constants so the buildings are *designed* squat rather than squashed, and give
-   each a target height instead of all landing on the 0.6 cap.
-2. **Ground props** — trees, rocks, stumps, each on its own patch of richer grass, via
-   `MultiMeshInstance3D`. Measured as a large part of why their empty ground does not look
-   empty, and it is cheap. `docs/BACKLOG.md` has the note.
-3. **Three more buildings**, to get from three to the six Phase 3 asks for. Housing, a farm and
-   a drill yard. Each is a prompt file plus a builder function; the pipeline does the rest.
+1. **Three more buildings**, to get from three to the six Phase 3 asks for. Housing, a farm and
+   a drill yard. Each is a prompt file plus a builder function plus a `PROPORTION` entry; the
+   pipeline does the rest.
+2. **Upgrade levels in the city.** The models interpolate level 1 to 5 and `build_s`, `cost`
+   and `produces` are per-level-able in `game/data/buildings.json`. Nothing in the city reads a
+   level yet.
+3. **Save migrations.** The save carries `version: 1` from the first write. Write the second
+   version and the migration before the format has to change under pressure.
 
 ## The art question — two of the three options are now spent
 

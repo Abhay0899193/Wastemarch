@@ -1,12 +1,12 @@
 {
   "phase": 3,
   "phase_name": "Phase 3 \u2014 City builder. Playable POC done; Phase 2 pipeline complete, its art approval still the owner's.",
-  "milestone": "Phase 3 POC + Clash of Clans measured and matched: camera confirmed, zoom 4x, buildings reproportioned",
+  "milestone": "Phase 3: CoC proportions per asset, ground shader rewritten, props scattered",
   "phase_gate": "Phase 3: play twenty minutes on your own phone and want to keep going",
   "phase_gate_met": false,
   "last_commit": "216c12a",
   "last_session": "2026-08-09",
-  "sessions_completed": 7,
+  "sessions_completed": 8,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
   "versions": {
@@ -37,14 +37,14 @@
     "arch": "arm64"
   },
   "verification_at_close": {
-    "date": "2026-08-09",
+    "date": "2026-08-09 (session 8)",
     "no_floats_lint": "pass",
     "cargo_test": "pass \u2014 125 passed, 1 ignored",
     "palette_check": "pass",
     "godot_sim_smoke": "PASS \u2014 hash 0x6de277a1cf08225b matches CI",
     "city_smoke": "PASS \u2014 22 checks",
-    "asset_pipeline": "pass \u2014 rebuilt at the new proportions; granary 294, keep 1488, watchtower 558 triangles",
-    "silhouette": "pass \u2014 worst pair keep L1 vs L5 0.71; worst non-self pair watchtower vs keep 0.52"
+    "asset_pipeline": "pass \u2014 five assets: granary 294, keep 1488, watchtower 558, pine 48, boulder 24 triangles",
+    "silhouette": "pass and now honest \u2014 the test had been skipping reproportion; worst pair keep L1 vs L5 0.74"
   },
   "open_blockers": [
     {
@@ -126,11 +126,13 @@
       "source": "16 CoC opening screenshots, iPhone 2796x1290 landscape",
       "camera": "orthographic, 30 deg elevation, 45 deg yaw \u2014 MEASURED AND ALREADY MATCHING OURS",
       "zoom": "4.0x range exactly; fully out frames the whole 44x44 grid; opens fully out",
-      "height_to_footprint": "0.6 (was 1.6). Their Town Hall 0.55, Barracks 0.44",
+      "height_to_footprint": "per asset, default 0.6, ceiling 1.2. Watchtower fill 0.5 / height 1.0 \u2014 a tower buys height by being thin",
       "footprint_fill": "0.8 (new). Their Town Hall art covers 0.69 of its plot",
       "shadows": "none \u2014 they cast no ground shadows at all; our Sun no longer does either",
       "doc": "docs/reference/COC_TEARDOWN.md",
-      "sprites": "rejected again in ADR-0005, reversibly"
+      "sprites": "rejected again in ADR-0005, reversibly",
+      "ground": "no grid lines; 5% per-tile checker, mottling, scrub patches, Duskwood beyond the field. Computed from WORLD position \u2014 VERTEX in a Godot fragment shader is view space",
+      "props": "pine + boulder, prop size class (200 tris, 256px bake), MultiMesh, fixed seed, block building"
     }
   },
   "image_generation": {

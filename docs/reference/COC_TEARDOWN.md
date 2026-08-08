@@ -82,7 +82,7 @@ the tile shape.
 | Fully in shows | about 13 tiles across the screen | same |
 | Tile size, fully out | ≈ 53 × 27 screen pixels | — |
 | Tile size, fully in | ≈ 213 × 107 screen pixels | — |
-| Opening view | fully zoomed out | fully zoomed out |
+| Opening view | fully zoomed out | **halfway**, for now |
 
 We previously allowed a 10× range: out until the city was a smudge, in until one building
 filled the screen like furniture. Neither extreme is a view anybody plays from, and both make
@@ -92,6 +92,12 @@ The limit is now worked out at runtime from the grid size and the shape of the s
 `game/city/city.gd`, because a phone is roughly 2.17:1 and a tablet is 1.33:1 and a single
 typed-in number would be wrong on one of them. On a phone it lands on 32; on a 16:9 screen,
 37.
+
+**We do not copy their opening view, and the reason is instructive.** They open fully zoomed
+out onto a field already carrying a Town Hall, a builder's hut, a gold mine, a campfire, a
+ruin and a hundred props. We open onto three buildings on 1,936 tiles, where fully out makes
+them specks. Halfway is honest until the city is dense enough to carry the wide shot. Copying
+a number without copying what filled the frame is how you copy the wrong thing.
 
 ---
 
@@ -148,11 +154,17 @@ graph LR
 
 Result, rebuilt and passing:
 
-| | before | after | squashed by |
+| | before | after | ratio |
 |---|---|---|---|
-| Granary | 2.62 m on 2×2 | 1.20 m | ×0.46 tall, ×0.65 wide |
-| Watchtower | 4.25 m on 3×3 | 1.80 m | ×0.42 tall, ×0.82 wide |
-| Keep | 3.90 m on 4×4 | 2.40 m | ×0.62 tall, ×0.73 wide |
+| Granary | 2.62 m on 2×2 | 1.60 m wide, 1.20 m tall | 0.60 |
+| Watchtower | 4.25 m on 3×3 | 1.50 m wide, 3.00 m tall | 1.00 |
+| Keep | 3.90 m on 4×4 | 3.20 m wide, 2.40 m tall | 0.60 |
+
+**A tower buys its height by being thin.** The first pass put every building on one shared
+cap and the watchtower came out squat and wide — correct by the number and wrong on the
+screen, because what hides the ground behind a building is its *area*, not its height. Each
+asset now declares its own pair: the watchtower is `fill 0.5, height 1.0` and is a tower
+again. The ceiling nothing may pass is `fill 0.8, height 1.2`.
 
 The silhouette test still passes — the closest pair is now watchtower vs keep at 0.52, well
 inside the 0.80 limit.
@@ -163,9 +175,21 @@ some of their shape. It is the cheap way to *see* the change today. Once you app
 proportions, each builder's own numbers get re-tuned and the squash becomes a no-op. There is
 a `ponytail:` note in the code saying exactly that.
 
+**Two bugs this shook out, both the same bug.** A building was being built in three separate
+places — the model path, the texture-baking path, and the silhouette test — and two of them
+skipped the reproportion step. The silhouette test was therefore reporting on geometry the
+game never shows, which is the worst kind of green test. There is one way to build a model
+now. Separately, applying the squash per *level* normalised every upgrade level into the same
+box, so a level 5 keep came out identical to a level 1 one; the scale is now measured once on
+level 1 and reused. The silhouette test caught that at 0.95 the moment it started telling the
+truth.
+
 ---
 
 ## The ground
+
+**Done, 9 August 2026** — the field is one shader, rewritten to these rules. What follows is
+what was measured off their screenshots.
 
 - **One tile = one checker square.** The grass alternates light and dark per tile, at very
   low contrast — perhaps 5%. You cannot consciously see the grid, but you can always tell
@@ -192,7 +216,10 @@ a `ponytail:` note in the code saying exactly that.
 - The only genuinely bright things are the resource icons, fires, and the gold pile — light is
   used as a pointer, not as realism.
 
-**What we changed:** `Sun` in `game/city/City.tscn` no longer casts shadows. Its direction was
+**What we changed:** `Sun` in `game/city/City.tscn` no longer casts shadows. Watch for the
+trap this hides: with no cast shadows, a dark four-sided cone still shows one lit face and one
+black one, which reads *exactly* like a cast shadow. The pines looked shadowed for an hour
+after the shadows were switched off. Six-sided foliage fixed it. Its direction was
 already upper-left and stays. Our ambient-occlusion bake already puts the soft dark contact
 under each building, which is the same trick they use. This is also free performance — a
 shadow pass is one of the more expensive things a phone does.
@@ -352,9 +379,6 @@ Being honest about the gap that remains after today:
 - **Painted texture.** Theirs is hand-painted with deliberate two-tone shading. Ours is a
   tiled material with baked ambient occlusion. This is the next largest difference after
   proportion, and it is a real piece of work.
-- **Ground props.** They have trees, rocks, stumps and flowers, each on its own grass patch,
-  scattered over the whole field. We have bare ground. This is cheap and high-impact and
-  belongs in Phase 3.
 - **Colour identity per building.** Our palette gives every building the same five muted
   colours by rule, so nothing is identifiable by colour. The Art Bible now asks for one
   identifying hue per building; the palette needs a pass to supply them.

@@ -14,34 +14,88 @@
 background_mode = 1
 background_color = Color(0.11, 0.12, 0.13, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.34, 0.39, 0.5, 1)
-ambient_light_energy = 0.32
+ambient_light_color = Color(0.42, 0.46, 0.55, 1)
+ambient_light_energy = 0.55
 
-; The grid is drawn in the ground shader rather than as geometry. Forty-four
-; squared is 1,936 tiles; as meshes that is a draw call problem and as a texture
-; it is a memory one, but as two lines of `fract` it is free and always crisp at
-; any zoom.
+; The ground is one shader on one quad. Forty-four squared is 1,936 tiles; as
+; meshes that is a draw call problem and as a texture it is a memory one, but as
+; arithmetic it is free and stays crisp at every zoom.
+;
+; **The grid used to be drawn as lines and that was the mistake.** Clash of Clans
+; has no grid lines at all — it alternates the brightness of each tile by a few
+; per cent, so you can always tell where a building will land but you never
+; consciously see a grid. Lines at this camera read as graph paper.
+; docs/reference/COC_TEARDOWN.md
 [sub_resource type="Shader" id="Shader_ground"]
 code = "shader_type spatial;
 render_mode diffuse_lambert, specular_disabled;
 
 uniform vec3 soil : source_color = vec3(0.545, 0.502, 0.443);
-uniform vec3 line_colour : source_color = vec3(0.44, 0.40, 0.35);
+uniform vec3 outland : source_color = vec3(0.110, 0.180, 0.173);
+// Duskwood, lifted towards the soil: the scrub that has taken the old fields
+// back. Neither colour is invented — both are ADR-0004 values.
+uniform vec3 scrub : source_color = vec3(0.243, 0.322, 0.286);
 uniform float tile = 1.0;
-uniform float line_width = 0.02;
 uniform float half_extent = 22.0;
+// How much lighter one tile is than its neighbour. Theirs is about 5%; below
+// 3% it stops being usable and above 10% it becomes a chessboard.
+uniform float checker = 0.05;
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// Value noise. Cheap, and at this camera nobody can tell it from anything
+// better — its only job is to stop a flat colour looking like a flat colour.
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+			   mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
 
 void fragment() {
-	vec2 p = (VERTEX.xz) / tile;
-	vec2 g = abs(fract(p) - 0.5);
-	float line = 1.0 - smoothstep(0.5 - line_width * 2.0, 0.5, max(g.x, g.y));
-	vec3 base = mix(line_colour, soil, line);
+	// **VERTEX in `fragment()` is VIEW space, not world space.** Using it
+	// directly pins the whole pattern to the screen: the checker came out as
+	// axis-aligned squares instead of diamonds and the edge of the world was a
+	// horizontal line across the middle of the frame. This one matrix multiply
+	// is the difference between a grid on the ground and a grid on your eye.
+	vec3 world = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec2 p = world.xz / tile;
+	vec2 cell = floor(p);
 
-	// Outside the playable square the ground stays plain, so the edge of the
-	// world is visible without a fence around it.
-	vec2 d = abs(VERTEX.xz);
-	float inside = step(max(d.x, d.y), half_extent);
-	ALBEDO = mix(soil, base, inside);
+	// Three scales of mottling: broad patches, tile-sized variation, and a fine
+	// grain that only exists when the camera is close.
+	float n = vnoise(p * 0.11) * 0.55 + vnoise(p * 0.7) * 0.3 + vnoise(p * 4.0) * 0.15;
+
+	float alt = mod(cell.x + cell.y, 2.0) - 0.5;          // -0.5 or +0.5
+	// Each tile also gets its own tiny constant offset, so the checker never
+	// looks mechanical.
+	float per_tile = (hash(cell) - 0.5) * 0.05;
+
+	// Scrub over soil rather than flat soil. The broad noise decides how much
+	// vegetation has taken hold in a given patch, which is what stops a single
+	// palette colour reading as desert.
+	// Two scales of patchiness. The frequencies matter: at 0.055 a 44-tile field
+	// only spans two noise cells, so almost all of it took the same value and the
+	// ground read as one flat colour — which is exactly what it looked like.
+	float patch = smoothstep(0.28, 0.66, vnoise(p * 0.14)) * 0.60
+			+ smoothstep(0.40, 0.80, vnoise(p * 0.45)) * 0.40;
+	vec3 ground = mix(soil, scrub, clamp(patch, 0.0, 0.92));
+	vec3 base = ground * (1.0 + alt * checker + per_tile) * (0.70 + 0.34 * n);
+
+	// The old field lines from ART_BIBLE.md: pale straight boundaries running
+	// under everything, at an angle to the grid so they never read as tiles.
+	float f = abs(fract((p.x * 0.34 + p.y * 0.94) / 9.0) - 0.5);
+	base *= 1.0 + 0.05 * (1.0 - smoothstep(0.44, 0.5, f));
+
+	// Beyond the playable square the ground goes to Duskwood, which frames the
+	// field the way their treeline does. Two metres of blend, not a hard step.
+	vec2 d = abs(world.xz);
+	float edge = smoothstep(half_extent - 0.4, half_extent + 1.6, max(d.x, d.y));
+	vec3 outer = outland * (0.75 + 0.5 * n);
+	ALBEDO = mix(base, outer, edge);
 	ROUGHNESS = 0.95;
 }
 "
@@ -71,7 +125,7 @@ position = Vector3(0, 20, 0)
 rotation_degrees = Vector3(-45, -50, 0)
 light_color = Color(1, 0.95, 0.87, 1)
 light_energy = 2.0
-shadow_enabled = false          ; deliberate — see city.gd
+shadow_enabled = false
 directional_shadow_mode = 0
 
 [node name="Ground" type="MeshInstance3D" parent="."]

@@ -104,13 +104,20 @@ Two details make the difference between this measuring the rule and measuring no
   recognisably a keep, and still be tellable from a level 1 one. Measured at **0.71** — the
   closest pair in the set, and correctly so.
 
-Current results, 8 August 2026:
+Current results, 9 August 2026, at the reproportioned sizes:
 
 | | granary | watchtower | keep L1 | keep L5 |
 |---|---|---|---|---|
-| **granary** | — | 0.54 | 0.33 | 0.24 |
-| **watchtower** | | — | 0.38 | 0.28 |
-| **keep L1** | | | — | **0.71** |
+| **granary** | — | 0.40 | 0.23 | 0.17 |
+| **watchtower** | | — | 0.35 | 0.26 |
+| **keep L1** | | | — | **0.74** |
+
+> **This test was measuring the wrong models until 9 August 2026.** It built its subjects
+> straight from the builder functions and so skipped the reproportion step, meaning it
+> faithfully reported on geometry the game never shows. It was the third place in the codebase
+> that made its own copy of a model; there is one way to get one now, `build_asset.build()`,
+> and all three go through it. **A test that quietly measures the wrong thing is worse than no
+> test**, because it is also spending your confidence.
 
 ---
 
@@ -119,6 +126,13 @@ Current results, 8 August 2026:
 **A building may be no taller than 0.6 × the shorter side of its footprint, and its geometry
 may fill no more than 80% of the tiles it occupies.** Both are enforced by
 `tools/blender/build_asset.py` and both **fail** the build.
+
+**Each asset may also declare its own pair of numbers, tighter or taller than the default.**
+What hides the ground behind a building is its *area* on screen, not its height alone: a
+3 metre mast half a tile wide blocks less than a 2 metre barn three tiles wide. So a building
+buys height by being thin. The watchtower is declared at `fill 0.5, height 1.0` and reads as a
+tower; at the shared default it read as a shed. The hard ceiling nothing may pass is
+`fill 0.8, height 1.2`. See `PROPORTION` in `build_asset.py`.
 
 These are the two most important numbers in this document, and neither was chosen — both were
 measured off Clash of Clans screenshots at known zoom. Their Town Hall is 0.55 as tall as its
@@ -134,21 +148,57 @@ difference between a base that reads as a pile and one that reads as a settlemen
 neighbours merging into one shape at phone size. It does the job the old overhang allowance
 was preventing.
 
-| Building | Footprint | Height | Ratio |
-|---|---|---|---|
-| Granary | 2×2 | 1.20 m | 0.60 |
-| Watchtower | 3×3 | 1.80 m | 0.60 |
-| Keep | 4×4 | 2.40 m | 0.60 |
+| Building | Footprint | Width | Height | Ratio |
+|---|---|---|---|---|
+| Granary | 2×2 | 1.60 m | 1.20 m | 0.60 |
+| Watchtower | 3×3 | 1.50 m | 3.00 m | 1.00 |
+| Keep | 4×4 | 3.20 m | 2.40 m | 0.60 |
 
-**Thin things are still allowed to be tall in spirit but not yet in code.** A chimney, a
-flagpole or a pipe hides almost nothing and CoC uses them freely. The current rule measures
-the whole bounding box, so it forbids them. That is a known, deliberate over-restriction —
-loosen it to "solid mass under 0.6, thin details to 0.9" when a building actually needs it,
-not before.
+**The squash is measured once, on level 1, and reused for every level.** Measuring it per
+level normalises every level into the same box — a level 5 keep came out exactly the size of a
+level 1 one and the entire upgrade interpolation vanished. The silhouette test caught it at
+0.95 overlap, which is what that test is for.
 
-**Every building lands exactly on the limit at the moment,** because `reproportion()` squashes
-down to the cap rather than to a per-building target. That flattens variety, and it is marked
-in the code as work to do once the proportions are approved.
+---
+
+## The ground
+
+The whole field is **one shader on one quad**. Forty-four squared is 1,936 tiles; as meshes
+that is a draw-call problem and as a texture a memory one, but as arithmetic it is free and
+stays sharp at every zoom.
+
+| Rule | Why |
+|---|---|
+| **No grid lines.** Tiles alternate in brightness by about **5%** | Clash of Clans has no lines at all. You can always tell where a building will land; you never consciously see a grid. Lines at this camera read as graph paper. |
+| Each tile also gets a tiny random brightness offset | Stops the checker looking mechanical |
+| Three scales of mottling over the top | A flat colour reads as a flat colour |
+| Patches of scrub over soil, from broad noise | One palette colour across 1,936 tiles reads as desert |
+| The old field lines, at an angle to the grid | The Art Bible's own instruction at the top of this file, and it costs two lines of shader |
+| Beyond the playable square, the ground goes to **Duskwood** over 2 m | Frames the field the way their treeline does, without a fence |
+
+**The pattern must be computed from world position.** In a Godot fragment shader `VERTEX` is
+in *view* space, so using it directly pins the pattern to the screen: the checker came out as
+screen-aligned squares instead of diamonds and the edge of the world was a horizontal line
+across the middle of the frame. One `INV_VIEW_MATRIX` multiply is the difference between a
+grid on the ground and a grid on your eye.
+
+## Props — the scatter tier
+
+Trees, rocks and stumps are drawn by `MultiMeshInstance3D`: any number of copies of one mesh
+in a single draw call. That is what makes a hundred and sixty of them affordable, and
+`CLAUDE.md` requires it for anything repeated.
+
+- **200 triangles each, maximum.** The per-copy cost is what matters when hundreds are on
+  screen. A pine is 48 and a boulder 24.
+- **Foliage is at least six-sided.** A four-sided cone shows the camera exactly two faces, one
+  lit and one nearly unlit, so a dark tree reads as two shapes — a bright triangle with what
+  looks like its own cast shadow beside it. Six faces makes that a gradient. It cost six
+  triangles.
+- **They block building.** Like Clash of Clans' obstacles, a prop owns its tile until it is
+  cleared. They are laid out from a fixed seed rather than saved, so the save file never has
+  to carry scenery.
+- **Bare ground is what makes a small base look unfinished rather than early.** This is the
+  cheapest large improvement available to us.
 
 ---
 
@@ -159,6 +209,7 @@ more detail and more work for the phone.
 
 | Asset | Maximum triangles |
 |---|---|
+| **Prop** — tree, rock, stump | **200** |
 | Small building | 1,500 |
 | Large building | 4,000 |
 | Troop | 900 |
