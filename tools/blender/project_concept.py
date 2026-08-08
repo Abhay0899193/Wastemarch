@@ -126,6 +126,54 @@ def project_uvs(obj, cam) -> tuple:
     return (lo[0], lo[1], hi[0], hi[1])
 
 
+def dilate_into_background(image, passes: int = 90):
+    """Grow the painted building outward over the background.
+
+    **This is why grey patches happened at all, and why chasing coverage to zero
+    was the wrong fix.** A model's outline will never sit exactly on a painted
+    building's outline; somewhere a merlon or a roof edge is a few pixels proud,
+    and every one of those faces sampled flat background and rendered as a grey
+    hole. Tuning proportions shrank the problem and could not remove it.
+
+    Texture atlases have solved this for decades and the answer is *padding*:
+    bleed the artwork outward past its own edge, so anything sampling slightly
+    off the edge picks up plausible colour instead of emptiness. The building
+    grows a skirt of its own edge pixels and the grey has nowhere to appear.
+
+    Ninety passes is about ninety pixels of bleed at 1024, which is far more than
+    any misalignment seen so far and costs a fraction of a second.
+    """
+    import numpy as np
+
+    w, h = image.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    image.pixels.foreach_get(px)
+    rgba = px.reshape(h, w, 4)
+    rgb = rgba[:, :, :3]
+
+    bg = rgb[0, 0].copy()
+    filled = np.abs(rgb - bg).sum(axis=2) > BACKGROUND_TOLERANCE
+
+    for _ in range(passes):
+        if filled.all():
+            break
+        # Any empty pixel with a filled neighbour takes that neighbour's colour.
+        for shift, axis in ((1, 0), (-1, 0), (1, 1), (-1, 1)):
+            src = np.roll(filled, shift, axis=axis)
+            src_rgb = np.roll(rgb, shift, axis=axis)
+            take = src & ~filled
+            if not take.any():
+                continue
+            rgb[take] = src_rgb[take]
+            filled |= take
+
+    rgba[:, :, :3] = rgb
+    rgba[:, :, 3] = 1.0
+    image.pixels.foreach_set(rgba.reshape(-1))
+    image.update()
+    return float(filled.mean())
+
+
 def concept_bounds(image) -> tuple:
     """Where the building sits inside the concept image, as 0..1 coordinates.
 
@@ -348,7 +396,12 @@ def main(argv) -> int:
     obj.data.uv_layers.new(name="projected")
     cam = game_camera(obj)
     model_box = project_uvs(obj, cam)
+
+    # Bounds must be measured BEFORE the bleed, or the building's outline is the
+    # whole image and the fit is meaningless.
     cbox = concept_bounds(img)
+    covered = dilate_into_background(img)
+    print(f"  bled edges outward, {covered:.0%} of the image now painted")
     print(f"  model in frame  {tuple(round(v, 3) for v in model_box)}")
     print(f"  concept subject {tuple(round(v, 3) for v in cbox)}")
     fit_uvs(obj, model_box, cbox)

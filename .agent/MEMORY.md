@@ -717,3 +717,31 @@ real thatch and stonework; 0.30 → starts inventing geometry.
 concept looks better than the keep repainted, because a concept image is a better painting than
 an over-painted render. Repaint is the fallback for models whose concept does not match, not
 the default.
+
+### Grey patches: the fix is edge bleed, not better alignment
+
+`dilate_into_background()` in `project_concept.py`. A model's outline will never sit exactly on
+a painted building's outline — somewhere a merlon or a roof edge is a few pixels proud, and
+every such face sampled flat background and rendered as a grey hole.
+
+Three rounds of proportion tuning shrank it and could not remove it, because **it cannot be
+removed by alignment**. Texture atlases solved this decades ago: *padding*. Bleed the artwork
+outward past its own edge so anything sampling slightly off picks up plausible colour instead
+of emptiness.
+
+Ninety passes of four-neighbour dilation at 1024 — about ninety pixels of skirt, a fraction of
+a second with numpy, which **is available inside Blender's Python**. Keep and granary both went
+to **0.0% on background** immediately.
+
+**Measure bounds before bleeding.** After the bleed the "building" fills most of the frame, so
+`concept_bounds` must run first or the fit is meaningless.
+
+The lesson generalises: when a defect resists three rounds of tuning, the tuning is the wrong
+tool. Ask what makes the defect *impossible* rather than what makes it smaller.
+
+### Externally generated .glb, second one, was our own model
+
+`granary_L1_stylized.glb` came back as 162 triangles, 1 mesh, 1 material, bbox identical to
+ours — GPT had taken our exported `granary_L1.glb` and re-textured it. Its texture was decent
+and it had the same grey patches, because the problem was never the texture. Check `bbox` and
+triangle count before assuming an external asset is new work.
