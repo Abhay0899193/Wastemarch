@@ -1,7 +1,7 @@
 # Testing — the checks that guard the project
 
 **What this is.** This lists every automatic check the project runs, what each one protects
-against, and how to run it yourself. Right now there are six; more arrive with each phase.
+against, and how to run it yourself. Right now there are eight; more arrive with each phase.
 The list is short on purpose — a check that nobody trusts is worse than no check.
 
 ---
@@ -206,6 +206,50 @@ answerable on a real phone.
 
 ---
 
+## 7. The asset pipeline, end to end
+
+```bash
+python3 tools/pipeline/build.py --all
+```
+
+**What it protects against:** an art pipeline that quietly stops working. It builds every
+building from scratch — geometry, texture, ambient occlusion, interface icon — imports each into
+the game, and then **reads the finished file back** to check it contains what the build claimed.
+
+That last step is the point. During Phase 0 the Android app shipped with the simulation as a
+zero-byte file and the build reported success. **A build saying "done" is not evidence that
+anything came out of it.** So this checks triangle counts, that a texture is actually present,
+and that the icon is not blank.
+
+It also fails on any rule from [ART_BIBLE.md](ART_BIBLE.md) a script can judge: over the
+triangle budget, holes in the geometry, a model that floats above the ground or sinks into it,
+a model that overhangs its own plot, or one so tall for its footprint that it would hide
+whatever stands behind it.
+
+## 8. The city plays correctly
+
+```bash
+$GODOT --headless --path game --script res://tools/city_smoke.gd
+```
+
+**What it protects against:** the first part of the project with real changing state — resources
+that go down when you spend and up when you wait, ground that can only hold one building, timers
+that finish. All of it is quick to break and slow to notice by hand: a build-timer fault takes
+twelve seconds to see and a saving fault takes a restart.
+
+It plays a short game with nobody watching: places a building, tries to place a second one on
+top of it, tries to build off the edge of the map, tries to build something it cannot afford,
+waits for the first to finish, checks it starts producing, saves, wipes the world, loads, and
+checks everything came back.
+
+**One lesson from writing it is worth repeating.** Its first version said overlapping was
+refused while the game happily allowed it, because the test called the placing function directly
+and the check that stopped you lived in the *click handler* — two different routes, only one of
+them guarded. **A test must go through the same door the player uses.** A check that calls
+something the player never touches will keep passing while the game is broken.
+
+---
+
 ## Checks that arrive later
 
 | Check | Arrives | What it will protect |
@@ -215,6 +259,7 @@ answerable on a real phone.
 | Silhouette legibility | Phase 2 | Every building still identifiable as a solid black shape at 64 pixels. |
 | Replay determinism | Phase 4 | A battle replays identically from its record, twice. The Phase 4 completion test. |
 | On-device performance | Phase 3 onward | 60 frames per second on an iPhone 12 and a Pixel 6a, within 120 draw calls and 250,000 triangles. |
+| Grayscale and two-signal checks | Phase 2/3 | [ART_BIBLE.md](ART_BIBLE.md) rules 7 and 8 are still prose. See [BACKLOG.md](BACKLOG.md). |
 
 ---
 

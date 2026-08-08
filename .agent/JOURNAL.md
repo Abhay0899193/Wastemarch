@@ -703,3 +703,80 @@ ambient occlusion, and baked emission. Those are why the buildings look better n
 did before any of it, even with the concept art removed.
 
 `assets-src/concept/` is now modelling reference, which is what concept art is normally for.
+
+---
+
+## 2026-08-08 — Session 6 — Phase 2 pipeline closed, Phase 3 playable
+
+A long session, most of it spent on one question the owner kept asking and I kept
+half-answering: **why don't the buildings look like the concept art?**
+
+### The art road, and where it ended
+
+Camera projection → edge bleed → inset fitting → repainting over the model's own render →
+baking to a real unwrap. Each step was a genuine improvement on the last and none of them
+closed the gap.
+
+Two things I got wrong and reported as fixes:
+
+1. **`doubleSided` was a red herring.** glTF really did export it, and backface culling is a
+   correct change worth keeping, but culling changed nothing visible. **Confirming *a* real
+   problem is not confirming *the* problem**, and I presented it as though it were.
+2. **The coverage metric was wrong twice**, both times reporting a *lower* number than reality
+   — the direction that never gets caught. Weighted by surface area rather than screen area,
+   then sampling polygon centres so a big roof quad read "painted" while half of it hung off.
+
+The owner then asked to see the concept art standing in the engine as sprites. **The sprites
+looked clearly better and it was not close.** They chose 3D anyway and dropped the concept
+texturing: every building from the same five tiled materials, consistency over per-asset
+fidelity. That is defensible and probably right — projection made each building look different
+depending on how well its concept happened to fit its model, which is the opposite of what an
+art bible is for.
+
+Three things from that work survive and are why the buildings look better now than before any
+of it: the real UV unwrap, baked ambient occlusion, and baked emission.
+
+### The biggest single win was two lines
+
+Ambient light was 0.6 of neutral grey against a 1.1 sun, so the shadow side was lit almost as
+brightly as the front and every model read flat regardless of its texture. A warm 2.0 sun
+against a cool 0.32 ambient did more than everything else that day combined. The owner spotted
+it themselves in Clash of Clans and called it "single side shadow".
+
+**I should have rendered the shipped asset beside its concept three sessions earlier.** Doing
+it made four gaps obvious in one image. `tools/blender/render_and_silhouette.py` and
+`game/tools/zoomcap.gd` exist so this is one command now — and the second lesson is that a
+full-scene capture is too small to judge art by. Every defect the owner found had been
+invisible in mine.
+
+### Phase 2's gate
+
+`python3 tools/pipeline/build.py --all`. Prompt file and builder function are authored;
+everything after is not. Its fifth stage reads the `.glb` back rather than trusting the build
+log, which is the Phase 0 zero-byte-`.so` lesson made into a habit.
+
+The gate's other half — three reference buildings the owner approves — is **not met**, and the
+owner has been clear about that. Recorded as their decision to make, not mine to declare.
+
+### Phase 3, and three rounds of one bug
+
+The city is playable: place, wait, produce, place again, save, load. 22 headless checks.
+
+The owner reported buildings overlapping **three times**, and I looked in the wrong place twice.
+
+- **First time it was a real bug and my test was complicit.** `_place()` was unguarded and the
+  check lived in the click handler, so the test — which called `_place()` directly — passed
+  while the game was broken. **A test must go through the same door the player uses.**
+- **Third time it was not a placement bug at all.** The towers were on different tiles. At 30
+  degrees a building of height `h` hides about 1.7×h tiles behind it, and the watchtower was
+  4.64 m on a 2×2 footprint. The placement was right and the proportion was wrong. Now 3×3 and
+  shorter, with `HEIGHT_TO_FOOTPRINT_LIMIT = 1.6` failing the build so it cannot come back.
+
+The reason it took three rounds is that every check I had ran on a **single building** while
+every complaint was about a **dense base**. `game/tools/pack.gd` now places ten shoulder to
+shoulder and photographs it in one command.
+
+### State
+
+125 Rust tests, palette check, sim smoke, city smoke, full asset rebuild — all green. Phase 3
+in progress. Nothing waiting on the owner except the art bar, which does not block the city.

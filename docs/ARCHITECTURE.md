@@ -246,3 +246,25 @@ that actually ship on the phone. Originals never ship; they are far too large.
 - [ENVIRONMENT.md](ENVIRONMENT.md) — the exact tool versions this all runs on
 - [ASSET_PIPELINE.md](ASSET_PIPELINE.md) — how art is made
 - [ADR-0001](decisions/ADR-0001-stack-choices.md) — why Godot and why Rust
+
+
+---
+
+## The city, and where its rules live
+
+`game/city/city.gd` is the buildable world: the grid, placing, build timers, production, and
+saving. It is deliberately **not** in the Rust simulation.
+
+The split is the one this document opens with. `sim-core` exists to produce identical results
+on every machine, because battles will one day be replayed and checked on a server. A city
+being built has no such requirement — nobody replays your Tuesday afternoon — and putting it
+in Rust would buy nothing while making every balance change a rebuild.
+
+So: **battles are in Rust because they must agree; the city is in Godot because it only has to
+be fun.** If online play ever needs a server to verify a base layout, the grid rules move; the
+rest does not.
+
+Every number the city uses lives in `game/data/buildings.json` — cost, build time, what a
+building makes and how fast. None of it is in the code. That is `CLAUDE.md`'s rule against
+magic numbers, and the reason is Phase 5: the progression curve gets tuned against a
+spreadsheet, and a tuning pass that needs a programmer is a tuning pass that does not happen.

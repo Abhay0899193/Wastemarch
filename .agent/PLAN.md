@@ -2,62 +2,98 @@
 
 ## RESUME HERE
 
-**Last session:** 8 August 2026 (session 5). Working tree clean, on `main`, pushed.
-**Nothing is half-finished.**
+**Last session:** 8 August 2026 (session 6). Working tree clean, on `main`.
+**Nothing is half-finished. Commits are NOT pushed — the owner pushes.**
 
-**Phase 1's ARM leg is verified — on an emulator, not yet on a phone.** The Android build of
-the simulation produces `0x6de277a1cf08225b`, the same hash as macOS and Linux, running on a
-real `arm64-v8a` Android system. See `docs/TESTING.md` check 6.
+**Where we are: Phase 3, with a playable city.**
 
-**PHASE 1 IS CLOSED.** The owner accepted the emulator as satisfying "an ARM device" —
-`docs/decisions/ADR-0003-emulator-satisfies-the-phase-1-gate.md` records the decision and the
-one risk it leaves open (same M4 Pro silicon as the macOS leg, so it proves the Android
-toolchain and ABI agree, not that a Qualcomm chip does; `sim-core` being pure integer is why
-that is small). **Re-run check 6 on the first physical phone that appears** — a disagreement
-there is an emergency, not a curiosity.
+```bash
+$GODOT --path game res://city/City.tscn
+```
 
-**Nothing is blocked.** The colour palette was locked the same session — `ADR-0004`. It moved
-two of the nine proposed values, because a measured colourblind check found four real
-failures, including gold and firelight being the same colour to a protanope. `python3
-tools/art/palette_check.py` runs in CI and fails on drift.
-
-**Art direction settled with the owner:** premium means *polish, not brightness* — the muted
-wasteland stays. Density is Clash-like, ~40 buildings on the 44x44 grid, as the master plan
-already assumed. The owner's idea of a SimCity-style town plus Clash-style forward outposts is
-**parked in `docs/BACKLOG.md` with a full evaluation** — reconsider at the end of Phase 4, and
-if it happens both bases are 44x44 because `GRID_SIZE` is a compile-time constant.
-
-**Phase 2 stages 1 and 2 are working end to end for one building** — prompt file to concept
-art to parametric model to validated `.glb` to a Godot `.scn`, nothing done by hand.
-`granary_L1.glb` is 162 of 1,500 triangles.
-
-**Phase 2 stage 1 is working.** `tools/pipeline/concept.py` turns a prompt file into concept
-art with a provenance record. mflux + Z-Image Turbo, ~2 min an image. **ComfyUI is not
-installed and was not needed** — see `docs/ENVIRONMENT.md`. It may still be needed for stage 3,
-which is deliberately not pre-solved.
+Pick a building, click to place, right-drag to pan, wheel to zoom, `S` save, `L` load.
+Three buildings, each paying for the next.
 
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
 ```bash
-cd /Users/singha7/Documents/abhay/Wastemarch && \
+export GODOT=/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot && \
 git log --oneline -10 && git status && \
 sh ci/no-floats.sh && \
-(cd sim && cargo test --workspace --exclude sim-godot && \
-          cargo clippy --workspace --exclude sim-godot --all-targets -- -D warnings) && \
-/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot --headless --path game --script res://tools/sim_smoke.gd
+(cd sim && cargo test --workspace --exclude sim-godot) && \
+python3 tools/art/palette_check.py && \
+$GODOT --headless --path game --script res://tools/sim_smoke.gd && \
+$GODOT --headless --path game --script res://tools/city_smoke.gd
 ```
 
-Expect **125 tests green, 1 ignored** and `PASS — the Rust simulation is running inside Godot`.
+Expect **125 Rust tests green**, palette ok, `PASS — the Rust simulation…`, and
+`PASS — place, refuse, build, produce, save and load all work`.
 
 **Do not run `cargo test --workspace` without `--exclude sim-godot`** unless `GODOT4_BIN` is
-set; the binding needs the engine at build time. Its own check is
-`cargo build -p sim-godot`, which picks the path up from `sim/.cargo/config.toml`.
+set. **Force a clippy re-lint** with `touch sim/*/src/*.rs` before trusting a green run.
 
-**Forced clippy re-lint before trusting a green run:**
-`touch sim/*/src/*.rs` first. Clippy caches and will not re-lint unchanged crates.
+---
 
-**The full 10,000-seed sweep** is `#[ignore]`d because it is 157s in debug and 6s in release:
-`cargo test -p sim-core --release -- --ignored`.
+## Next 3 actions
+
+1. **Three more buildings**, to get from three to the six Phase 3 asks for. Housing, a farm,
+   and a drill yard would exercise the adjacency rules `MASTER_PLAN.md` §Phase 5 wants.
+   Each one is a prompt file plus a builder function; the pipeline does the rest.
+2. **Upgrade levels in the city.** The models already interpolate level 1→5 and `build_s`,
+   `cost` and `produces` are per-level-able in `game/data/buildings.json`. Nothing in the city
+   reads a level yet.
+3. **Save migrations.** The save carries `version: 1` from the first write. Write the second
+   version and the migration before the format has to change under pressure.
+
+## The art question, which is the owner's and not blocking
+
+The owner is **not happy with the buildings** and said so repeatedly. Phase 2's mechanical
+gate is met; its "three reference buildings you approve" half is not. Phase 3 can proceed on
+these assets and swap them later — nothing about the city depends on how they look.
+
+Three options are on the table, all evidenced rather than argued:
+
+- **More hand-authored geometry.** Budgets have room: keep 1,488 of 4,000, granary 294 of
+  1,500, watchtower 558 of 1,500.
+- **Squatter buildings.** `HEIGHT_TO_FOOTPRINT_LIMIT` in `build_asset.py` is 1.6; lowering it
+  reduces how much each building hides behind it.
+- **Sprites.** `$GODOT --path game res://world/SpritePreview.tscn` stands the concept art
+  beside the models. The owner judged the sprites clearly better. `MASTER_PLAN.md` §1.3
+  argues against them and lists what they cost — day/night, zoom, per-pixel troop occlusion,
+  and every upgrade level becoming an app update.
+
+---
+
+## Phase 2 — pipeline complete, art approval outstanding
+
+```bash
+python3 tools/pipeline/build.py --all
+```
+
+Prompt file and builder function are authored; concept art, geometry, unwrap, texture,
+ambient occlusion, emission, glTF, interface icon, engine import and budget check are not.
+About ten seconds a building.
+
+- [x] Concept generation with provenance — `tools/pipeline/concept.py`
+- [x] Parametric models with validation — `tools/blender/build_asset.py`
+- [x] Tiled palette materials, baked to a real unwrap with AO and emission
+- [x] Interface icons from the same model as the game art
+- [x] Scripted silhouette test, palette check in CI
+- [x] The one-command gate
+- [ ] **Three reference buildings the owner approves** — owner's call
+
+## Phase 3 — city builder, in progress
+
+- [x] 3D world at the locked camera, pan and zoom
+- [x] Grid, placement with snapping, validity and refusal reasons
+- [x] Build timers, production, four resource types on the HUD
+- [x] Save and load, versioned from the first write
+- [x] 22 headless checks — `tools/city_smoke.gd`
+- [ ] Six buildings rather than three
+- [ ] Upgrade levels
+- [ ] Save migrations
+- [ ] Durn's build tutorial
+- [ ] **Gate:** twenty minutes on a phone that leaves you wanting to continue
 
 ---
 

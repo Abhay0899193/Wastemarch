@@ -74,7 +74,7 @@ and the same test gets re-run there.
 **Seeded randomness** means the random numbers come from a starting value we choose, so the
 same starting value always produces the same sequence. It is randomness you can replay.
 
-## Phase 2 — Art bible and asset pipeline · weeks 3–5, alongside Phase 1
+## Phase 2 — Art bible and asset pipeline · weeks 3–5 · **pipeline complete**
 
 Install the image-generation tools cleanly. Write [ART_BIBLE.md](ART_BIBLE.md) — the rules
 every asset obeys — and prove it works by taking **three** buildings all the way from a text
@@ -84,9 +84,25 @@ overnight.
 **Finished when:** one command turns a prompt into a finished 3D building plus its interface
 icon, with nobody watching.
 
+**Status, 8 August 2026.** That command exists and works:
+
+```bash
+python3 tools/pipeline/build.py --all
+```
+
+Two things are written by a person — the prompt file and the building's shape script — and
+everything after happens on its own: concept art, the 3D shape, the texture, the shading in the
+corners, the glTF file, the interface icon, the import into the game and the budget check.
+About ten seconds a building.
+
+**The other half of this test is yours, and it is not signed off.** The master plan also
+requires three finished reference buildings that *you* approve, and you have said several times
+that they are not good enough. Choosing the simpler texturing was a decision to move on, not
+approval. The machinery is finished; the art bar is where you left it.
+
 This phase is where the "premium look" is won. See the risk table at the bottom of this file.
 
-## Phase 3 — City builder · weeks 5–8
+## Phase 3 — City builder · weeks 5–8 · **in progress**
 
 The world in 3D, a camera you can pan and pinch-zoom, placing buildings on the grid with
 snapping, build and upgrade timers, four resources, six buildings, saving and loading, and
@@ -96,6 +112,20 @@ Durn teaching you to build.
 
 That test is deliberately about *feeling*, and it is deliberately this early. If the core
 loop is not fun at week 8, no amount of content in months 3–6 will rescue it.
+
+**Status, 8 August 2026: playable, and nowhere near that test yet.**
+
+```bash
+$GODOT --path game res://city/City.tscn
+```
+
+Pick a building, click to place it, watch it go up, watch it start producing, place another.
+Right-drag moves the view, the wheel zooms, `S` saves and `L` loads. Three buildings, and each
+one pays for the next so there is always a reason to build something.
+
+Still missing before the twenty-minute test means anything: six buildings rather than three,
+upgrade levels, the four resources doing different jobs, saves that survive a change to the
+game, and Durn teaching you how to play.
 
 ## Phase 4 — Combat · weeks 8–11
 

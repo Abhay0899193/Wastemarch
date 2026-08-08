@@ -1,12 +1,12 @@
 {
-  "phase": 2,
-  "phase_name": "Phase 2 — art pipeline. Palette locked; nothing is blocked.",
-  "milestone": "Buildings settled on tiled palette materials + baked AO; concept-art projection dropped",
-  "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
-  "phase_gate_met": true,
+  "phase": 3,
+  "phase_name": "Phase 3 — City builder. Playable POC done; Phase 2 pipeline complete, its art approval still the owner's.",
+  "milestone": "Phase 3 POC: place, build, produce, save, load — 22 headless checks green",
+  "phase_gate": "Phase 3: play twenty minutes on your own phone and want to keep going",
+  "phase_gate_met": false,
   "last_commit": "216c12a",
   "last_session": "2026-08-08",
-  "sessions_completed": 5,
+  "sessions_completed": 6,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
   "versions": {
@@ -38,13 +38,14 @@
   },
   "verification_at_close": {
     "date": "2026-08-08",
-    "cargo_test": "pass — 125 passed, 1 ignored (the 10k sweep)",
-    "cargo_fmt": "pass",
     "no_floats_lint": "pass",
-    "godot_sim_smoke": "pass — headless on macOS, hash 0x6de277a1cf08225b",
-    "android_emulator_smoke": "PASS — all 7 checks green on arm64-v8a Android 34, hash 0x6de277a1cf08225b, identical to macOS and Linux",
-    "first_emulator_run_failed": "stale .so, not divergence — Android target was built before the last three golden-hash changes. Rebuilt and it matched.",
-    "not_verified_on_emulator": "anything visual or timed — screencap returns black for the Vulkan surface, and the emulator borrows the Mac GPU so frame rate is meaningless"
+    "cargo_test": "pass — 125 passed, 1 ignored",
+    "clippy": "pass with -D warnings after a forced re-lint",
+    "cargo_fmt": "pass",
+    "palette_check": "pass — every pair separable, ART_BIBLE in step",
+    "godot_sim_smoke": "PASS — hash 0x6de277a1cf08225b matches CI",
+    "city_smoke": "PASS — 22 checks: place, refuse overlap, refuse edge, refuse cost, build, produce, save/load",
+    "asset_pipeline": "pass — granary 294, keep 1488, watchtower 558 triangles; all imported and verified"
   },
   "open_blockers": [
     {
@@ -69,10 +70,10 @@
       "detail": "'Wastemarch' is a working title. Needs USPTO/EUIPO and app-store searches before any public listing."
     },
     {
-      "id": "texel-density-256",
-      "blocks": "nothing yet; revisit at stage 3",
-      "detail": "256 px/m is 2-4x what a phone shows at typical zoom. Granary measures 2.6M texels for a 2x2 shed. Geometry is unaffected by the choice, so it is cheap to defer and expensive to guess.",
-      "urgency": "decide when stage 3 first generates real textures"
+      "id": "art-bar",
+      "blocks": "the Phase 2 approval half, not Phase 3 progress",
+      "detail": "Owner is not happy with the buildings. Options recorded: more hand-authored geometry per building, a lower height-to-footprint limit for a squatter look, or revisiting the sprite path in game/world/SpritePreview.tscn which the owner saw and judged better.",
+      "urgency": "not blocking — Phase 3 can proceed on these assets and swap them later"
     }
   ],
   "adrs": [
@@ -140,5 +141,11 @@
     "picks": "assets-src/concept/PICKS.md — granary_1004, watchtower_1004, keep_1002 (early) + keep_1003 (late)",
     "silhouette_test": "WORKING — tools/blender/render_and_silhouette.py, fails over 80% pairwise overlap. Worst pair is keep L1 vs L5 at 0.71, correctly.",
     "sprite_experiment": "game/world/SpritePreview.tscn — concept art as sprites beside the models. Sprites looked clearly better; the owner still chose 3D. Kept as evidence, not as a path."
+  },
+  "phase_2_status": {
+    "gate_command": "python3 tools/pipeline/build.py --all — works, ~10s per building",
+    "mechanical_half": "MET",
+    "approval_half": "NOT MET — MASTER_PLAN requires three reference buildings the owner approves. The owner said repeatedly they are not good enough; choosing tiled materials was a decision to move on, not a sign-off.",
+    "settled": "tiled palette materials baked to a real unwrap with AO and emission; concept-art projection tried and dropped"
   }
 }
