@@ -1,0 +1,18 @@
+[
+  {
+    "asset": "keep",
+    "file": "assets-src/concept/keep/keep_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "80c521459f4653d2",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a squat stone keep with a single square tower, thick weathered walls of pale bone-grey stone, one corner visibly rebuilt with newer mismatched blocks, low pitched slate roof, narrow arrow slits, a heavy timber door standing open with warm firelight spilling out, a crimson banner hanging from the tower, small and worn, the whole building solid and defensible and clearly lived in again after being abandoned",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T06:16:46Z",
+    "seconds": 119.7
+  }
+]

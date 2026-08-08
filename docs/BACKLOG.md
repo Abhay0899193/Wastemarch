@@ -92,11 +92,13 @@ holdings.
    visiting. The fix is that outposts must **feed the town** — resources, unlock pressure,
    a reason to look at them every session. That is an economy design problem, and it cannot
    be answered before the core loop exists and is proven fun.
-3. **"Modern city" needs settling.** If it means skyscrapers and concrete, it is a different
-   game and contradicts both [STORY.md](STORY.md) and the palette locked in
-   [ADR-0004](decisions/ADR-0004-colour-palette.md). If it means a prosperous, developed
-   settlement *within* the setting, that is already the planned Chapter 1 → Chapter 6 arc and
-   costs nothing extra.
+3. ~~**"Modern city" needs settling.**~~ **Settled 8 Aug 2026 by the owner:** "modern" means
+   advanced *relative to the wasteland's current state*, in the idiom of Ostmere itself, and
+   eventually **exceeding** the kingdom. Not skyscrapers. No conflict with
+   [STORY.md](STORY.md) or the palette in
+   [ADR-0004](decisions/ADR-0004-colour-palette.md) — and the "eventually exceed Ostmere"
+   ceiling is a genuinely good long-game target that the current design does not yet reach
+   for. Worth a look in Phase 5 when the progression curve is built.
 
 **What it costs technically: less than it sounds.** The simulation is already grid-based and
 placement-agnostic; an outpost is the same `Grid`, `Entities` and pathfinding with a

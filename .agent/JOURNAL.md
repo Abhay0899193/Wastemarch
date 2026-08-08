@@ -466,3 +466,38 @@ loop is known to be fun. Noted that `GRID_SIZE` is a compile-time 44, so both ba
 the same size or the golden hash moves.
 
 **Phase 2 is now unblocked and nothing is waiting on the owner.**
+
+### Phase 2 begins — stage 1 works
+
+Owner settled the last open question: "modern city" means advanced *within the setting*, in
+Ostmere's idiom, eventually exceeding the kingdom. No conflict with the story or the palette.
+Recorded in the backlog entry; the "exceed Ostmere" ceiling is a good long-game target the
+current progression does not yet reach for, flagged for Phase 5.
+
+**ComfyUI is not installed and was not needed.** `mflux` was already on the machine from the
+`mentoros` sibling — MLX-native, so it runs on the GPU directly rather than through a
+translation layer, and it has first-class commands for *both* permitted models. Measured
+16 s/step at 1024², about two minutes an image, peak 10.7 GB.
+
+**Two failures worth the time they cost.** `mflux-generate-z-image-turbo` with no `--model`
+defaults to the full-precision upstream repo, which is not cached, and starts a silent ~16 GB
+download: twenty minutes of a process at 5% CPU with an empty output file, looking hung rather
+than downloading. `HF_HUB_OFFLINE=1` converts that into an immediate error naming the missing
+files, which is how it was diagnosed. Both in MEMORY.
+
+**The licence hazard is real, not theoretical.** Flux Kontext — forbidden here, non-commercial
+licence — is in the same shared cache with an `mflux-generate-kontext` binary pointing at it.
+`tools/pipeline/concept.py` refuses any model not on the permitted list rather than trusting
+nobody mistypes.
+
+**Delivered:** `concept.py`, a shared style header derived from the Art Bible, prompt files for
+the three reference buildings, and a provenance record per image carrying model, seed, full
+prompt and a workflow hash — the hash covers the recipe but deliberately not the seed, so
+several seeds of one recipe are recognisably siblings.
+
+Two buildings generated so far, a granary and the keep, and they came out visually consistent
+with each other despite being very different objects. That is the style header doing its job,
+and it is the whole reason the project's one critical risk is manageable.
+
+**The keep is on-model:** bone-grey stone, a small crimson banner reading as authority rather
+than decoration, warm firelight in the doorway, and the rebuilt corner the prompt asked for.

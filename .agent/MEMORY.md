@@ -406,3 +406,45 @@ flat cards behind.
 Two base types of the *same* size cost nothing; two of *different* sizes means making the grid
 carry its own dimensions, which touches pathfinding and moves the golden hash. Relevant to the
 parked forward-bases idea in `docs/BACKLOG.md` — **if that happens, both bases are 44×44.**
+
+## Image generation — mflux, not ComfyUI (8 Aug 2026)
+
+**ComfyUI is not installed and has not been needed.** `mflux` (MLX, Apple-native) was already
+on the machine from the `mentoros` sibling and has first-class commands for both permitted
+models: `mflux-generate-z-image-turbo` and `mflux-generate-qwen-edit`. Full write-up in
+`docs/ENVIRONMENT.md`.
+
+- Weights: `~/mentoros-imagegen/hf-cache`, 53 GB, **shared not copied**. Set
+  `HF_HOME` to it and `HF_HUB_OFFLINE=1`.
+- Measured: **16 s/step at 1024², 8 steps ≈ 2 min, peak MLX 10.70 GB.**
+
+### Do not retry: running `mflux-generate-z-image-turbo` without `--model`
+
+It defaults to the full-precision upstream `Tongyi-MAI/Z-Image-Turbo`, which is **not** cached,
+and starts a ~16 GB download with **no visible progress**. The symptom is a process sitting at
+~5% CPU and 200 MB RSS for twenty minutes with an empty output file — it looks hung, not
+downloading. Always:
+
+```
+--model filipstrand/Z-Image-Turbo-mflux-4bit --base-model z-image-turbo
+```
+
+`HF_HUB_OFFLINE=1` turns that silent hang into an immediate, readable `IncompleteSnapshotError`
+naming the missing files. Worth setting for that reason alone.
+
+### The licence-blocked model is in the same cache, one flag away
+
+`models--akx--FLUX.1-Kontext-dev-mflux-4bit` is in `~/mentoros-imagegen/hf-cache` for the other
+project. **CLAUDE.md forbids Flux Kontext here — non-commercial licence.** It is not a
+hypothetical risk: it is cached, mflux has a `mflux-generate-kontext` binary, and one typo
+reaches it.
+
+`tools/pipeline/concept.py` has an explicit allow/block list and **refuses to run** rather than
+relying on care. Keep that check when the pipeline grows.
+
+### Stage 3 may still need ComfyUI — open, deliberately not pre-solved
+
+`MASTER_PLAN.md` stage 3 conditions texture generation on Blender-baked depth/normal/AO passes
+via ControlNet. mflux supports that for FLUX models but **not** for Z-Image or
+Qwen-Image-Edit. Stage 1 does not need it. Do not install ComfyUI speculatively; decide when
+stage 3 is actually being built.

@@ -328,6 +328,60 @@ Start it with `~/Android/sdk/emulator/emulator -avd wastemarch_p6a -no-snapshot 
 anything visual, because a screenshot of a 3D Godot app on the emulator comes back black —
 that is a limitation of the emulator's screenshot tool, not a sign the game failed to draw.
 
+## Image generation — installed, and not what the master plan expected
+
+`MASTER_PLAN.md` assumes **ComfyUI**. ComfyUI is **not installed**, and as of 8 August 2026 it
+has not been needed, because a better-suited tool for this particular Mac was already here.
+
+**mflux** is a command-line image generator built on Apple's MLX, so it runs natively on this
+machine's graphics hardware rather than through a translation layer. It was installed for the
+sibling `mentoros` project and it has direct support for both of the models Wastemarch is
+allowed to use.
+
+| | |
+|---|---|
+| Binaries | `~/.local/bin/mflux-*` (installed as a `uv` tool) |
+| Model weights | `~/mentoros-imagegen/hf-cache` — 53 GB, shared, **not duplicated** |
+| Generator | Z-Image Turbo, 4-bit, `filipstrand/Z-Image-Turbo-mflux-4bit` |
+| Measured | 16 seconds per step at 1024x1024; 8 steps is about **2 minutes** per image |
+| Peak memory | **10.7 GB** of the machine's 24 GB |
+
+Because it peaks at 10.7 GB, nothing else heavy may run at the same time — see the note about
+never running a generator and a Blender render together.
+
+Run it through the pipeline script rather than by hand, so provenance is recorded:
+
+```bash
+python3 tools/pipeline/concept.py --list
+python3 tools/pipeline/concept.py keep --seeds 4
+```
+
+### Three things that will waste your time otherwise
+
+**Name the model explicitly.** `mflux-generate-z-image-turbo` on its own defaults to the
+full-size original of Z-Image Turbo, which is *not* in the cache. It then tries to download
+about 16 GB — silently, with no progress shown, for twenty minutes. Always pass
+`--model filipstrand/Z-Image-Turbo-mflux-4bit --base-model z-image-turbo`. The pipeline script
+does this for you.
+
+**Set the cache location and go offline.** `HF_HOME=~/mentoros-imagegen/hf-cache` and
+`HF_HUB_OFFLINE=1`. Without the second one, the tool contacts Hugging Face to check for
+updates even when everything it needs is already on disk, and that call can hang.
+
+**Licence-blocked models are sitting in the same cache.** FLUX Kontext is there for the other
+project, and `CLAUDE.md` forbids it here because its licence is non-commercial. One mistyped
+flag would use it. `tools/pipeline/concept.py` therefore refuses to run any model that is not
+on the permitted list, rather than trusting nobody will mistype.
+
+### What is still open
+
+`MASTER_PLAN.md` stage 3 generates textures conditioned on depth and normal maps baked from
+the 3D model. mflux can do that conditioning for FLUX models but **not** for Z-Image or
+Qwen-Image-Edit. So ComfyUI may still be needed when stage 3 is built. It is not needed now,
+and installing it before it is needed would be work with no result.
+
+---
+
 ### If you would rather fix Homebrew properly
 
 One administrator command makes every future `brew install` work normally:

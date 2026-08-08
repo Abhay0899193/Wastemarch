@@ -1,7 +1,7 @@
 {
   "phase": 2,
   "phase_name": "Phase 2 — art pipeline. Palette locked; nothing is blocked.",
-  "milestone": "Colour palette locked after a measured colourblind check found four failures in the proposed set",
+  "milestone": "Phase 2 stage 1 working: reproducible concept art with provenance, via mflux + Z-Image Turbo",
   "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
   "phase_gate_met": true,
   "last_commit": "216c12a",
@@ -114,5 +114,14 @@
     "density": "Clash-like, ~40 buildings, 44x44 grid, as MASTER_PLAN specifies",
     "parked": "player-built forward bases (SimCity-style town + CoC-style outposts) — owner's idea, evaluated and recorded in docs/BACKLOG.md, reconsider end of Phase 4",
     "palette_check": "python3 tools/art/palette_check.py, runs in CI, fails on confusable pairs or on ART_BIBLE.md drift"
+  },
+  "image_generation": {
+    "tool": "mflux (MLX, Apple-native) — NOT ComfyUI, which is not installed and has not been needed",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit, Apache 2.0",
+    "weights": "~/mentoros-imagegen/hf-cache (53GB, shared with the mentoros sibling, not duplicated)",
+    "measured": "16s/step at 1024x1024, 8 steps ~2min, peak MLX 10.70GB of 24GB",
+    "entrypoint": "python3 tools/pipeline/concept.py <asset> --seeds N",
+    "licence_guard": "concept.py refuses any model not on CLAUDE.md's permitted list — Flux Kontext is cached on this machine for another project",
+    "open": "MASTER_PLAN stage 3 conditions textures on baked depth/normal/AO via ControlNet; mflux supports that for FLUX only, not Z-Image or Qwen-Edit. ComfyUI may still be needed then. Deliberately not pre-solved."
   }
 }

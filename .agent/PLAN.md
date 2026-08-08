@@ -27,6 +27,11 @@ already assumed. The owner's idea of a SimCity-style town plus Clash-style forwa
 **parked in `docs/BACKLOG.md` with a full evaluation** — reconsider at the end of Phase 4, and
 if it happens both bases are 44x44 because `GRID_SIZE` is a compile-time constant.
 
+**Phase 2 stage 1 is working.** `tools/pipeline/concept.py` turns a prompt file into concept
+art with a provenance record. mflux + Z-Image Turbo, ~2 min an image. **ComfyUI is not
+installed and was not needed** — see `docs/ENVIRONMENT.md`. It may still be needed for stage 3,
+which is deliberately not pre-solved.
+
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
 ```bash
@@ -93,10 +98,12 @@ device**. The first two agree on every push; the third needs a device.
 
 ### Next 3 actions
 
-1. **Phase 2 starts.** ComfyUI installed clean, Z-Image Turbo + Qwen-Image-Edit-2509 weights
-   in place (copied from `mentoros`, weights only, never code), reproducible.
-2. The three reference buildings, end to end through every pipeline stage. **They need the
-   owner's personal approval** — they are the real Art Bible and the Phase 2 gate.
+1. **Generate seeds for all three reference buildings and have the owner pick.**
+   `python3 tools/pipeline/concept.py <keep|granary|watchtower> --seeds 4`, about 2 minutes an
+   image. Picks get committed to `assets-src/concept/`; rejects stay uncommitted.
+2. **Stage 2 — Blender.** A committed headless script that models to the concept
+   parametrically, UV unwraps at 256 texels/metre, decimates LOD1 to 40%, and fails the build
+   over budget. Blender is **5.2 LTS, not 4.x** — verify every operator against the 5.x API.
 3. Add an `aarch64-linux-android` cross-compile check to CI. The first emulator run failed on
    a **stale** `.so`, not a real divergence (see MEMORY) — CI building that target would have
    caught it, and would also stop the library silently regressing to zero bytes again.
