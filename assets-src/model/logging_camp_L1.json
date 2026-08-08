@@ -1,0 +1,28 @@
+{
+  "triangles": 204,
+  "budget": 1500,
+  "size_class": "small",
+  "surface_area_m2": 21.51,
+  "texel_density": 512.0,
+  "tiles_every_m": 2.0,
+  "footprint_tiles": [
+    3,
+    3
+  ],
+  "overhang_m": 0.0,
+  "footprint_fill": 0.8,
+  "extent_m": [
+    2.4,
+    2.091
+  ],
+  "height_m": 1.02,
+  "height_to_footprint": 0.34,
+  "lod1_triangles": null,
+  "lod1_skipped": "204 triangles is below the 400 threshold \u2014 a second mesh would cost more than it saves",
+  "reproportion": {
+    "xy_scale": 0.8362,
+    "z_scale": 1.0
+  },
+  "file": "assets-src/model/logging_camp_L1.glb",
+  "level": 1
+}

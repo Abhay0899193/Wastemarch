@@ -838,6 +838,160 @@ def build_watchtower(level: int = 1, detail: bool = True):
     return obj, "small", (3, 3)
 
 
+def build_croft(level: int = 1, detail: bool = True):
+    """3x3 tiles. A worked field: raised beds, a drying rack, a straw stack.
+
+    **Deliberately the flattest thing in the set.** With six buildings the
+    silhouette test gets hard, and the cheapest way to stay distinguishable is
+    for one of them to be almost nothing but ground — the beds are 12 cm high,
+    and what reads at 64 pixels is a low striped rectangle with one tall thing
+    at the corner. Nothing else in the game looks like that.
+    """
+    t = (max(1, min(5, level)) - 1) / 4.0
+    obj = new_mesh("croft")
+    build_materials(obj)
+    bm = bmesh.new()
+
+    foot = 3.0 * TILE
+    bed_h = 0.12
+    beds = 4
+
+    # Raised beds, running one way only. Rows across a field are the single most
+    # recognisable thing about farmland from above.
+    using("timber")
+    pitch = (foot - 0.4) / beds
+    for i in range(beds):
+        y = -foot / 2 + 0.2 + pitch * (i + 0.5)
+        box(bm, (0.0, y, bed_h / 2), (foot - 0.4, pitch * 0.62, bed_h))
+
+    # Straw stack in one corner — the tall element, and the only one.
+    using("thatch")
+    stack_h = 0.62 + 0.16 * t
+    prism(bm, (-foot / 2 + 0.55, foot / 2 - 0.55, 0.0), (0.86, 0.86),
+          (-foot / 2 + 0.55, foot / 2 - 0.55, stack_h), (0.52, 0.52))
+    pyramid(bm, (-foot / 2 + 0.55, foot / 2 - 0.55, stack_h), (0.56, 0.56), 0.26)
+
+    if detail:
+        # A drying rack: two posts and a rail, with sacking over it.
+        using("timber")
+        for sx in (-1, 1):
+            box(bm, (foot / 2 - 0.45 + sx * 0.34, -foot / 2 + 0.5, 0.28),
+                (0.08, 0.08, 0.56))
+        box(bm, (foot / 2 - 0.45, -foot / 2 + 0.5, 0.54), (0.84, 0.07, 0.07))
+        using("thatch")
+        box(bm, (foot / 2 - 0.45, -foot / 2 + 0.5, 0.40), (0.72, 0.26, 0.22))
+
+        # Low stone kerb along the front edge, so the field has a made boundary
+        # rather than stopping in mid-air.
+        using("stone")
+        box(bm, (0.0, -foot / 2 + 0.08, 0.07), (foot - 0.3, 0.14, 0.14))
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj, "small", (3, 3)
+
+
+def build_logging_camp(level: int = 1, detail: bool = True):
+    """3x3 tiles. A saw trestle, a stack of felled logs, and an open lean-to.
+
+    **The log stack is the silhouette.** Horizontal cylinders stacked in a
+    pyramid is a shape nothing else in the game has, and it survives being
+    shrunk to a black blob because the outline is a triangle sitting on the
+    ground rather than a box standing on it.
+
+    Thematically this is the building that costs you something: `GAME_DESIGN.md`
+    puts the only good timber at the Duskwood's edge, and cutting it raises the
+    pressure from the forest.
+    """
+    t = (max(1, min(5, level)) - 1) / 4.0
+    obj = new_mesh("logging_camp")
+    build_materials(obj)
+    bm = bmesh.new()
+
+    foot = 3.0 * TILE
+
+    using("stone")
+    box(bm, (0.0, 0.0, 0.05), (foot - 0.5, foot - 0.5, 0.10))
+
+    # The stack: three courses of logs, each shorter than the one below.
+    using("timber")
+    log_r = 0.17
+    for course, count in enumerate((4, 3, 2)):
+        z = 0.10 + log_r + course * (log_r * 1.7)
+        for i in range(count):
+            x = -(count - 1) * log_r * 1.1 + i * log_r * 2.2
+            prism(bm, (x - 0.62, foot / 2 - 0.7, z),
+                  (log_r * 0.6, log_r * 2),
+                  (x + 0.62, foot / 2 - 0.7, z), (log_r * 0.6, log_r * 2))
+
+    # Saw trestle: an X of two legs with a log lying in it.
+    using("timber")
+    for sx in (-1, 1):
+        prism(bm, (-0.5 + sx * 0.3, -foot / 2 + 0.7, 0.10), (0.10, 0.10),
+              (-0.5 - sx * 0.16, -foot / 2 + 0.7, 0.62), (0.09, 0.09))
+    prism(bm, (-1.05, -foot / 2 + 0.7, 0.60), (0.13, 0.30),
+          (0.05, -foot / 2 + 0.7, 0.60), (0.13, 0.30))
+
+    if detail:
+        # Open lean-to over the working end: two posts and a shed roof, no walls,
+        # so the camera can see under it.
+        using("timber")
+        for sx, sy in ((-1, -1), (-1, 1)):
+            box(bm, (foot / 2 - 0.35, sy * (foot / 2 - 0.5), 0.42),
+                (0.11, 0.11, 0.84))
+        using("thatch")
+        ramp(bm, (foot / 2 + 0.12, 0.0, 0.72), (foot / 2 - 1.05, 0.0, 0.96),
+             foot - 0.7, 0.10)
+        using("cloth")
+        box(bm, (foot / 2 - 0.35, foot / 2 - 0.5, 0.90), (0.06, 0.30, 0.24))
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj, "small", (3, 3)
+
+
+def build_mine(level: int = 1, detail: bool = True):
+    """2x2 tiles. A shored shaft mouth in a spoil heap, with a hand winch.
+
+    **The identifying shape is the winch beam**, a single diagonal against
+    everything else's verticals and horizontals. The shaft itself is a hole, and
+    a hole is invisible from 30 degrees above, so the building has to be the
+    things around the hole.
+    """
+    t = (max(1, min(5, level)) - 1) / 4.0
+    obj = new_mesh("mine")
+    build_materials(obj)
+    bm = bmesh.new()
+
+    foot = 2.0 * TILE
+
+    # Spoil heap: broken rock piled behind the mouth, tapering.
+    using("stone")
+    prism(bm, (0.25, 0.45, 0.0), (foot - 0.5, foot - 0.9),
+          (0.25, 0.62, 0.66 + 0.12 * t), (0.85, 0.5))
+
+    # The mouth: two posts and a lintel, sunk into the heap.
+    using("timber")
+    for sx in (-1, 1):
+        box(bm, (sx * 0.42, -foot / 2 + 0.5, 0.32), (0.16, 0.18, 0.64))
+    box(bm, (0.0, -foot / 2 + 0.5, 0.70), (1.1, 0.20, 0.16))
+    using("duskwood")
+    box(bm, (0.0, -foot / 2 + 0.56, 0.31), (0.68, 0.12, 0.62))   # the dark of it
+
+    if detail:
+        # Hand winch: one post and a diagonal beam out over the mouth.
+        using("timber")
+        box(bm, (-0.72, 0.05, 0.46), (0.13, 0.13, 0.92))
+        ramp(bm, (-0.72, 0.05, 0.92), (0.15, -foot / 2 + 0.45, 0.74), 0.16, 0.10)
+        box(bm, (-0.72, 0.05, 0.60), (0.34, 0.30, 0.20))          # the drum
+        using("firelight")
+        box(bm, (0.62, -foot / 2 + 0.42, 0.44), (0.14, 0.14, 0.30))   # lamp
+
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj, "small", (2, 2)
+
+
 def build_pine(level: int = 1, detail: bool = True):
     """1x1 tile. A Duskwood pine, for scattering over the field by the hundred.
 
@@ -894,7 +1048,8 @@ def build_boulder(level: int = 1, detail: bool = True):
 
 
 BUILDERS = {"granary": build_granary, "keep": build_keep,
-            "watchtower": build_watchtower,
+            "watchtower": build_watchtower, "croft": build_croft,
+            "logging_camp": build_logging_camp, "mine": build_mine,
             "pine": build_pine, "boulder": build_boulder}
 
 # Which buildings are painted with their concept art, and which keep the tiled
@@ -1032,10 +1187,13 @@ FOOTPRINT_FILL = 0.8
 PROPORTION_DEFAULT = {"fill": 0.8, "height": 0.6}
 PROPORTION = {
     "watchtower": {"fill": 0.5, "height": 1.0},
+    "croft": {"fill": 0.85, "height": 0.35},     # a field is nearly all ground
+    "logging_camp": {"fill": 0.8, "height": 0.45},
+    "mine": {"fill": 0.75, "height": 0.6},
     "pine": {"fill": 0.8, "height": 1.2},        # a conifer is a tall thin cone
     "boulder": {"fill": 0.75, "height": 0.6},
 }
-PROPORTION_CEILING = {"fill": 0.8, "height": 1.2}
+PROPORTION_CEILING = {"fill": 0.9, "height": 1.2}
 
 
 def proportion_for(asset: str) -> dict:

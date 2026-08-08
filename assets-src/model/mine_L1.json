@@ -1,0 +1,28 @@
+{
+  "triangles": 108,
+  "budget": 1500,
+  "size_class": "small",
+  "surface_area_m2": 7.099,
+  "texel_density": 512.0,
+  "tiles_every_m": 2.0,
+  "footprint_tiles": [
+    2,
+    2
+  ],
+  "overhang_m": 0.0,
+  "footprint_fill": 0.75,
+  "extent_m": [
+    1.5,
+    1.31
+  ],
+  "height_m": 0.92,
+  "height_to_footprint": 0.46,
+  "lod1_triangles": null,
+  "lod1_skipped": "108 triangles is below the 400 threshold \u2014 a second mesh would cost more than it saves",
+  "reproportion": {
+    "xy_scale": 0.7937,
+    "z_scale": 1.0
+  },
+  "file": "assets-src/model/mine_L1.glb",
+  "level": 1
+}

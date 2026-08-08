@@ -883,3 +883,43 @@ three buildings on 1,936 tiles.
 **Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
 smoke 22 checks · `build.py --all` green across five assets · silhouette honest and passing,
 worst pair keep L1 vs L5 0.74.
+
+---
+
+## 2026-08-09 — Session 9 — the ten seconds were the build timer, and three more buildings
+
+**"After putting it, it takes 10 sec to render."** It was not a rendering problem. `prof.gd`
+(new, kept) places buildings and reports any frame over 40 ms: the worst was **138 ms**. What
+took ten seconds was `build_s` — keep 12, watchtower 9, granary 6 — during which the model was
+replaced by a flat unshaded translucent blue material. That reads exactly like a texture that
+failed to load, so the wait looked like a fault.
+
+Three changes, in order of how much they mattered:
+
+1. **The under-construction state keeps the real material**, merely darkened —
+   `albedo_color` multiplies the baked texture, so the building reads as itself in shade.
+2. **A countdown over each building** while it builds. A wait whose end you cannot see feels
+   like a fault; a wait with a number on it is a wait.
+3. **Placeholder build times halved** — 3 / 5 / 8 s. Data, not code.
+
+**But the same profiler found a real stall.** First placement of three buildings cost a
+**1,376 ms** frame: 5 to 10 MB of glTF with baked 2,048 px textures, none of it touched until
+the click. `_preload_models()` in `_ready` moves it to startup. Placement is now **41 ms**.
+That is the value of the tool — the reported bug was not real and a worse one beside it was.
+
+**Three more buildings, so Phase 3 has its six.** `croft` (126 tris), `logging_camp` (204),
+`mine` (108), each with its own `PROPORTION` entry: a field is nearly all ground at 0.35, a log
+stack 0.45, a mine 0.6. Silhouette test extended to all six — twenty-one pairs, worst is still
+keep L1 vs L5 at 0.74, worst new pair croft vs logging camp at 0.69 (both 3×3 and both low —
+the one to watch when a seventh building arrives).
+
+`PROPORTION_CEILING["fill"]` went 0.8 → 0.9 for the croft, which is a field and should reach
+most of its plot.
+
+**A trap paid for twice.** `add_child()` in `_initialize` does not run `_ready` first, so
+resources set there are overwritten by `_load_definitions` a frame later — it is in MEMORY.md
+and I still wrote it. `prof.gd` now sets them in `_process` with a comment saying why.
+
+**Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
+smoke 22 checks · `build.py --all` green across eight assets · silhouette green across six
+buildings · six placed in one frame with no stall over 50 ms.

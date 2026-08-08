@@ -64,6 +64,7 @@ var _camera_home := Vector3.ZERO
 var _zoom_out := 32.0                       ## fully out — set in _ready
 var _zoom_in := 8.0                         ## fully in — set in _ready
 var _obstacles: Dictionary = {}             ## Vector2i -> prop id, blocks building
+var _scenes: Dictionary = {}                ## id -> PackedScene, loaded once
 var _resource_labels: Dictionary = {}
 var _status: Label = null
 
@@ -77,6 +78,7 @@ func _ready() -> void:
 	_set_zoom_limits()
 	_scatter_props()
 	_load_definitions()
+	_preload_models()
 	_build_hud()
 	_refresh_hud()
 	set_process(true)
@@ -214,6 +216,20 @@ func _load_definitions() -> void:
 # The grid
 # ---------------------------------------------------------------------------
 
+## Load every building model once, up front.
+##
+## **Measured, not assumed.** Placing the first of each of three buildings cost a
+## 1,376 ms frame; the models are 5 to 10 MB of glTF with baked 2,048-pixel
+## textures, and none of that had been touched until the moment of the click.
+## Loading them at startup moves the cost to where a pause is expected and where
+## a loading screen will eventually live.
+func _preload_models() -> void:
+	for id in _order:
+		var path := MODEL_DIR + id + "_L1.glb"
+		if ResourceLoader.exists(path):
+			_scenes[id] = load(path)
+
+
 func _cell_to_world(cell: Vector2i, footprint: Array) -> Vector3:
 	# A building's origin is the centre of its footprint (ART_BIBLE), so an
 	# even-sized building sits on a tile corner and an odd one on a tile centre.
@@ -288,11 +304,51 @@ func _clear_ghost() -> void:
 
 
 func _spawn_model(id: String) -> Node3D:
-	var path := MODEL_DIR + id + "_L1.glb"
-	if not ResourceLoader.exists(path):
-		push_warning("no model for %s at %s" % [id, path])
-		return null
-	return (load(path) as PackedScene).instantiate()
+	if not _scenes.has(id):
+		var path := MODEL_DIR + id + "_L1.glb"
+		if not ResourceLoader.exists(path):
+			push_warning("no model for %s at %s" % [id, path])
+			return null
+		_scenes[id] = load(path)
+	return (_scenes[id] as PackedScene).instantiate()
+
+
+## What a building looks like while it is being built.
+##
+## **This used to replace the model with a flat unshaded blue blob**, which for
+## the six to twelve seconds of the build timer looked exactly like a building
+## whose texture had not loaded — the owner reported it as "it takes ten seconds
+## to render". It was not a rendering problem at all; there is no stall, the
+## worst frame measured 138 ms. It was the *look* of the under-construction
+## state saying "broken" instead of "working".
+##
+## So the real material is kept and merely darkened: `albedo_color` multiplies
+## the baked texture, so the building reads as itself, in shade, with a timer
+## over it. The timer is the other half — a wait nobody can see the end of feels
+## like a fault.
+func _under_construction(node: Node3D, seconds: float) -> Label3D:
+	for child in node.find_children("*", "MeshInstance3D", true, false):
+		var mesh := child as MeshInstance3D
+		for i in range(mesh.get_surface_override_material_count()):
+			var src := mesh.mesh.surface_get_material(i) if mesh.mesh else null
+			var mat: BaseMaterial3D = src.duplicate() if src else StandardMaterial3D.new()
+			mat.albedo_color = Color(0.60, 0.62, 0.66)
+			mesh.set_surface_override_material(i, mat)
+
+	var top := 1.0
+	for child in node.find_children("*", "MeshInstance3D", true, false):
+		top = maxf(top, (child as MeshInstance3D).get_aabb().end.y)
+
+	var label := Label3D.new()
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.pixel_size = 0.006
+	label.modulate = Color(1.0, 0.87, 0.6)
+	label.outline_size = 10
+	label.position.y = top + 0.5
+	label.text = "%.0fs" % ceilf(seconds)
+	node.add_child(label)
+	return label
 
 
 ## Recolour every surface of a model without touching the shared material — a
@@ -327,12 +383,12 @@ func _place(cell: Vector2i, id: String) -> bool:
 		return false
 	node.position = _cell_to_world(cell, def["footprint"])
 	_placed.add_child(node)
-	_tint(node, Color(0.55, 0.62, 0.75, 0.75))       # under construction
 
 	_built.append({
 		"id": id, "cell": [cell.x, cell.y], "node": node,
 		"remaining": float(def["build_s"]),
 		"tick": float(def["produces"]["interval"]),
+		"label": _under_construction(node, float(def["build_s"])),
 	})
 	_set_status("%s started — %.0f seconds" % [def["name"], def["build_s"]])
 	_refresh_hud()
@@ -355,6 +411,9 @@ func _process(delta: float) -> void:
 	for b in _built:
 		if b["remaining"] > 0.0:
 			b["remaining"] -= delta
+			var label: Label3D = b.get("label")
+			if label and is_instance_valid(label):
+				label.text = "%.0fs" % maxf(ceilf(b["remaining"]), 0.0)
 			if b["remaining"] <= 0.0:
 				_finish(b)
 		else:
@@ -368,6 +427,10 @@ func _process(delta: float) -> void:
 
 
 func _finish(b: Dictionary) -> void:
+	var label: Label3D = b.get("label")
+	if label and is_instance_valid(label):
+		label.queue_free()
+	b["label"] = null
 	var node: Node3D = b["node"]
 	if is_instance_valid(node):
 		# Drop the override entirely rather than tint it back: the baked texture
@@ -510,7 +573,7 @@ func _load() -> void:
 					  "remaining": float(row["remaining"]),
 					  "tick": float(row["tick"])}
 		if entry["remaining"] > 0.0:
-			_tint(node, Color(0.55, 0.62, 0.75, 0.75))
+			entry["label"] = _under_construction(node, float(entry["remaining"]))
 		_built.append(entry)
 
 	_refresh_hud()

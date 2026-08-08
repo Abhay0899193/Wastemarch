@@ -75,6 +75,24 @@ monetisation below.
 That last one is a deliberate break from the genre. Competitors charge you or make you wait
 to move a building, purely to sell convenience. Players hate it. We are not doing it.
 
+### What exists today
+
+Six buildings are built, textured and placeable, which is what Phase 3 asks for. Every one
+pays for another, so the loop closes:
+
+| Building | Tiles | Costs | Produces |
+|---|---|---|---|
+| Keep | 4×4 | 60 stone | 2 timber / 6 s |
+| Granary | 2×2 | 30 timber | 3 grain / 5 s |
+| Watchtower | 3×3 | 40 grain, 20 timber | 2 stone / 8 s |
+| Croft | 3×3 | 25 timber | 4 grain / 6 s |
+| Logging Camp | 3×3 | 35 grain, 15 stone | 3 timber / 6 s |
+| Deep Mine | 2×2 | 40 stone, 40 timber | 1 iron / 10 s |
+
+**Every number there is a placeholder.** They live in `game/data/buildings.json`, not in code,
+and Phase 5 sets the real curve against a spreadsheet. What matters now is only that there is
+always a reason to place something.
+
 ### Adjacency bonuses — the part that makes layout interesting
 
 Buildings care about their neighbours:

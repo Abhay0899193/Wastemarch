@@ -106,11 +106,17 @@ Two details make the difference between this measuring the rule and measuring no
 
 Current results, 9 August 2026, at the reproportioned sizes:
 
-| | granary | watchtower | keep L1 | keep L5 |
-|---|---|---|---|---|
-| **granary** | — | 0.40 | 0.23 | 0.17 |
-| **watchtower** | | — | 0.35 | 0.26 |
-| **keep L1** | | | — | **0.74** |
+Twenty-one pairs across six buildings, worst first:
+
+| pair | overlap |
+|---|---|
+| keep L1 vs keep L5 | **0.74** — the closest, and correctly so |
+| croft vs logging camp | 0.69 — both 3×3 and both low; watch this one |
+| granary vs mine | 0.64 |
+| granary vs croft | 0.53 |
+| granary vs logging camp | 0.51 |
+| watchtower vs croft | 0.44 |
+| everything else | ≤ 0.40 |
 
 > **This test was measuring the wrong models until 9 August 2026.** It built its subjects
 > straight from the builder functions and so skipped the reproportion step, meaning it
@@ -148,11 +154,14 @@ difference between a base that reads as a pile and one that reads as a settlemen
 neighbours merging into one shape at phone size. It does the job the old overhang allowance
 was preventing.
 
-| Building | Footprint | Width | Height | Ratio |
+| Building | Footprint | Height | Ratio | Why that target |
 |---|---|---|---|---|
-| Granary | 2×2 | 1.60 m | 1.20 m | 0.60 |
-| Watchtower | 3×3 | 1.50 m | 3.00 m | 1.00 |
-| Keep | 4×4 | 3.20 m | 2.40 m | 0.60 |
+| Croft | 3×3 | 0.88 m | 0.29 | A field is nearly all ground |
+| Logging Camp | 3×3 | 1.02 m | 0.34 | A log stack sits on the ground, it does not stand on it |
+| Granary | 2×2 | 1.20 m | 0.60 | The default |
+| Mine | 2×2 | 0.92 m | 0.46 | A spoil heap and a hole |
+| Keep | 4×4 | 2.40 m | 0.60 | The default |
+| Watchtower | 3×3 | 3.00 m | 1.00 | 1.5 m wide — a tower buys height by being thin |
 
 **The squash is measured once, on level 1, and reused for every level.** Measuring it per
 level normalises every level into the same box — a level 5 keep came out exactly the size of a

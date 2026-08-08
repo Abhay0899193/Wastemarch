@@ -2,11 +2,15 @@
 
 ## RESUME HERE
 
-**Last session:** 9 August 2026 (session 8). Working tree clean, on `main`.
+**Last session:** 9 August 2026 (session 9). Working tree clean, on `main`.
 **Nothing is half-finished. Commits are NOT pushed — the owner pushes.**
 
-**Where we are: Phase 3, with a playable city built to Clash of Clans' measured proportions,
-a ground that is no longer graph paper, and a hundred and sixty props on it.**
+**Where we are: Phase 3, with all six buildings Phase 3 asks for, built to Clash of Clans'
+measured proportions, on a ground that is no longer graph paper, with props on it and no
+placement stall.**
+
+Controls: **right-drag** to pan, **mouse wheel** to zoom, click a card then click the ground to
+place, **S** save, **L** load, **Escape** quit.
 
 ```bash
 $GODOT --path game res://city/City.tscn
@@ -45,12 +49,11 @@ set. **Force a clippy re-lint** with `touch sim/*/src/*.rs` before trusting a gr
 
 ## Next 3 actions
 
-1. **Three more buildings**, to get from three to the six Phase 3 asks for. Housing, a farm and
-   a drill yard. Each is a prompt file plus a builder function plus a `PROPORTION` entry; the
-   pipeline does the rest.
-2. **Upgrade levels in the city.** The models interpolate level 1 to 5 and `build_s`, `cost`
-   and `produces` are per-level-able in `game/data/buildings.json`. Nothing in the city reads a
-   level yet.
+1. **Upgrade levels in the city.** The models already interpolate level 1 to 5 and `build_s`,
+   `cost` and `produces` are per-level-able in `game/data/buildings.json`. Nothing in the city
+   reads a level yet. This is the last mechanical thing Phase 3 names.
+2. **Selecting a building.** Tap it, get its name, level and a row of buttons *underneath it* —
+   the Clash of Clans pattern in `docs/reference/COC_TEARDOWN.md`. Also where Finish Now goes.
 3. **Save migrations.** The save carries `version: 1` from the first write. Write the second
    version and the migration before the format has to change under pressure.
 

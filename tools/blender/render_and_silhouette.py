@@ -45,7 +45,8 @@ MAX_SIMILARITY = 0.80
 
 # What to render. The keep appears twice because its whole point is that it
 # changes shape as it upgrades, and the two ends must not be confusable either.
-SUBJECTS = [("granary", 1), ("watchtower", 1), ("keep", 1), ("keep", 5)]
+SUBJECTS = [("granary", 1), ("watchtower", 1), ("keep", 1), ("keep", 5),
+            ("croft", 1), ("logging_camp", 1), ("mine", 1)]
 
 
 def game_camera(ortho_scale: float, target_height: float):
