@@ -252,6 +252,23 @@ def main():
                 ("deuteranopia", "protanopia", "tritanopia")]
         print(f"{name:<17}{h:<10}" + "".join(f"{s:<10}" for s in sims))
 
+    # The palette lives in two places: here, where it is checked, and in the Art
+    # Bible, where it is read by a human and by every image-generation prompt.
+    # Duplication is unavoidable — a prompt cannot import Python — so it is
+    # pinned instead. Editing one and not the other is the realistic mistake.
+    bible_note = None
+    try:
+        with open("docs/ART_BIBLE.md") as fh:
+            bible = fh.read().upper()
+    except OSError:
+        bible_note = ("warn", "could not read docs/ART_BIBLE.md — sync check skipped")
+    else:
+        missing = [f"{n} {h}" for n, h, _ in PALETTE if h.upper() not in bible]
+        if missing:
+            failures.append("docs/ART_BIBLE.md does not list: " + ", ".join(missing))
+        else:
+            bible_note = ("ok", "docs/ART_BIBLE.md lists every value checked here")
+
     print()
     print("=" * 78)
     print("VERDICT")
@@ -263,6 +280,8 @@ def main():
     else:
         print("  ok    every pair with a different job stays distinguishable,")
         print("        including under all three colourblind simulations")
+    if bible_note:
+        print(f"  {bible_note[0]:<5} {bible_note[1]}")
     for w in warnings:
         print(f"  warn  {w}")
 

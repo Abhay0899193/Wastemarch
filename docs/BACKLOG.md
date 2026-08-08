@@ -32,12 +32,6 @@ Cannot exist until the pipeline can produce a building.
 
 ## Decisions needing your input
 
-### Lock the colour palette
-[ART_BIBLE.md](ART_BIBLE.md) has a proposed nine-colour palette, deliberately unlocked. It
-needs your reaction, a colourblind-safety check, and a test render at phone size before
-anything is generated in bulk.
-**Reconsider:** early Phase 2, before any bulk generation. **Blocks bulk asset work.**
-
 ### The final name
 "Wastemarch" is a working title. Needs a trademark search (USPTO and EUIPO) and an app store
 search before any public listing. The master plan lists alternatives: *Ashfall Barony*,
@@ -75,6 +69,56 @@ needs Linux and Android targets too.
 ---
 
 ## Design ideas — parked
+
+### Player-built forward bases — a second, defensive base type
+
+**The owner's idea, 8 August 2026, and a good one.** A dense settlement at the centre of the
+wasteland that the player grows into a real town, plus smaller fortified outposts built near
+enemy territory and contested resources — the town half plays like *SimCity BuildIt*, the
+outpost half plays like *Clash of Clans*.
+
+**Why it is worth doing.** It is the dominant shape of successful mid-core mobile right now,
+and for a good reason: the two halves want different things from the player. A town rewards
+patience and optimisation; an outpost rewards reading a threat and committing. Wastemarch's
+story already justifies it — you are a warden pushing a frontier back, and a frontier needs
+holdings.
+
+**Why it is parked rather than started.** Three specific costs:
+
+1. **It doubles the balance surface.** Two building sets, two economies, two upgrade curves,
+   two save schemas. `MASTER_PLAN.md` budgets six to seven months for *one*.
+2. **The failure mode is known and has a name.** *Clash of Clans'* Builder Base is the
+   cautionary case: a second base disconnected from the first that most players stop
+   visiting. The fix is that outposts must **feed the town** — resources, unlock pressure,
+   a reason to look at them every session. That is an economy design problem, and it cannot
+   be answered before the core loop exists and is proven fun.
+3. **"Modern city" needs settling.** If it means skyscrapers and concrete, it is a different
+   game and contradicts both [STORY.md](STORY.md) and the palette locked in
+   [ADR-0004](decisions/ADR-0004-colour-palette.md). If it means a prosperous, developed
+   settlement *within* the setting, that is already the planned Chapter 1 → Chapter 6 arc and
+   costs nothing extra.
+
+**What it costs technically: less than it sounds.** The simulation is already grid-based and
+placement-agnostic; an outpost is the same `Grid`, `Entities` and pathfinding with a
+different building subset. The one real constraint is that `GRID_SIZE` in
+`sim/sim-core/src/grid.rs` is a **compile-time constant of 44**. Two base types of the *same*
+size cost nothing. Two of *different* sizes means making the grid carry its own dimensions,
+which touches pathfinding and changes the golden hash. **So: if this happens, both bases are
+44×44.**
+
+**Reconsider:** end of Phase 4, when the core loop has been played and is known to be fun.
+The honest sequencing is to ship V1 with the town plus attacking pre-made enemy camps —
+which is already the plan and already delivers most of this feeling — and add player-built
+outposts as the first major post-launch feature.
+
+### Automatic checks for the two new palette rules
+
+[ART_BIBLE.md](ART_BIBLE.md) rules 7 and 8 — readable in grayscale, and never colour alone —
+are currently prose. The silhouette test is already scripted; these are the same idea applied
+to brightness and to signal redundancy, and they belong in the same validator or they will
+decay into good intentions.
+**Reconsider:** Phase 2, alongside the asset validator. Cheap while that code is being
+written, annoying afterwards.
 
 ### Naval expansion along the Sundered Coast
 The southern border has a harbour, trade routes, and shipwreck salvage in the story bible.

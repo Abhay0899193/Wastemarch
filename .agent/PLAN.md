@@ -16,8 +16,16 @@ toolchain and ABI agree, not that a Qualcomm chip does; `sim-core` being pure in
 that is small). **Re-run check 6 on the first physical phone that appears** — a disagreement
 there is an emergency, not a curiosity.
 
-**The only thing now blocking forward progress is the colour palette** in `docs/ART_BIBLE.md`.
-Phase 2 cannot start without it. The owner was reviewing it on 8 Aug 2026.
+**Nothing is blocked.** The colour palette was locked the same session — `ADR-0004`. It moved
+two of the nine proposed values, because a measured colourblind check found four real
+failures, including gold and firelight being the same colour to a protanope. `python3
+tools/art/palette_check.py` runs in CI and fails on drift.
+
+**Art direction settled with the owner:** premium means *polish, not brightness* — the muted
+wasteland stays. Density is Clash-like, ~40 buildings on the 44x44 grid, as the master plan
+already assumed. The owner's idea of a SimCity-style town plus Clash-style forward outposts is
+**parked in `docs/BACKLOG.md` with a full evaluation** — reconsider at the end of Phase 4, and
+if it happens both bases are 44x44 because `GRID_SIZE` is a compile-time constant.
 
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
@@ -85,20 +93,25 @@ device**. The first two agree on every push; the third needs a device.
 
 ### Next 3 actions
 
-1. **The colour palette.** Nine values in `docs/ART_BIBLE.md`, owner reviewing. Phase 2 starts
-   the moment it is locked, and starts nowhere before it.
-2. Add an `aarch64-linux-android` cross-compile check to CI. The first emulator run failed on
+1. **Phase 2 starts.** ComfyUI installed clean, Z-Image Turbo + Qwen-Image-Edit-2509 weights
+   in place (copied from `mentoros`, weights only, never code), reproducible.
+2. The three reference buildings, end to end through every pipeline stage. **They need the
+   owner's personal approval** — they are the real Art Bible and the Phase 2 gate.
+3. Add an `aarch64-linux-android` cross-compile check to CI. The first emulator run failed on
    a **stale** `.so`, not a real divergence (see MEMORY) — CI building that target would have
    caught it, and would also stop the library silently regressing to zero bytes again.
-3. Phase 2 proper: ComfyUI + Z-Image Turbo installed and reproducible, then the three
-   reference buildings.
 
-### If the owner would rather keep building than wait
+### Two art-direction findings that are now rules, not opinions
 
-Phase 2 (art pipeline) is the master plan's parallel track and does **not** need a device.
-Its first real step needs the **colour palette locked** — nine proposed values in
-`docs/ART_BIBLE.md`, awaiting the owner. That is the single highest-value decision
-outstanding.
+Both came out of this session and are written into `docs/ART_BIBLE.md`:
+
+- **Lighting is painted, not calculated.** Two hundred lit windows cannot be two hundred
+  lights on `forward_mobile`. Emissive textures, plus one directional sun and at most six
+  real point lights on screen. This changes how textures are authored, so it had to land
+  before generation, not after.
+- **The Duskwood treeline is a budget item.** "Always on screen" at 300 tris a conifer is
+  60k triangles — a quarter of the scene budget — on background. Instanced low-tri band,
+  flat cards for the deep rows.
 
 ---
 

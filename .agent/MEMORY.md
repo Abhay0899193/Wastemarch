@@ -366,3 +366,43 @@ Cargo's `[env]` does **not** override a variable already in the environment unle
 
 Clippy does not re-lint unchanged crates. `touch sim/*/src/*.rs` before trusting a local
 clippy run, or a warning introduced earlier passes locally and fails on CI's fresh checkout.
+
+### The colour palette is locked, and a script owns it
+
+`ADR-0004`. Ten values in `docs/ART_BIBLE.md`. **Do not edit a hex value there without running
+`python3 tools/art/palette_check.py`** — it fails the build if two colours with different jobs
+become confusable, or if the document and the script disagree about a value. It runs in CI in
+the `godot` job.
+
+Three findings worth not re-deriving:
+
+1. **Ochre, gold and firelight all sit within an 8° hue band.** That is intrinsic to the art
+   direction — it is a warm palette. Gold clears the others only because it is `#C4942F` and
+   because gold is a **metallic material with a highlight**, not a flat fill. If gold ever
+   appears as a large flat surface it becomes ochre. The checker still warns about this pair
+   on purpose.
+2. **Firelight is two values, not one.** `Firelight core #F7CE7C` is the lit surface;
+   `Firelight glow #E8A54B` is the colour fire *casts* and is never painted on anything. The
+   checker exempts the glow from all comparisons via the job `LIGHT-NOT-SURFACE`. Merging
+   them back into one value re-creates the original bug.
+3. **Desaturating cannot fix a lightness collision.** An external review suggested moving
+   firelight to `#D99543`; measured, that made the protanopia difference *worse* (4.9 → 3.6).
+   Two colours that already share a lightness need separating on lightness.
+
+### Lighting on `forward_mobile` is painted, not calculated
+
+"Two hundred lit windows" is emissive texture, not two hundred lights. Budget written into
+`docs/ART_BIBLE.md`: one directional sun, **at most six real point lights on screen**,
+everything else emissive or a decal. This is an asset-authoring constraint, not a rendering
+one — the lit state has to be in the texture, so it has to be in the generation prompt.
+
+Same section: the Duskwood treeline is a **budget item**, not scenery. Always-on-screen at
+300 tris a conifer is 60k triangles, a quarter of the scene budget. Instanced low-tri band,
+flat cards behind.
+
+### `GRID_SIZE` is a compile-time constant of 44
+
+`sim/sim-core/src/grid.rs`. `Tile::in_bounds` and `Tile::index` are `const fn` built on it.
+Two base types of the *same* size cost nothing; two of *different* sizes means making the grid
+carry its own dimensions, which touches pathfinding and moves the golden hash. Relevant to the
+parked forward-bases idea in `docs/BACKLOG.md` — **if that happens, both bases are 44×44.**

@@ -6,10 +6,11 @@ generated and the specification every 3D model is checked against. Nothing gets 
 bulk until this document is finished and you have personally approved three finished
 reference buildings against it.
 
-> **Status: partial.** The rules the master plan settles are written below and are binding
-> now. **The colour palette is not yet locked** — see the section marked ⚠️. Locking it is a
-> Phase 2 decision that needs your sign-off, because the risk register calls inconsistent
-> art the one *critical* risk in the project, and colour is where inconsistency shows first.
+> **Status: binding.** Every rule below is in force, including the colour palette, which was
+> locked on 8 August 2026 — see [ADR-0004](decisions/ADR-0004-colour-palette.md). What is
+> still missing is the part no document can supply: the three finished reference buildings at
+> the bottom of this file. Until those exist and you have approved them, nothing is generated
+> in bulk.
 
 ---
 
@@ -148,41 +149,113 @@ white blobs. Matte is the premium look here.
 
 ---
 
-## ⚠️ Colour palette — NOT YET LOCKED
+## Lighting — almost none of it is real
 
-**This section needs your decision.** It is deliberately left open rather than invented,
-because once bulk generation starts, changing the palette means regenerating everything.
+"Chapter 6 is a town with two hundred lit windows" is the emotional core of this game. It is
+also the single easiest way to make a phone run at fifteen frames per second, so how it is
+built matters more than how it looks in a still image.
 
-The master plan specifies the *families*:
+A **real light** is one the graphics chip calculates from scratch every frame. Godot's mobile
+renderer supports only a handful before it slows down, and each one that casts a shadow costs
+far more again. Two hundred of them is not a budget question, it is impossible.
 
-- Wasteland: ochres and bone-greys
-- Duskwood: deep teal-blacks
-- Ostmere heraldry: crimson and gold
+So almost every light in Wastemarch is **painted, not calculated**:
 
-### Proposed starting point, for discussion in Phase 2
-
-Not locked. Shown so there is something concrete to react to.
-
-| Role | Proposed | |
+| Thing | How it is built | Budget |
 |---|---|---|
-| Dead soil | `#8B8071` | The dominant ground colour |
-| Bone grey | `#C4BCAE` | Old stone, field boundary lines |
-| Dry ochre | `#A8813F` | Thatch, dead grass, timber |
-| Duskwood near | `#1C2E2C` | The treeline |
-| Duskwood deep | `#0A1412` | Beyond the treeline, and night |
-| Ostmere crimson | `#8C2323` | Banners, tax inspectors, the kingdom |
-| Ostmere gold | `#C99B3E` | Heraldry, accents. Used sparingly |
-| Firelight | `#E8A54B` | The warm light in a cold place |
-| Duskglass | `#3E7C8C` | The premium resource. Should feel *wrong* |
+| Lit windows, embers, glowing runes | **Emissive** — the texture is simply told to be bright. Costs nothing extra | Unlimited |
+| The pool of light a fire throws on the ground | A soft decal or painted texture patch | Unlimited |
+| Soft shadow under a building | Painted into the ground texture, not calculated | Unlimited |
+| Sun and its shadows | One real directional light | **1** |
+| Hero fires — the Chapter 1 fire, the forge, story beats | Real point lights | **≤ 6 on screen** |
 
-Design intent behind the proposal: the wasteland palette is deliberately drab so that
-**firelight and Ostmere crimson are the only warm things on screen**, and every warm pixel
-therefore means something. As the town grows, warmth spreads across the frame. The player
-should feel the game brightening without noticing why.
+**Emissive** means the surface emits light of its own rather than reflecting any. On a phone
+this is nearly free, and combined with a gentle bloom it is indistinguishable from a real
+light at this camera distance. It is how every game in this genre does it.
 
-**Before locking, we need:** your reaction to these, a colourblind-safety check (Phase 7
-requires it anyway, and doing it now costs nothing), and a test render of all nine against
-each other at phone size.
+**The consequence for asset authoring:** every building's texture needs its lit state
+authored *into the texture* — window panes at `#F7CE7C`, warm patches on the wall beneath
+them. That is a texturing decision made at generation time, not a lighting decision made
+later, so it belongs in the prompt.
+
+### The Duskwood treeline is a budget item, not scenery
+
+The rule that the Duskwood is always on screen means a band of trees in every single frame.
+At three hundred triangles a conifer and two hundred visible, that is 60,000 triangles —
+roughly a quarter of the entire scene budget — spent on background the player never
+interacts with.
+
+**The treeline is built as one instanced band of low-triangle trees, with the deep rows as
+flat cards.** Detailed tree models are only for the few trees the player can actually walk up
+to. This is decided here rather than discovered in Phase 3, when it would mean remodelling.
+
+---
+
+## Colour palette — LOCKED
+
+Locked 8 August 2026 by the project owner. Reasoning and the measurements behind it are in
+[ADR-0004](decisions/ADR-0004-colour-palette.md). **Changing any value means regenerating
+every asset**, so it is not a casual edit.
+
+| Role | Value | Job | Where it appears |
+|---|---|---|---|
+| Dead soil | `#8B8071` | environment | The dominant ground colour |
+| Bone grey | `#C4BCAE` | environment | Old stone, field boundary lines |
+| Dry ochre | `#9B8459` | environment | Thatch, dead grass, timber |
+| Duskwood near | `#1C2E2C` | environment, dark | The treeline |
+| Duskwood deep | `#0A1412` | environment, dark | **Background and sky only** — never a surface the player must read |
+| Ostmere crimson | `#8C2323` | faction | Banners, tax inspectors, the kingdom |
+| Ostmere gold | `#C4942F` | wealth | Heraldry and trim. Small, sharp accents only |
+| Firelight core | `#F7CE7C` | life | The lit thing itself — window panes, flame centres. The brightest thing on screen |
+| Firelight glow | `#E8A54B` | **light, not a surface** | The colour fire *casts*. Never painted on anything |
+| Duskglass | `#3E7C8C` | rare resource | The premium resource. Should feel *wrong* |
+
+**The intent.** The wasteland is drab so that **firelight and Ostmere crimson are the only
+warm things on screen**, and every warm pixel therefore means something. As the town grows,
+warmth spreads across the frame. The player should feel the game brightening without
+noticing why.
+
+### The ten rules that make it hold
+
+1. **Environment dominates.** Most of any frame is the muted environment palette. The drab is
+   not a failure of ambition; it is what makes the accents work.
+2. **Warmth means life.** Firelight, lit windows, active workshops, fed people.
+3. **Crimson means authority.** Ostmere crimson is for faction identity, political power and
+   heraldry. Most Ostmere buildings stay in the ordinary world palette — if everything the
+   kingdom owns is crimson, crimson stops meaning power and starts meaning "wall".
+4. **Gold means value**, in small sharp accents: trim, edges, icons, rewards. Gold and dry
+   ochre are only 3° apart in hue; gold reads as gold because it is **metallic and catches a
+   highlight**, not because of its albedo. Used as a large flat fill it becomes ochre.
+5. **Duskglass means rarity.** Under 2% of any frame. Blue crystals everywhere stop being
+   mysterious and become "the blue resource."
+6. **Saturation is a hierarchy tool, never a global setting.** The environment stays muted so
+   important things can stand out. Nothing is maximised.
+7. **Value beats hue.** Every important object must still be readable with the colour
+   removed. This is the same principle as the silhouette test above, applied to brightness
+   instead of shape — and it is checked the same way, by script.
+8. **Colour is never the only signal.** Anything that matters to play carries at least two
+   of: colour, silhouette, icon, animation, glow. A player who cannot see colour must still
+   be able to play. Phase 7 requires this anyway; building it in now costs nothing.
+9. **Nothing the player must read goes below L\* 20** in the default weather state. Phones
+   are used outdoors, at half brightness, on cheap panels. `Duskwood deep` is L\* 5.5 — it is
+   sky and distance, never a floor, a wall or a unit.
+10. **Light does not redefine material.** Firelight and night shift what a surface *looks*
+    like; they never change what it *is*. The same timber is the same timber at noon and by
+    torchlight, or the world stops feeling solid.
+
+### The check
+
+```bash
+python3 tools/art/palette_check.py
+```
+
+It measures every pair of colours that carry different meanings, in CIE Lab, then repeats the
+measurement under simulated deuteranopia, protanopia and tritanopia. It **fails the build** if
+any two colours with different jobs become confusable, and it fails if this document and the
+script disagree about a value. It runs in CI.
+
+Run against the original nine proposed values it found **four failures** — see the ADR. That
+is why two values moved and one was split in two.
 
 ---
 

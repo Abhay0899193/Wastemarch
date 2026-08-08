@@ -41,6 +41,7 @@ supersedes the old one. That way the reasoning survives even when the decision d
 - [ADR-0001 — Stack choices](decisions/ADR-0001-stack-choices.md)
 - [ADR-0002 — Landscape orientation](decisions/ADR-0002-landscape-orientation.md)
 - [ADR-0003 — An ARM emulator satisfies the Phase 1 gate](decisions/ADR-0003-emulator-satisfies-the-phase-1-gate.md)
+- [ADR-0004 — The colour palette, locked](decisions/ADR-0004-colour-palette.md)
 
 ## A note on the `.agent/` folder
 

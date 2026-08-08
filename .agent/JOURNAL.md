@@ -423,3 +423,46 @@ Phase 0 hardware pass. A disagreement there reopens Phase 1.
 
 **Phase 1 is complete.** The only thing blocking forward progress is now the colour palette in
 `docs/ART_BIBLE.md`, which the owner is reviewing. Phase 2 starts when it is locked.
+
+### Art direction, same session
+
+Owner reviewed `ART_BIBLE.md` and brought a nine-colour palette board plus four industry
+reference screenshots and an external review of the palette.
+
+**Wrote the check instead of arguing.** `tools/art/palette_check.py` — CIE Lab separation plus
+Viénot-Brettel-Mollon simulation of the three common forms of colour blindness, stdlib only.
+The proposed nine had **four failures**, worst being gold vs firelight at dE 4.9 under
+protanopia: to the most common form of red-green colour blindness, "wealth" and "life" were
+the same colour. The board that came with the palette had ticked "Colorblind Safety ✓".
+
+Two more the numbers found and nobody had: firelight was **darker** than bone grey, making
+"light tells the story of progress" arithmetically impossible; and dry ochre's chroma was 41.5
+against gold's 54, so the environment was competing with the accents it exists to make room
+for.
+
+The external review's *diagnosis* was the best thing in it — it spotted the ochre/gold/
+firelight hue cluster unaided. Its *fix* was wrong and testing it proved so: `#E8A54B` →
+`#D99543` moves firelight onto gold's lightness and takes protanopia from 4.9 to 3.6. **A
+lightness collision cannot be fixed by desaturating.** Accepted the review's value-beats-hue
+rule and its two-signal accessibility rule; rejected its screen-percentage table as invented
+numbers that cannot be enforced.
+
+Locked as ADR-0004: six values unchanged, two moved, one split in two. The split is the real
+fix — the original firelight was being asked to be both a lit *surface* and a cast *light*,
+which have different constraints.
+
+**Two technical findings became Art Bible rules**, both of which had to land before generation
+rather than after: lighting on `forward_mobile` is emissive, not real lights (one sun, six
+point lights, everything else painted — which changes how textures are authored, so it changes
+the prompts); and the always-on-screen Duskwood treeline is a 60k-triangle budget item, not
+scenery.
+
+**Owner's design idea — a SimCity-like town plus Clash-like forward outposts.** Evaluated
+properly and parked in `docs/BACKLOG.md` rather than absorbed into the current phase, per
+CLAUDE.md §5. It is the dominant successful shape in mid-core mobile and the story justifies
+it, but it doubles the balance surface, and its known failure mode has a name — CoC's Builder
+Base, a second base players stop visiting. Reconsider at the end of Phase 4, when the core
+loop is known to be fun. Noted that `GRID_SIZE` is a compile-time 44, so both bases must be
+the same size or the golden hash moves.
+
+**Phase 2 is now unblocked and nothing is waiting on the owner.**

@@ -124,6 +124,13 @@ jobs:
         with:
           lfs: true # the project references assets, so they must be real files
 
+      # Cheap, and it guards the project's one *critical* risk: art that drifts.
+      # Fails if two colours with different meanings become confusable, including
+      # under simulated colour blindness, or if ART_BIBLE.md and the script
+      # disagree about a value. Stdlib only, so no setup step.
+      - name: Colour palette separation and colourblind safety
+        run: python3 tools/art/palette_check.py
+
       - name: Fetch Godot ${{ env.GODOT_VERSION }} headless
         run: |
           set -euo pipefail
