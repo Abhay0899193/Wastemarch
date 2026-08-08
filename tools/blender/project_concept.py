@@ -48,6 +48,10 @@ YAW_DEG = 45.0
 # this distance of the frame's corner colour is background, not building.
 BACKGROUND_TOLERANCE = 0.06
 
+# How much of a model may land on empty background before it is a defect rather
+# than a rounding error. Every such face renders as a flat grey patch.
+MAX_UNPAINTED = 0.08
+
 
 def picked_concept(asset: str) -> Path:
     """The image the owner chose, read from PICKS.md rather than guessed.
@@ -167,6 +171,35 @@ def fit_uvs(obj, model_box, concept_box) -> None:
                 cy0 + (d.uv[1] - my0) * sy)
 
 
+def coverage(obj, image, concept_box) -> tuple:
+    """How much of the model lands on the painted building rather than on
+    background. The number that turns "it looks patchy" into something fixable.
+
+    Samples the concept image at the centre of every polygon. A face whose centre
+    falls on background will render as a flat grey patch in the game, so this
+    counts exactly the defect the owner can see.
+    """
+    w, h = image.size
+    px = [0.0] * (w * h * 4)
+    image.pixels.foreach_get(px)
+    bg = (px[0], px[1], px[2])
+
+    uv = obj.data.uv_layers.active
+    missed = 0.0
+    total = 0.0
+    for poly in obj.data.polygons:
+        u = sum(uv.data[li].uv[0] for li in poly.loop_indices) / poly.loop_total
+        v = sum(uv.data[li].uv[1] for li in poly.loop_indices) / poly.loop_total
+        x = min(w - 1, max(0, int(u * w)))
+        y = min(h - 1, max(0, int(v * h)))
+        j = (y * w + x) * 4
+        d = (abs(px[j] - bg[0]) + abs(px[j + 1] - bg[1]) + abs(px[j + 2] - bg[2]))
+        total += poly.area
+        if d <= BACKGROUND_TOLERANCE:
+            missed += poly.area
+    return missed / total if total else 1.0, total
+
+
 def main(argv) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--asset", required=True)
@@ -175,6 +208,11 @@ def main(argv) -> int:
 
     if args.asset not in ba.BUILDERS:
         raise SystemExit(f"No builder for '{args.asset}'")
+    if args.asset not in ba.PROJECTED:
+        raise SystemExit(
+            f"'{args.asset}' is not painted by projection — see PROJECTED in\n"
+            f"build_asset.py. It is an open structure, so most of it would land\n"
+            f"on empty background. Build it with build_asset.py instead.")
 
     concept = picked_concept(args.asset)
     print(f"projecting {concept.relative_to(REPO)} onto {args.asset}")
@@ -209,11 +247,18 @@ def main(argv) -> int:
     print(f"  concept subject {tuple(round(v, 3) for v in cbox)}")
     fit_uvs(obj, model_box, cbox)
 
+    missed, _area = coverage(obj, img, cbox)
+    print(f"  on background   {missed:.1%} of surface area")
+    if missed > MAX_UNPAINTED:
+        print(f"  WARNING: over {MAX_UNPAINTED:.0%} of this model lands on empty\n"
+              f"           background and will render as flat grey. The model's\n"
+              f"           proportions do not match its concept closely enough.")
+
     report = ba.validate(obj, size_class, footprint)
     out = OUT_DIR / f"{args.asset}_L{args.level}.glb"
     ba.export([obj], out)
-    print(f"\nOK — {report['triangles']} triangles, painted from "
-          f"{concept.name}, written to {out.relative_to(REPO)}")
+    print(f"\nOK — {report['triangles']} triangles, {1 - missed:.0%} painted, "
+          f"from {concept.name}, written to {out.relative_to(REPO)}")
     return 0
 
 

@@ -638,3 +638,46 @@ keep's were.
 So proportion accuracy is now enforced by how the asset *looks* rather than by anyone
 remembering to check. Fixing the grey means fixing the model, which is the work that should
 have happened anyway.
+
+### Camera projection suits solid forms and fails on skeletal ones — measured
+
+`project_concept.py` reports what fraction of a model's surface lands on empty background.
+Every such face renders as a flat grey patch, so the number is exactly the defect that is
+visible. Threshold `MAX_UNPAINTED = 0.08`.
+
+| | on background | |
+|---|---|---|
+| keep | 3.1% | closed box — the paint has somewhere to land |
+| granary | 2.7% | after tuning, see below |
+| **watchtower** | **57.3%** | open framework, splayed legs, railings, gaps |
+
+`PROJECTED` in `build_asset.py` names which buildings are painted. **The watchtower is not, and
+no amount of proportion tuning would fix it** — any strut at a slightly different angle from
+the painted one falls on background. Open structures keep the tiled materials, which suit them.
+
+### Tuning a model against its concept is now a measurement loop
+
+The granary went 25% → 14.7% (better-matched concept) → 7.5% (proportions) → **2.7%**. The last
+and biggest step was narrowing the lean-to roof from the full width of the building to 62% of
+it: a full-width roof stuck out past the painted one and rendered as a large flat grey wedge.
+
+Sweep parameters and read the number. It beats staring at renders, and it found the lean-to
+where three rounds of eyeballing had not.
+
+### Concept images must have a FLAT background or they cannot be used as textures
+
+The owner generated a better granary elsewhere, with a vignette and a ground disc. The
+alignment step finds the building by thresholding against the background colour, so a gradient
+plus a base makes the outline unfindable. The design was regenerated through our own pipeline,
+whose style header already demands a flat background — `granary_3002`.
+
+**A concept image is no longer a reference to model from, it is the asset's texture.** Concept
+quality is now asset quality directly, and the background instruction is load-bearing.
+
+### Verdict on externally generated .glb files
+
+An AI-generated `granary_isometric.glb` (trimesh) was 7,944 triangles against a 1,500 budget,
+13 materials against a one-material rule, 263 meshes, 9x8 metres against a 2x2 footprint, and
+**no textures at all**. Not usable — not for looks, but because it fails every budget in
+`ART_BIBLE.md` at once. Check these numbers before considering any external asset; they take
+one script and settle it.

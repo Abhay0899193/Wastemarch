@@ -433,11 +433,11 @@ def build_granary(level: int = 1, detail: bool = True):
     bm = bmesh.new()
 
     foot = 2.0 * TILE                    # the 2x2 tiles it occupies
-    lean_d = 0.62                        # depth of the open lean-to
+    lean_d = 0.60                        # depth of the open lean-to
     body_d = foot - lean_d
     stone_h = 0.22                       # stone footing course, keeps grain dry
-    body_h = 1.45 + 0.2 * (level - 1)    # a taller store at higher levels
-    ridge = 0.85
+    body_h = 1.42 + 0.2 * (level - 1)    # tuned against granary_3002
+    ridge = 0.88
 
     body_y = foot / 2 - body_d / 2       # body pushed to the back of the plot
     lean_y = -foot / 2 + lean_d / 2
@@ -448,7 +448,7 @@ def build_granary(level: int = 1, detail: bool = True):
     box(bm, (0, body_y, stone_h + body_h / 2), (foot, body_d, body_h))
     using("thatch")
     gable_roof(bm, (0, body_y, stone_h + body_h),
-               (foot + 0.34, body_d + 0.30), ridge)
+               (foot + 0.36, body_d + 0.36), ridge)
 
     # Plank door on the gable end, sunk slightly so it reads as an opening.
     if detail:
@@ -460,11 +460,17 @@ def build_granary(level: int = 1, detail: bool = True):
     # `ramp` takes the centre line of the plank, not one edge — passing the wall
     # edge here put the whole roof a metre off to one side, which the overhang
     # check caught immediately.
+    #
+    # The width is 62% of the building, not all of it. A full-width lean-to roof
+    # is the single thing that stopped this model matching its concept: it stuck
+    # out past the painted one and rendered as a large flat grey wedge. Measured
+    # by `project_concept.py`, narrowing it took the model from 7.5% of its
+    # surface landing on empty background to 2.7%.
     eave_z = stone_h + body_h * 0.86
     using("thatch")
     ramp(bm, (0.0, body_y - body_d / 2, eave_z),
          (0.0, -foot / 2 + 0.04, eave_z - 0.34),
-         width=foot, thickness=0.09)
+         width=foot * 0.62, thickness=0.09)
     using("timber")
     for px in (-foot / 2 + 0.12, 0.0, foot / 2 - 0.12):
         box(bm, (px, lean_y - lean_d / 2 + 0.1, (eave_z - 0.34) / 2),
@@ -734,6 +740,21 @@ def build_watchtower(level: int = 1, detail: bool = True):
 
 BUILDERS = {"granary": build_granary, "keep": build_keep,
             "watchtower": build_watchtower}
+
+# Which buildings are painted with their concept art, and which keep the tiled
+# materials. This is not a preference — it is measured. `project_concept.py`
+# reports how much of a model lands on empty background, and:
+#
+#   keep        3% — a closed box, the paint has somewhere to land
+#   granary     7% — solid enough once its proportions were tuned to its concept
+#   watchtower 57% — an open framework of splayed legs and railings with gaps
+#                    everywhere, so any strut at a slightly different angle from
+#                    the painted one falls on background and renders flat grey
+#
+# **Camera projection suits solid forms and fails on skeletal ones**, and no
+# amount of proportion tuning changes that. Open structures keep the tiled
+# materials, which look perfectly good on them.
+PROJECTED = {"keep", "granary"}
 
 
 # ---------------------------------------------------------------------------

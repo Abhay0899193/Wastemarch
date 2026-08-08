@@ -11,7 +11,7 @@ Provenance for every image — model, seed, full prompt, recipe hash — is in
 
 | Asset | Level | Picked | Chosen because |
 |---|---|---|---|
-| `granary` | 1 | `granary/granary_1004.png` | Stone footings, a solid plank door, no windows, and an **open lean-to with grain sacks stacked under it**. That lean-to is an asymmetric silhouette feature, which is what the 64-pixel test rewards, and the sacks say "store" without needing a caption. |
+| `granary` | 1 | `granary/granary_3002.png` | Replaces `granary_1004` on 8 Aug 2026. The owner generated a better granary elsewhere — heavy timber planking with exposed beams, a deep thatch roof with a real overhang, stone footings, a lean-to holding sacks with a fire in it — and that design was regenerated through our own pipeline so it lands on the **flat background** camera projection requires. The owner's own version had a vignette and a ground disc, which makes the building's outline unfindable. |
 | `watchtower` | 1 | `watchtower/watchtower_1004.png` | Stone core with splayed timber bracing legs, external ladder, railed platform, brazier, paved base. Better structural logic than the alternatives and the silhouette is still unmistakable. |
 | `keep` | 1–2 | `keep/keep_1002.png` | Compact and vertical. The early keep: one tower, tight walls, firelight and steps at the door. |
 | `keep` | 4–5 | `keep/keep_1003.png` | The same building **grown up** — larger walled enclosure, more crenellation, tower set back behind a courtyard. |

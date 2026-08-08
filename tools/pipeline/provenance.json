@@ -323,5 +323,56 @@
     },
     "generated_utc": "2026-08-08T08:19:05Z",
     "seconds": 94.4
+  },
+  {
+    "kind": "buildings",
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_3001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 3001,
+    "workflow_hash": "f6503faa27aa6cc6",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small timber grain store on low stone footings, walls of heavy vertical planking with exposed horizontal beams and visible grain in the wood, a deep steeply pitched thatched roof with a thick ragged edge and a generous overhang past the walls, a ridge pole running along the top, a plain plank door with an iron handle on the gable end, and along one side a low open lean-to under its own shallow plank roof holding stacked grain sacks with a small warm fire glowing among them, weathered and worked-in, no windows, standing alone on nothing, no ground, no base, no dirt, no vignette, flat even neutral grey background",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T08:55:56Z",
+    "seconds": 131.5
+  },
+  {
+    "kind": "buildings",
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_3002.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 3002,
+    "workflow_hash": "f6503faa27aa6cc6",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small timber grain store on low stone footings, walls of heavy vertical planking with exposed horizontal beams and visible grain in the wood, a deep steeply pitched thatched roof with a thick ragged edge and a generous overhang past the walls, a ridge pole running along the top, a plain plank door with an iron handle on the gable end, and along one side a low open lean-to under its own shallow plank roof holding stacked grain sacks with a small warm fire glowing among them, weathered and worked-in, no windows, standing alone on nothing, no ground, no base, no dirt, no vignette, flat even neutral grey background",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T08:58:08Z",
+    "seconds": 144.9
+  },
+  {
+    "kind": "buildings",
+    "asset": "granary",
+    "file": "assets-src/concept/granary/granary_3003.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 3003,
+    "workflow_hash": "f6503faa27aa6cc6",
+    "prompt": "isometric video game asset, single building centred in frame, viewed from 30 degrees above the horizon at a 45 degree yaw, orthographic projection, plain flat neutral grey background, stylised matte physically based rendering, no gloss, no mirror surfaces, soft directional sunlight from the upper left, gentle rim light, muted post-medieval wasteland palette of dead soil browns, bone greys and dry ochre, warm firelight only where there is life inside, strong clearly readable silhouette, clean edges, no text, no lettering, no signage, no watermark, no people, no user interface, no border, no drop shadow behind the image a small timber grain store on low stone footings, walls of heavy vertical planking with exposed horizontal beams and visible grain in the wood, a deep steeply pitched thatched roof with a thick ragged edge and a generous overhang past the walls, a ridge pole running along the top, a plain plank door with an iron handle on the gable end, and along one side a low open lean-to under its own shallow plank roof holding stacked grain sacks with a small warm fire glowing among them, weathered and worked-in, no windows, standing alone on nothing, no ground, no base, no dirt, no vignette, flat even neutral grey background",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T09:00:33Z",
+    "seconds": 136.4
   }
 ]
