@@ -681,3 +681,39 @@ An AI-generated `granary_isometric.glb` (trimesh) was 7,944 triangles against a 
 **no textures at all**. Not usable — not for looks, but because it fails every budget in
 `ART_BIBLE.md` at once. Check these numbers before considering any external asset; they take
 one script and settle it.
+
+### The coverage metric was wrong twice before it was right
+
+Both mistakes reported a *lower* number than reality — the direction that never gets caught,
+because the tool only ever says "fine".
+
+1. **Weighted by surface area in metres.** A roof seen from 30 degrees above covers far more
+   screen than a wall of the same area, so an obviously grey roof measured 3%. Now weighted by
+   the polygon's area in projected UV space, which is what the player sees.
+2. **Sampled each polygon's centre.** The granary's roof is one large quad whose centre sat on
+   the painted roof while half of it hung off into background. One sample said "painted", the
+   screen said otherwise. Now samples corners, edge midpoints and inner points, and counts the
+   *fraction* of the face that misses.
+
+After both fixes the granary read 13.2% where it had read 2.7%. **When a measurement disagrees
+with what is plainly visible, the measurement is wrong — do not tune against it.**
+
+### Paint over the model's own render, do not tune the model to match a painting
+
+`tools/pipeline/repaint.py`: render the model flat at the game camera → Z-Image paints detail
+onto that render → project it straight back onto the model it came from.
+
+Tuning proportions against a painting plateaued at ~10% off-model no matter which combination
+of body height, ridge, overhang, lean-to width or 90-degree rotation was tried. Painting over
+the render took the granary to **1.2%** in one step, because the painting has the model's
+proportions by construction.
+
+**`--image-strength` in mflux is INVERTED versus the usual denoise convention.** It is how
+strongly the init image *dominates*. Higher keeps the flat render; lower lets the painter
+loose. Measured on the granary: 0.82 → 0.3% off-model and almost no painting; 0.42 → 6.7% and
+real thatch and stonework; 0.30 → starts inventing geometry.
+
+**Use repaint only where a concept does not already fit.** The keep at 5.7% from its own
+concept looks better than the keep repainted, because a concept image is a better painting than
+an over-painted render. Repaint is the fallback for models whose concept does not match, not
+the default.

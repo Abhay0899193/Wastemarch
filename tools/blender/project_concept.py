@@ -171,39 +171,136 @@ def fit_uvs(obj, model_box, concept_box) -> None:
                 cy0 + (d.uv[1] - my0) * sy)
 
 
-def coverage(obj, image, concept_box) -> tuple:
-    """How much of the model lands on the painted building rather than on
-    background. The number that turns "it looks patchy" into something fixable.
+def _screen_area(uv, poly) -> float:
+    """A polygon's area as the player sees it, from its projected UVs.
 
-    Samples the concept image at the centre of every polygon. A face whose centre
-    falls on background will render as a flat grey patch in the game, so this
-    counts exactly the defect the owner can see.
+    **Not its surface area in metres, which is what this used to measure and
+    which was wrong.** A roof seen from 30 degrees above covers far more of the
+    screen than a wall of the same size, so weighting by surface area made a
+    visually obvious grey roof read as "3% — fine". The camera decides how big
+    something looks, so the camera has to decide how much it counts.
+    """
+    pts = [uv.data[li].uv for li in poly.loop_indices]
+    a = 0.0
+    for i in range(len(pts)):
+        j = (i + 1) % len(pts)
+        a += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1]
+    return abs(a) / 2
+
+
+def coverage(obj, image, concept_box) -> tuple:
+    """How much of what the player sees lands on empty background.
+
+    Samples the concept image at the centre of every polygon. A face whose
+    centre falls on background renders as a flat grey patch in the game, so this
+    counts exactly the defect that is visible — weighted by how much of the
+    screen each face actually occupies.
+
+    Also returns the worst offenders, because a single number says a model is
+    wrong and a list says which part of it to fix.
     """
     w, h = image.size
     px = [0.0] * (w * h * 4)
     image.pixels.foreach_get(px)
     bg = (px[0], px[1], px[2])
 
-    uv = obj.data.uv_layers.active
-    missed = 0.0
-    total = 0.0
-    for poly in obj.data.polygons:
-        u = sum(uv.data[li].uv[0] for li in poly.loop_indices) / poly.loop_total
-        v = sum(uv.data[li].uv[1] for li in poly.loop_indices) / poly.loop_total
+    def is_background(u, v):
         x = min(w - 1, max(0, int(u * w)))
         y = min(h - 1, max(0, int(v * h)))
         j = (y * w + x) * 4
-        d = (abs(px[j] - bg[0]) + abs(px[j + 1] - bg[1]) + abs(px[j + 2] - bg[2]))
-        total += poly.area
-        if d <= BACKGROUND_TOLERANCE:
-            missed += poly.area
-    return missed / total if total else 1.0, total
+        return (abs(px[j] - bg[0]) + abs(px[j + 1] - bg[1])
+                + abs(px[j + 2] - bg[2])) <= BACKGROUND_TOLERANCE
+
+    uv = obj.data.uv_layers.active
+    missed = 0.0
+    total = 0.0
+    offenders = []
+    for poly in obj.data.polygons:
+        area = _screen_area(uv, poly)
+        total += area
+
+        # **Sampled across the face, not at its centre.** Centre-sampling was
+        # the second thing wrong with this measurement: the granary's roof is a
+        # single large quad whose centre sits comfortably on the painted roof
+        # while half of it hangs off into background. One sample said "painted",
+        # the screen said otherwise, and the screen was right.
+        #
+        # A grid over the polygon's own UV bounds, clipped to the polygon by
+        # barycentric-style averaging of its corners, is enough: what matters is
+        # the *fraction* of the face that misses, not its exact outline.
+        pts = [uv.data[li].uv for li in poly.loop_indices]
+        n = len(pts)
+        samples = []
+        for i in range(n):                       # corners, pulled slightly in
+            j2 = (i + 1) % n
+            cx = sum(p[0] for p in pts) / n
+            cy = sum(p[1] for p in pts) / n
+            samples.append((pts[i][0] * 0.8 + cx * 0.2,
+                            pts[i][1] * 0.8 + cy * 0.2))
+            samples.append(((pts[i][0] + pts[j2][0]) / 2,      # edge midpoints
+                            (pts[i][1] + pts[j2][1]) / 2))
+            samples.append(((pts[i][0] + cx) / 2, (pts[i][1] + cy) / 2))
+        samples.append((sum(p[0] for p in pts) / n, sum(p[1] for p in pts) / n))
+
+        bad = sum(1 for u, v in samples if is_background(u, v))
+        frac = bad / len(samples)
+        if frac > 0.0:
+            missed += area * frac
+            c = poly.center
+            offenders.append((area * frac,
+                              (round(c.x, 2), round(c.y, 2), round(c.z, 2)),
+                              frac))
+
+    offenders.sort(reverse=True)
+    return (missed / total if total else 1.0), offenders
+
+
+def render_for_paint(obj, path: Path, size: int = 1024) -> None:
+    """Render the model flat, at the game camera, for an image model to paint over.
+
+    **This inverts the whole problem.** Tuning a model to match a painting is
+    guesswork with four or five parameters against an image that was never drawn
+    to any dimensions. Painting over the model's own render instead means the
+    painting has the model's proportions exactly, and projecting it back lands on
+    every face by construction.
+
+    The background must be the flat grey `concept_bounds` looks for, and the
+    lighting must be even — this is a base for painting, not a beauty shot.
+    """
+    scene = bpy.context.scene
+    scene.render.engine = "BLENDER_EEVEE"
+    scene.render.resolution_x = scene.render.resolution_y = size
+    scene.render.resolution_percentage = 100
+    scene.render.film_transparent = False
+    scene.render.image_settings.file_format = "PNG"
+    scene.render.image_settings.color_mode = "RGB"
+
+    world = bpy.data.worlds.new("paint_bg")
+    world.use_nodes = True
+    bg = world.node_tree.nodes["Background"]
+    bg.inputs[0].default_value = (0.28, 0.28, 0.29, 1.0)
+    bg.inputs[1].default_value = 1.0
+    scene.world = world
+
+    sun_data = bpy.data.lights.new("sun", type="SUN")
+    sun_data.energy = 2.6
+    sun = bpy.data.objects.new("sun", sun_data)
+    sun.rotation_euler = (math.radians(48), 0, math.radians(-55))
+    bpy.context.collection.objects.link(sun)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    scene.render.filepath = str(path)
+    bpy.ops.render.render(write_still=True)
 
 
 def main(argv) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--asset", required=True)
     ap.add_argument("--level", type=int, default=1)
+    ap.add_argument("--render-for-paint",
+                    help="render the model flat at the game camera and stop")
+    ap.add_argument("--paint-from",
+                    help="use this image instead of the picked concept")
     args = ap.parse_args(argv)
 
     if args.asset not in ba.BUILDERS:
@@ -214,7 +311,16 @@ def main(argv) -> int:
             f"build_asset.py. It is an open structure, so most of it would land\n"
             f"on empty background. Build it with build_asset.py instead.")
 
-    concept = picked_concept(args.asset)
+    if args.render_for_paint:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        obj, _, _ = ba.BUILDERS[args.asset](args.level)
+        game_camera(obj)
+        render_for_paint(obj, Path(args.render_for_paint))
+        print(f"rendered {args.asset} for painting -> {args.render_for_paint}")
+        return 0
+
+    concept = (Path(args.paint_from) if args.paint_from
+               else picked_concept(args.asset))
     print(f"projecting {concept.relative_to(REPO)} onto {args.asset}")
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -247,12 +353,19 @@ def main(argv) -> int:
     print(f"  concept subject {tuple(round(v, 3) for v in cbox)}")
     fit_uvs(obj, model_box, cbox)
 
-    missed, _area = coverage(obj, img, cbox)
-    print(f"  on background   {missed:.1%} of surface area")
+    missed, offenders = coverage(obj, img, cbox)
+    print(f"  on background   {missed:.1%} of what the player sees")
+    if offenders:
+        share = sum(a for a, _, _ in offenders)
+        print("  worst unpainted faces, by how much screen they take:")
+        for area, centre, frac in offenders[:5]:
+            print(f"    {area / share:5.1%} of the grey — face at {centre} "
+                  f"is {frac:.0%} off the painting")
     if missed > MAX_UNPAINTED:
-        print(f"  WARNING: over {MAX_UNPAINTED:.0%} of this model lands on empty\n"
-              f"           background and will render as flat grey. The model's\n"
-              f"           proportions do not match its concept closely enough.")
+        print(f"  WARNING: over {MAX_UNPAINTED:.0%} of what the player sees lands\n"
+              f"           on empty background and renders as flat grey. Use the\n"
+              f"           positions above to find which part of the model does\n"
+              f"           not match its concept.")
 
     report = ba.validate(obj, size_class, footprint)
     out = OUT_DIR / f"{args.asset}_L{args.level}.glb"
