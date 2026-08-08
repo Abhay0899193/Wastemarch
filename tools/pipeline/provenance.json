@@ -374,5 +374,22 @@
     },
     "generated_utc": "2026-08-08T09:00:33Z",
     "seconds": 136.4
+  },
+  {
+    "kind": "materials",
+    "asset": "stone",
+    "file": "assets-src/material/stone/stone_1001.png",
+    "model": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "base_model": "z-image-turbo",
+    "seed": 1001,
+    "workflow_hash": "902b6f7dc6ec806f",
+    "prompt": "a seamless tileable texture, flat orthographic top-down view of a surface, evenly and diffusely lit with no shadows and no highlights, no directional light, completely flat lighting, uniform across the whole image, edges that repeat without a visible seam, no object, no scene, no horizon, no perspective, no vignette, muted and desaturated, matte, no text, no watermark, no border a rough stone wall of small irregular blocks, each block about the size of two hands, laid in even level courses, many blocks per row and many rows, deep dark recessed mortar joints between every block, evenly lit across the whole image with no bright patches and no dark patches, no large scale variation in brightness, consistent tone from corner to corner, detail and roughness only at the scale of a single block, chipped and pitted surfaces, dry and dusty, rubble masonry rather than cut ashlar, no polish, no stains, no moss",
+    "params": {
+      "steps": 8,
+      "width": 1024,
+      "height": 1024
+    },
+    "generated_utc": "2026-08-08T11:47:17Z",
+    "seconds": 102.2
   }
 ]

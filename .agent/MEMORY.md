@@ -894,3 +894,30 @@ Even fixed, textures are **embedded** in each `.glb`: granary 4.8 MB, keep 10 MB
 buildings x 5 levels that is ~800 MB in Git LFS against a promise of "tens of MB". The shipped
 app is fine because Godot recompresses to ASTC. The repository is not. Recorded in
 `docs/BACKLOG.md` with two fixes; do it before the set passes about six assets.
+
+### A tileable material must be EVEN at large scale and varied at small scale
+
+The stone tile had strong light and dark patches inside one tile. Tiled across a four-metre
+wall those patches became a repeating stain and the keep looked mouldy rather than built.
+
+The prompt now says this outright — "evenly lit across the whole image with no bright patches
+and no dark patches, no large scale variation in brightness, detail and roughness only at the
+scale of a single block" — rather than hoping for it. Anything that reads as a *patch* inside
+one tile becomes a *stain* across a surface.
+
+### Detail below about 8 cm does not exist at the game camera
+
+At 30 degrees from nine metres, a 5 cm railing post is under a pixel. The watchtower's ladder,
+railings and bracing were all modelled at 5–7 cm and the tower read as four sticks and a box
+beside a concept full of structure. Everything is 9 cm or more now — which is what hand-cut
+timber would be anyway — and it reads.
+
+Two related shape lessons from the same pass:
+
+- **Plain cubes read as Lego.** The keep's merlons got a capstone slightly proud of the block,
+  twelve triangles each, and they read as dressed masonry instead.
+- **Three stacked boxes read as a wedding cake.** The watchtower's roof in stepped courses
+  looked wrong; one overhanging eave course under a pyramid reads as a roof.
+
+Budgets had room four times over the whole time: keep 1,488 of 4,000, watchtower 558 of 1,500,
+granary 294 of 1,500.

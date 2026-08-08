@@ -457,11 +457,30 @@ def build_granary(level: int = 1, detail: bool = True):
     gable_roof(bm, (0, body_y, stone_h + body_h),
                (foot + 0.36, body_d + 0.36), ridge)
 
-    # Plank door on the gable end, sunk slightly so it reads as an opening.
     if detail:
         using("timber")
+        # Plank door on the gable end, sunk slightly so it reads as an opening.
         box(bm, (-foot / 2 + 0.02, body_y + 0.1, stone_h + 0.52),
             (0.1, 0.6, 1.04))
+
+        # Exposed timber frame: a sill beam, a mid rail and corner posts on the
+        # two walls the camera sees. The concept is full of this and the model
+        # had none of it — 162 of a 1,500 budget was being spent.
+        for z in (stone_h + 0.10, stone_h + body_h * 0.62):
+            box(bm, (0, body_y - body_d / 2 - 0.01, z), (foot + 0.04, 0.09, 0.13))
+            box(bm, (foot / 2 + 0.01, body_y, z), (0.09, body_d + 0.04, 0.13))
+        for cx_, cy_ in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            box(bm, (cx_ * (foot / 2 - 0.02), body_y + cy_ * (body_d / 2 - 0.02),
+                     stone_h + body_h / 2), (0.13, 0.13, body_h))
+
+        # Ridge beam along the roof, and the purlin ends poking out at the gable.
+        box(bm, (0, body_y, stone_h + body_h + ridge + 0.03),
+            (foot + 0.46, 0.13, 0.13))
+
+        # A barrel under the lean-to, beside the sacks.
+        using("thatch")
+        for bz in (0.16, 0.46):
+            box(bm, (foot / 2 - 0.44, lean_y + 0.06, bz), (0.30, 0.30, 0.30))
 
     # The lean-to: a shed roof falling away from the body wall, on three posts.
     # `ramp` takes the centre line of the plank, not one edge — passing the wall
@@ -560,10 +579,16 @@ def build_keep(level: int = 1, detail: bool = True):
         step = span / count
         for i in range(count):
             off = -span / 2 + step * (i + 0.5)
-            box(bm, (cx + off if along_x else cx, cy if along_x else cy + off,
-                     top_z + merlon_h / 2),
-                (merlon_w if along_x else wall_t,
-                 wall_t if along_x else merlon_w, merlon_h))
+            px_ = cx + off if along_x else cx
+            py_ = cy if along_x else cy + off
+            w_ = merlon_w if along_x else wall_t
+            d_ = wall_t if along_x else merlon_w
+            box(bm, (px_, py_, top_z + merlon_h / 2), (w_, d_, merlon_h))
+            # A capstone, slightly proud. Plain cubes read as Lego at the game
+            # camera; a two-tier merlon reads as dressed masonry for twelve more
+            # triangles, and the keep is using a quarter of its budget.
+            box(bm, (px_, py_, top_z + merlon_h + 0.045),
+                (w_ + 0.07, d_ + 0.07, 0.09))
 
     n = per_side if detail else 1
     crenellate(0, foot / 2 - wall_t / 2, foot, True, n, wall_h)
@@ -711,34 +736,62 @@ def build_watchtower(level: int = 1, detail: bool = True):
     for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
         box(bm, (sx * (plat_w / 2 - 0.07), sy * (plat_w / 2 - 0.07),
                  plat_z + 0.12 + post_h / 2), (0.1, 0.1, post_h))
-    using("thatch")
-    pyramid(bm, (0, 0, eave), (plat_w + 0.24, plat_w + 0.24), 0.46)
-
     using("firelight")
     box(bm, (0, 0, plat_z + 0.42), (0.40, 0.40, 0.58))       # brazier
 
+    # Roof in three stepped courses rather than one smooth cone. At the game
+    # camera a single pyramid reads as a paper hat; stacked courses read as
+    # shingles laid in rows, and cost 12 triangles each.
+    using("thatch")
+    # One eave course under a pitched cap. Three stacked boxes read as a wedding
+    # cake at the game camera; a single overhanging course plus a pyramid reads
+    # as a roof with eaves, which is what the concept has.
+    box(bm, (0, 0, eave + 0.05), (plat_w + 0.30, plat_w + 0.30, 0.10))
+    pyramid(bm, (0, 0, eave + 0.10), (plat_w + 0.18, plat_w + 0.18), 0.40)
+
     if detail:
-        # Railings, ladder and pennant. The railing in particular is 40% of the
-        # triangle count and none of the silhouette.
+        # Railings, ladder, bracing and pennant.
+        #
+        # **All of this was too thin to see.** At 30 degrees from nine metres a
+        # 5 cm post is under a pixel, so the tower read as four sticks and a box
+        # beside a concept full of structure. Everything here is at least 9 cm
+        # now, which is what a real hand-cut timber would be anyway, and the
+        # triangle budget had room four times over.
         using("timber")
-        for sx, sy, w, d in ((0, 1, plat_w, 0.07), (0, -1, plat_w, 0.07),
-                             (1, 0, 0.07, plat_w), (-1, 0, 0.07, plat_w)):
-            box(bm, (sx * plat_w / 2, sy * plat_w / 2, plat_z + 0.34),
-                (w, d, 0.07))
-        for i in range(4):
-            off = -plat_w / 2 + plat_w * (i + 0.5) / 4
-            box(bm, (off, -plat_w / 2, plat_z + 0.24), (0.05, 0.05, 0.36))
-        # Ladder: two rails and rungs, leaning against the north-west leg.
-        for rx in (-0.20, 0.20):
-            prism(bm, (rx - 0.55, 0.62, base_h), (0.06, 0.06),
-                  (rx - 0.30, 0.30, plat_z), (0.06, 0.06))
+        for sx, sy, w, d in ((0, 1, plat_w, 0.10), (0, -1, plat_w, 0.10),
+                             (1, 0, 0.10, plat_w), (-1, 0, 0.10, plat_w)):
+            box(bm, (sx * plat_w / 2, sy * plat_w / 2, plat_z + 0.36),
+                (w, d, 0.10))
+            box(bm, (sx * plat_w / 2, sy * plat_w / 2, plat_z + 0.20),
+                (w * 0.98, d * 0.98, 0.07))
         for i in range(5):
-            f = (i + 0.5) / 5
-            box(bm, (-0.55 + 0.25 * f, 0.62 - 0.32 * f,
-                     base_h + (plat_z - base_h) * f), (0.44, 0.05, 0.04))
-        box(bm, (0, 0, eave + 0.52 + 0.24), (0.05, 0.05, 0.48))   # pennant pole
+            off = -plat_w / 2 + plat_w * (i + 0.5) / 5
+            for ax, ay in ((1, 0), (0, 1)):
+                box(bm, (off if ax else -plat_w / 2,
+                         -plat_w / 2 if ax else off, plat_z + 0.26),
+                    (0.09, 0.09, 0.34))
+
+        # Cross-bracing between the legs, on the two faces the camera sees.
+        for sx, sy in ((-1, 1), (1, -1)):
+            for d in (1, -1):
+                prism(bm, (sx * leg_bot * 0.92, sy * leg_bot * 0.92, base_h + 0.1),
+                      (0.11, 0.11),
+                      (sx * d * (plat_w / 2 - 0.08) * 0.9,
+                       sy * -d * (plat_w / 2 - 0.08) * 0.9, plat_z * 0.62),
+                      (0.09, 0.09))
+
+        # Ladder: thicker rails, more rungs, standing clear of the stone core.
+        for rx in (-0.24, 0.24):
+            prism(bm, (rx - 0.58, 0.70, base_h), (0.09, 0.09),
+                  (rx - 0.32, 0.34, plat_z), (0.09, 0.09))
+        for i in range(7):
+            f = (i + 0.5) / 7
+            box(bm, (-0.58 + 0.26 * f, 0.70 - 0.36 * f,
+                     base_h + (plat_z - base_h) * f), (0.52, 0.07, 0.06))
+
+        box(bm, (0, 0, eave + 0.50 + 0.28), (0.07, 0.07, 0.56))   # pennant pole
         using("cloth")
-        box(bm, (0.17, 0, eave + 0.52 + 0.34), (0.30, 0.03, 0.18))
+        box(bm, (0.20, 0, eave + 0.50 + 0.40), (0.34, 0.03, 0.20))
 
     bm.to_mesh(obj.data)
     bm.free()

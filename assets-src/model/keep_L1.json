@@ -1,8 +1,8 @@
 {
-  "triangles": 1104,
+  "triangles": 1488,
   "budget": 4000,
   "size_class": "large",
-  "surface_area_m2": 232.179,
+  "surface_area_m2": 248.736,
   "texel_density": 512.0,
   "tiles_every_m": 2.0,
   "footprint_tiles": [

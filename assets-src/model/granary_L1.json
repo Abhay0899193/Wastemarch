@@ -1,22 +1,22 @@
 {
-  "triangles": 162,
+  "triangles": 294,
   "budget": 1500,
   "size_class": "small",
-  "surface_area_m2": 39.42,
+  "surface_area_m2": 47.248,
   "texel_density": 512.0,
   "tiles_every_m": 2.0,
   "footprint_tiles": [
     2,
     2
   ],
-  "overhang_m": 0.17,
+  "overhang_m": 0.23,
   "extent_m": [
-    2.34,
-    2.11
+    2.46,
+    2.14
   ],
-  "height_m": 2.52,
+  "height_m": 2.615,
   "lod1_triangles": null,
-  "lod1_skipped": "162 triangles is below the 400 threshold \u2014 a second mesh would cost more than it saves",
+  "lod1_skipped": "294 triangles is below the 400 threshold \u2014 a second mesh would cost more than it saves",
   "file": "assets-src/model/granary_L1.glb",
   "level": 1
 }

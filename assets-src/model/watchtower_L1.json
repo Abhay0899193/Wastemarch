@@ -1,8 +1,8 @@
 {
-  "triangles": 354,
+  "triangles": 576,
   "budget": 1500,
   "size_class": "small",
-  "surface_area_m2": 43.345,
+  "surface_area_m2": 59.531,
   "texel_density": 512.0,
   "tiles_every_m": 2.0,
   "footprint_tiles": [
@@ -14,9 +14,8 @@
     1.94,
     1.94
   ],
-  "height_m": 4.64,
-  "lod1_triangles": null,
-  "lod1_skipped": "354 triangles is below the 400 threshold \u2014 a second mesh would cost more than it saves",
+  "height_m": 4.58,
+  "lod1_triangles": 180,
   "file": "assets-src/model/watchtower_L1.glb",
   "level": 1
 }
