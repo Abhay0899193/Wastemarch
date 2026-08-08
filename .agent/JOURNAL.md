@@ -966,3 +966,47 @@ cold after an asset rebuild, not a regression. Worth knowing before chasing it: 
 **Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
 smoke **35 checks** including upgrade, level-aware production, save round trip, a hand-written
 version 1 save and a refused version 99 · no placement frame over 60 ms.
+
+---
+
+## 2026-08-09 — Session 11 — pan was wrong twice over, and a laptop can now zoom
+
+**"Pan is not working correctly."** It was, and the reason is worth writing down. The old code
+multiplied mouse pixels by `size / 600.0` and applied the same number to both axes:
+
+- **600 is nobody's window height.** At 1080 that made horizontal panning 1.8x too fast.
+- **The ground is foreshortened 2:1 vertically at a 30 degree camera**, so a vertical drag has
+  to move the camera *twice* as far as a horizontal one of the same length. It moved the same.
+
+The two errors do not cancel — the axes end up disagreeing by a factor of two, so the world
+slides diagonally out from under the cursor. Measured before replacing it: a 240 px horizontal
+drag left the grabbed point **9.07 m** from the cursor, a 190 px vertical one **16.97 m**, a
+diagonal one **26.01 m**.
+
+**The fix needs no multiplier.** For an orthographic camera, translating by D moves the ground
+point under a fixed pixel by exactly D. So remember the world point under the cursor at press
+time and, on every motion, `camera.position += grab - ground_at(mouse)`. Exact, cannot drift,
+and stays correct if the camera angle, the zoom or the window ever change. Zoom-to-cursor is
+the same three lines with the size change in the middle — so zooming at a corner no longer
+throws away what you were looking at.
+
+**Watched the old code fail the new test** before deleting it, per `docs/TESTING.md`. The
+assertion is "the grabbed ground stays under the cursor", which is the *definition* of correct
+panning rather than a description of the implementation, so it cannot rot.
+
+**A right drag was also cancelling the selection**, because release did not distinguish a click
+from a drag. Six pixels of slop fixes it.
+
+**Laptop controls.** Zoom is now the wheel, a **trackpad pinch** (`InputEventMagnifyGesture`,
+which is what a MacBook actually sends), and `+` / `-`. Pan is right-drag, middle-drag, or
+**arrow keys / WASD**, continuous in `_process` so holding a key glides. The keyboard pan uses
+the same grab-the-ground trick — ask where two screen points land and move by the difference —
+so its speed is right at every zoom for free.
+
+**`S` was bound to two things.** Save, and pan-down under WASD; every downward pan wrote a save
+file. Save and load are `Ctrl+S` / `Ctrl+L` now.
+
+Panning is also clamped so the view cannot leave the map, six metres past the edge.
+
+**Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
+smoke **48 checks** including three drags, two zooms, the zoom limits and the pan clamp.

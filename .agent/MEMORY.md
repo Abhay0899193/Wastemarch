@@ -942,6 +942,34 @@ and run the checks there.
 1,936 tiles as meshes is a draw-call problem and as a texture it is a memory one. In the
 shader it is free and crisp at every zoom. `game/city/City.tscn`, `Shader_ground`.
 
+### Camera moves: grab the ground, never accumulate a speed
+
+The first pan multiplied mouse pixels by `size / 600.0` and applied the same number to both
+axes. Wrong twice: **600 is nobody's window height**, and at a 30 degree camera the ground is
+foreshortened 2:1 vertically, so a vertical drag must move the camera **twice** as far as a
+horizontal drag of the same pixel length. The two errors do not cancel; the axes disagree by a
+factor of 2 and the world slides diagonally away from the cursor. Measured before the fix: a
+240 px horizontal drag left the grabbed point **9.07 m** from the cursor, a 190 px vertical one
+**16.97 m**, a diagonal one **26.01 m**.
+
+**The fix needs no multiplier at all.** For an orthographic camera, translating the camera by D
+moves the ground point under a fixed pixel by exactly D. So remember the world point under the
+cursor at press time, and on every motion do `camera.position += grab - ground_at(mouse)`. It
+is exact, it cannot drift, and it stays correct if the camera angle, the zoom or the window
+ever change. Zoom-to-cursor is the same three lines with the size change in the middle.
+
+**Test it by asserting the grabbed point stays under the cursor.** That assertion *is* the
+definition of correct panning, so it cannot rot into testing an implementation.
+
+**And a right *drag* must not count as a right *click*.** Without a distance threshold, panning
+silently deselected whatever was selected, every time.
+
+### Two keys cannot be one key
+
+`S` was bound to save and, when `WASD` panning arrived, to pan-down. Every downward pan wrote a
+save file. Save and load are `Ctrl+S` / `Ctrl+L` now. Check the whole keymap when adding a
+movement key, not just the one being added.
+
 ### Godot picks the tile under the mouse by ray-plane, not physics
 
 The ground is y=0, so intersecting the camera ray with that plane needs no colliders and

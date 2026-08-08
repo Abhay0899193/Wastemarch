@@ -2,7 +2,7 @@
 
 ## RESUME HERE
 
-**Last session:** 9 August 2026 (session 10). Working tree clean, on `main`.
+**Last session:** 9 August 2026 (session 11). Working tree clean, on `main`.
 **Nothing is half-finished. Commits are NOT pushed — the owner pushes.**
 
 **Where we are: Phase 3 is mechanically complete.** Six buildings, upgrade levels to 5, a
@@ -12,8 +12,15 @@ and a save format at version 2 with a migration that is actually tested.
 **What Phase 3 still needs is not code.** Its gate is *"play twenty minutes on your own phone
 and want to keep going"* — so the remaining work is Durn's tutorial, and then you, on a phone.
 
-Controls: **right-drag** to pan, **mouse wheel** to zoom, click a card then click the ground to
-place, **S** save, **L** load, **Escape** quit.
+| | |
+|---|---|
+| Pan | right-drag or middle-drag, arrow keys or `WASD` |
+| Zoom | wheel, trackpad pinch, `+` and `-` |
+| Place | pick a card, click the ground |
+| Select | click a finished building |
+| Cancel | right-click without dragging |
+| Save / load | `Ctrl+S` / `Ctrl+L` — **not** bare `S`, that is pan-down |
+| Recentre | `Home` |
 
 ```bash
 $GODOT --path game res://city/City.tscn

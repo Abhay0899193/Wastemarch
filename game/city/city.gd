@@ -9,8 +9,18 @@ extends Node3D
 ## finished building to select it and a short row appears underneath with its
 ## level and an upgrade button. Drag with the right button to pan, scroll to
 ## zoom. Buildings take time to finish and then produce a resource; what they
-## produce pays for the next one, so the loop closes. `S` saves, `L` loads,
-## `Escape` quits.
+## produce pays for the next one, so the loop closes.
+##
+## | | |
+## |---|---|
+## | Pan | right-drag or middle-drag, or arrow keys / `WASD` |
+## | Zoom | wheel, trackpad pinch, or `+` and `-` |
+## | Place | pick a card, click the ground |
+## | Select | click a finished building |
+## | Cancel | right-click without dragging |
+## | Save / load | `Ctrl+S` / `Ctrl+L` |
+## | Recentre | `Home` |
+## | Quit | `Escape` |
 ##
 ## **What this is and is not.** It is the smallest thing that is actually
 ## playable: place, wait, collect, place again. `MASTER_PLAN.md` Phase 3 also
@@ -44,6 +54,22 @@ const ZOOM_RANGE := 4.0
 ## Slack around the grid at full zoom-out, so the border is visible rather than
 ## exactly clipped. Theirs is about 6%.
 const ZOOM_OUT_MARGIN := 1.06
+
+## One notch of the wheel, and one press of the zoom key. The key steps harder
+## because a laptop user is pressing it rather than rolling it.
+const WHEEL_ZOOM_STEP := 1.1
+const KEY_ZOOM_STEP := 1.25
+
+## How far the mouse may move between press and release and still count as a
+## click rather than a drag.
+const CLICK_SLOP_PX := 6.0
+
+## Keyboard panning, in screen-heights per second. Independent of zoom, so it
+## covers the same fraction of what you can see however far in you are.
+const KEY_PAN_PER_SECOND := 0.9
+
+## How far past the edge of the grid the view may be pushed.
+const PAN_MARGIN := 6.0
 const DATA_PATH := "res://data/buildings.json"
 const SAVE_PATH := "user://city_save.json"
 const MODEL_DIR := "res://assets/models/"
@@ -77,6 +103,9 @@ var _chosen_cell := Vector2i(9999, 9999)
 var _panel: VBoxContainer = null
 var _panel_title: Label = null
 var _panel_button: Button = null
+var _grabbing := false                      ## right or middle button held
+var _grab := Vector3.ZERO                   ## the ground point being dragged
+var _drag_px := 0.0                         ## how far the mouse moved while held
 
 
 # ---------------------------------------------------------------------------
@@ -115,6 +144,70 @@ func _set_zoom_limits() -> void:
 	# fully out makes them specks. Halfway is the honest compromise until the
 	# city is dense enough to carry the wide shot.
 	_camera.size = _zoom_out * 0.5
+
+
+# ---------------------------------------------------------------------------
+# The camera
+#
+# **Both of these work by grabbing the ground rather than by accumulating a
+# speed, and that is the whole trick.** The old pan multiplied mouse pixels by
+# `size / 600.0` and applied the same number to both axes. Two things were wrong
+# with it: 600 is not the height of anybody's window, and the ground is
+# foreshortened 2:1 vertically at a 30 degree camera, so a vertical drag has to
+# move the camera *twice* as far as a horizontal one of the same length. At
+# 1920x1080 that made horizontal panning 1.8x too fast and vertical panning half
+# the speed it should be relative to it, so the world slid diagonally away from
+# the cursor. That is what "pan is not working correctly" was.
+#
+# Working out the correct multiplier is possible, but it has to be re-derived
+# every time the camera angle or the window changes. Putting the grabbed point
+# back under the cursor needs no multiplier at all and cannot drift: for an
+# orthographic camera, translating the camera by D moves the ground point under
+# a fixed pixel by exactly D.
+# ---------------------------------------------------------------------------
+
+## Put the ground point grabbed at press-time back under the cursor.
+func pan_to(screen: Vector2) -> void:
+	_camera.position += _grab - _ground_at(screen)
+	_clamp_camera()
+
+
+## Zoom, keeping whatever is under `at` where it is. Zooming to the middle of the
+## screen when you are looking at a corner throws away what you were looking at.
+func zoom_by(factor: float, at: Vector2) -> void:
+	var before := _ground_at(at)
+	_camera.size = clampf(_camera.size * factor, _zoom_in, _zoom_out)
+	_camera.position += before - _ground_at(at)
+	_clamp_camera()
+
+
+## Stop the view leaving the map. Measured at the middle of the screen, because
+## that is where the player thinks the camera is.
+func _clamp_camera() -> void:
+	var centre := _ground_at(get_viewport().get_visible_rect().size * 0.5)
+	var limit := float(GRID_SIZE) * TILE * 0.5 + PAN_MARGIN
+	var inside := Vector3(clampf(centre.x, -limit, limit), 0.0,
+						  clampf(centre.z, -limit, limit))
+	_camera.position += inside - centre
+
+
+## Arrow keys and WASD, for the laptop with no mouse wheel and no third button.
+## Continuous rather than per-keystroke, so holding a key glides.
+func _keyboard_pan(delta: float) -> void:
+	var move := Vector2(
+			float(Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D))
+			- float(Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A)),
+			float(Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S))
+			- float(Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W)))
+	if move == Vector2.ZERO:
+		return
+	# Same trick again: ask where two screen points land on the ground and move
+	# by the difference, so the speed is right at every zoom and angle for free.
+	var view := get_viewport().get_visible_rect().size
+	var step := move.normalized() * view.y * KEY_PAN_PER_SECOND * delta
+	var middle := view * 0.5
+	_camera.position += _ground_at(middle + step) - _ground_at(middle)
+	_clamp_camera()
 
 
 ## Trees and rocks over the whole field, in two draw calls.
@@ -332,14 +425,21 @@ func _can_afford(id: String) -> bool:
 ## Where the mouse is pointing, as a grid cell. The ground is the y=0 plane, so
 ## this is a ray-plane intersection rather than a physics query — no colliders
 ## needed, and it cannot be blocked by a building standing in the way.
-func _cell_under_mouse() -> Vector2i:
-	var mouse := get_viewport().get_mouse_position()
-	var from := _camera.project_ray_origin(mouse)
-	var dir := _camera.project_ray_normal(mouse)
+## Where a screen position lands on the ground.
+##
+## The ground is the y = 0 plane, so this is a ray-plane intersection rather
+## than a physics query — no colliders needed, and it cannot be blocked by a
+## building standing in the way.
+func _ground_at(screen: Vector2) -> Vector3:
+	var from := _camera.project_ray_origin(screen)
+	var dir := _camera.project_ray_normal(screen)
 	if absf(dir.y) < 0.0001:
-		return Vector2i(9999, 9999)
-	var t := -from.y / dir.y
-	var hit := from + dir * t
+		return Vector3.ZERO
+	return from + dir * (-from.y / dir.y)
+
+
+func _cell_under_mouse() -> Vector2i:
+	var hit := _ground_at(get_viewport().get_mouse_position())
 	return Vector2i(floori(hit.x / TILE), floori(hit.z / TILE))
 
 
@@ -484,6 +584,7 @@ func _place(cell: Vector2i, id: String) -> bool:
 # ---------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_keyboard_pan(delta)
 	_update_ghost()
 	_place_panel()
 	for b in _built:
@@ -838,14 +939,30 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_camera.size = maxf(_zoom_in, _camera.size * 0.9)
+			zoom_by(1.0 / WHEEL_ZOOM_STEP, mb.position)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_camera.size = minf(_zoom_out, _camera.size * 1.1)
+			zoom_by(WHEEL_ZOOM_STEP, mb.position)
+		elif mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+			# Grab the ground rather than accumulate a speed. Press remembers the
+			# world point under the cursor; every motion event afterwards puts
+			# that same point back under the cursor.
+			_grabbing = mb.pressed
+			if mb.pressed:
+				_grab = _ground_at(mb.position)
+				_drag_px = 0.0
+			elif mb.button_index == MOUSE_BUTTON_RIGHT \
+					and _drag_px < CLICK_SLOP_PX:
+				# A right *click* cancels; a right *drag* was a pan and must not.
+				# Without the distance test, panning silently deselects whatever
+				# you were looking at, every single time you move the camera.
+				_select("")
+				_choose(Vector2i(9999, 9999))
+				_set_status("")
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			if _selected == "":
 				# Not placing anything, so a click is a selection.
 				_choose(_cell_under_mouse())
-			if _selected != "":
+			else:
 				var cell := _cell_under_mouse()
 				if _place(cell, _selected):
 					if not _can_afford(_selected):
@@ -857,23 +974,24 @@ func _unhandled_input(event: InputEvent) -> void:
 					_set_status("Not enough to build that")
 				else:
 					_set_status("Outside the buildable ground")
-		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			_select("")
-			_choose(Vector2i(9999, 9999))
-			_set_status("")
 	elif event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event
-		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT:
-			var speed: float = _camera.size / 600.0
-			var right: Vector3 = _camera.global_transform.basis.x
-			var fwd: Vector3 = -_camera.global_transform.basis.z
-			fwd.y = 0.0
-			_camera.position -= right * mm.relative.x * speed
-			_camera.position -= fwd.normalized() * mm.relative.y * speed
+		if _grabbing:
+			_drag_px += mm.relative.length()
+			pan_to(mm.position)
+	elif event is InputEventMagnifyGesture:
+		# A trackpad pinch, which is what a laptop actually has.
+		var mg: InputEventMagnifyGesture = event
+		zoom_by(1.0 / maxf(0.2, mg.factor), mg.position)
 	elif event is InputEventKey and event.is_pressed():
 		var key: InputEventKey = event
+		var middle := get_viewport().get_visible_rect().size * 0.5
+		# **Save is Ctrl+S, not S.** S is the `WASD` pan key, and a bare S bound to
+		# both meant every pan downwards also wrote a save file.
 		match key.keycode:
 			KEY_ESCAPE: get_tree().quit()
-			KEY_S: _save()
-			KEY_L: _load()
+			KEY_S when key.ctrl_pressed or key.meta_pressed: _save()
+			KEY_L when key.ctrl_pressed or key.meta_pressed: _load()
 			KEY_HOME: _camera.position = _camera_home
+			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD: zoom_by(1.0 / KEY_ZOOM_STEP, middle)
+			KEY_MINUS, KEY_KP_SUBTRACT: zoom_by(KEY_ZOOM_STEP, middle)

@@ -205,8 +205,51 @@ func _run() -> void:
 	_check("a future save is refused and changes nothing",
 			_city._built.size(), 1)
 
+	# --- the camera ---------------------------------------------------------
+	# **The test is the definition of correct panning:** whatever ground you
+	# grabbed stays under the cursor. The old pan multiplied mouse pixels by
+	# `size / 600.0` and used the same figure for both axes, which is wrong twice
+	# over — 600 is nobody's window height, and the ground is foreshortened 2:1
+	# vertically at a 30 degree camera. Diagonal drags slid away from the cursor.
+	var cam: Camera3D = _city.get_node("Camera3D")
+	var start := cam.position
+	var press := Vector2(700, 380)
+	_city._grab = _city._ground_at(press)
+	for drag in [Vector2(240, 0), Vector2(0, 190), Vector2(-310, 260)]:
+		_city.pan_to(press + drag)
+		var under: Vector3 = _city._ground_at(press + drag)
+		_ok("drag by %s keeps the grabbed ground under the cursor" % drag,
+				under.distance_to(_city._grab) < 0.01)
+	_ok("and the camera actually moved", cam.position.distance_to(start) > 1.0)
+
+	# Zoom keeps the point under the cursor where it is, so zooming at a corner
+	# does not throw away what you were looking at.
+	var at := Vector2(1300, 250)
+	var before_zoom: Vector3 = _city._ground_at(at)
+	_city.zoom_by(0.5, at)
+	_ok("zooming in keeps the point under the cursor",
+			_city._ground_at(at).distance_to(before_zoom) < 0.01)
+	_city.zoom_by(4.0, at)
+	_ok("zooming out keeps it too",
+			_city._ground_at(at).distance_to(before_zoom) < 0.01)
+
+	_ok("zoom stops at the limits",
+			cam.size <= _city._zoom_out + 0.001 and cam.size >= _city._zoom_in - 0.001)
+
+	# Panning far past the edge is clamped, so the view cannot leave the map.
+	_city._grab = _city._ground_at(press)
+	_city.pan_to(press + Vector2(9000, 9000))
+	# The clamp measures at the middle of the *actual* viewport, which headless
+	# does not size to 1920x1080. Asking for the same point rather than assuming
+	# one is the difference between testing the clamp and testing a guess.
+	var middle: Vector2 = _city.get_viewport().get_visible_rect().size * 0.5
+	var centre: Vector3 = _city._ground_at(middle)
+	var limit: float = float(_city.GRID_SIZE) * 0.5 + _city.PAN_MARGIN + 0.001
+	_ok("panning off the map is clamped",
+			absf(centre.x) <= limit and absf(centre.z) <= limit)
+
 	if _failures == 0:
-		print("PASS — place, refuse, build, produce, upgrade, save, load and migrate all work")
+		print("PASS — place, refuse, build, produce, upgrade, save, load, migrate and the camera all work")
 		quit(0)
 	else:
 		printerr("FAILED — %d check(s)" % _failures)

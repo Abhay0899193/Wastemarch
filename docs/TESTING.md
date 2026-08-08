@@ -239,6 +239,11 @@ that finish, levels that cost more and yield more, and a save format that has to
 files written by older builds. All of it is quick to break and slow to notice by hand: a
 build-timer fault takes twelve seconds to see and a saving fault takes a restart.
 
+**It checks the camera by definition, not by implementation.** The panning check asserts that
+whatever ground you grabbed stays under the cursor — which is what correct panning *is*, so the
+check cannot rot into testing how it happens to be written. The old pan was measured failing it
+by 9 to 26 metres per drag before it was replaced.
+
 **It writes an old save by hand and loads it.** The migration check does not save-then-load with
 today's code — that would pass even if migration did nothing. It writes a version 1 file in the
 exact shape the old build wrote, with no `level` field anywhere, and checks it comes back as a
