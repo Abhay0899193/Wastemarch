@@ -290,6 +290,65 @@ func _run() -> void:
 	_ok("panning off the map is clamped",
 			absf(centre.x) <= limit and absf(centre.z) <= limit)
 
+	# --- touch --------------------------------------------------------------
+	# A phone is the phase gate, and none of this can be checked by clicking.
+	# These drive the same handlers the operating system would.
+	_city._touches.clear()
+	_city._selected = ""
+	# Back to the middle first: the clamp test above left the camera pinned at a
+	# corner, where a further pan legitimately does nothing.
+	cam.position = _city._camera_home
+	var t_start := cam.position
+	var down := InputEventScreenTouch.new()
+	down.index = 0
+	down.pressed = true
+	down.position = Vector2(500, 400)
+	_city._touch(down)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = Vector2(620, 470)
+	drag.relative = Vector2(120, 70)
+	_city._touch_drag(drag)
+	_ok("one finger pans", cam.position.distance_to(t_start) > 0.5)
+	_ok("and the grabbed ground stays under the finger",
+			_city._ground_at(drag.position).distance_to(_city._grab) < 0.01)
+
+	var up := InputEventScreenTouch.new()
+	up.index = 0
+	up.pressed = false
+	up.position = drag.position
+	_city._touch(up)
+	_check("the finger is forgotten on release", _city._touches.size(), 0)
+
+	# Two fingers, moved apart, must zoom in — and only zoom.
+	var size_before: float = cam.size
+	for i in 2:
+		var finger := InputEventScreenTouch.new()
+		finger.index = i
+		finger.pressed = true
+		finger.position = Vector2(800 + i * 100, 500)
+		_city._touch(finger)
+	var spread := InputEventScreenDrag.new()
+	spread.index = 1
+	spread.position = Vector2(1100, 500)
+	spread.relative = Vector2(200, 0)
+	_city._touch_drag(spread)
+	_ok("two fingers spreading zooms in", cam.size < size_before)
+
+	# Lifting one finger of a pinch must not count as a tap and place anything.
+	_city._selected = "granary"
+	_city._resources["timber"] = 9999
+	var built_before: int = _city._built.size()
+	var lift := InputEventScreenTouch.new()
+	lift.index = 1
+	lift.pressed = false
+	lift.position = Vector2(1100, 500)
+	_city._touch(lift)
+	_check("lifting one finger of a pinch places nothing",
+			_city._built.size(), built_before)
+	_city._touches.clear()
+	_city._selected = ""
+
 	if _failures == 0:
 		print("PASS — place, refuse, build, produce, upgrade, save, load, migrate and the camera all work")
 		quit(0)

@@ -75,6 +75,21 @@ monetisation below.
 That last one is a deliberate break from the genre. Competitors charge you or make you wait
 to move a building, purely to sell convenience. Players hate it. We are not doing it.
 
+### Controls
+
+| | Phone | Desktop |
+|---|---|---|
+| Pan | one finger | right-drag, middle-drag, arrows or `WASD` |
+| Zoom | two-finger pinch | wheel, trackpad pinch, `+` and `-` |
+| Place | pick a card, tap the ground | same, with the mouse |
+| Select | tap a finished building | click it |
+| Cancel | — | right-click without dragging |
+
+A tap and a click go through **one** function, so the two cannot drift apart. Godot's
+"emulate mouse from touch" is deliberately off: with it on, a finger becomes a left click, so a
+one-finger drag would try to place a building instead of panning and every pinch would arrive as
+two competing left buttons.
+
 ### What exists today
 
 Six buildings are built, textured and placeable, which is what Phase 3 asks for. Every one

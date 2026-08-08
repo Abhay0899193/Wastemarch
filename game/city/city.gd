@@ -13,10 +13,10 @@ extends Node3D
 ##
 ## | | |
 ## |---|---|
-## | Pan | right-drag or middle-drag, or arrow keys / `WASD` |
-## | Zoom | wheel, trackpad pinch, or `+` and `-` |
-## | Place | pick a card, click the ground |
-## | Select | click a finished building |
+## | Pan | one finger, right-drag, middle-drag, arrow keys or `WASD` |
+## | Zoom | two-finger pinch, wheel, trackpad pinch, `+` and `-` |
+## | Place | pick a card, tap the ground |
+## | Select | tap a finished building |
 ## | Cancel | right-click without dragging |
 ## | Save / load | `Ctrl+S` / `Ctrl+L` |
 ## | Recentre | `Home` |
@@ -1023,6 +1023,94 @@ func _migrate(payload: Dictionary) -> Dictionary:
 
 
 # ---------------------------------------------------------------------------
+# Touch
+#
+# **Godot's `emulate_mouse_from_touch` is deliberately left off.** With it on, a
+# finger becomes a left click, so a one-finger drag would try to *place* a
+# building rather than pan, and every pinch would arrive as two competing left
+# buttons. Handling touch as touch is fewer surprises than handling a mouse that
+# is not there.
+#
+# One finger pans, two fingers pinch to zoom, and a finger that goes down and up
+# again without travelling is a tap — which does what a left click does.
+#
+# The pan and the zoom are the same grab-the-ground functions the mouse uses, so
+# there is one implementation of "put this world point under that screen point"
+# and touch cannot drift out of agreement with the mouse.
+# ---------------------------------------------------------------------------
+
+## How far a finger may travel and still be a tap rather than a drag. Larger
+## than the mouse's, because fingers are not precise and a phone is held in a
+## moving hand.
+const TOUCH_SLOP_PX := 18.0
+
+var _touches: Dictionary = {}               ## finger index -> current position
+var _pinch_span := 0.0                      ## distance between two fingers
+var _touch_travel := 0.0
+
+
+func _touch(event: InputEventScreenTouch) -> void:
+	if event.pressed:
+		_touches[event.index] = event.position
+		if _touches.size() == 1:
+			_grab = _ground_at(event.position)
+			_touch_travel = 0.0
+		elif _touches.size() == 2:
+			_pinch_span = _two_finger_span()
+	else:
+		# A tap does what a click does. Checked before the finger is forgotten,
+		# and only for the *last* finger up, so lifting one finger out of a
+		# pinch does not place a building.
+		if _touches.size() == 1 and _touch_travel < TOUCH_SLOP_PX:
+			_tap(event.position)
+		_touches.erase(event.index)
+		if _touches.size() == 1:
+			# Back to one finger after a pinch: re-grab, or the view jumps.
+			_grab = _ground_at(_touches.values()[0])
+
+
+func _touch_drag(event: InputEventScreenDrag) -> void:
+	_touches[event.index] = event.position
+	if _touches.size() == 1:
+		_touch_travel += event.relative.length()
+		pan_to(event.position)
+	elif _touches.size() == 2:
+		var span := _two_finger_span()
+		if _pinch_span > 1.0 and span > 1.0:
+			zoom_by(_pinch_span / span, _two_finger_middle())
+		_pinch_span = span
+
+
+func _two_finger_span() -> float:
+	var p: Array = _touches.values()
+	return (p[0] as Vector2).distance_to(p[1] as Vector2)
+
+
+func _two_finger_middle() -> Vector2:
+	var p: Array = _touches.values()
+	return ((p[0] as Vector2) + (p[1] as Vector2)) * 0.5
+
+
+## One place that decides what pointing at the world means, so a tap and a left
+## click cannot drift apart.
+func _tap(at: Vector2) -> void:
+	var cell := Vector2i(floori(_ground_at(at).x / TILE), floori(_ground_at(at).z / TILE))
+	if _selected == "":
+		_choose(cell)
+		return
+	if _place(cell, _selected):
+		if not _can_afford(_selected):
+			_select("")
+			_set_status("Not enough to build another")
+	elif _occupied.has(cell) or _obstacles.has(cell):
+		_set_status("Something is already there")
+	elif not _can_afford(_selected):
+		_set_status("Not enough to build that")
+	else:
+		_set_status("Outside the buildable ground")
+
+
+# ---------------------------------------------------------------------------
 # Input
 # ---------------------------------------------------------------------------
 
@@ -1050,26 +1138,16 @@ func _unhandled_input(event: InputEvent) -> void:
 				_choose(Vector2i(9999, 9999))
 				_set_status("")
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			if _selected == "":
-				# Not placing anything, so a click is a selection.
-				_choose(_cell_under_mouse())
-			else:
-				var cell := _cell_under_mouse()
-				if _place(cell, _selected):
-					if not _can_afford(_selected):
-						_select("")
-						_set_status("Not enough to build another")
-				elif _occupied.has(cell):
-					_set_status("Something is already there")
-				elif not _can_afford(_selected):
-					_set_status("Not enough to build that")
-				else:
-					_set_status("Outside the buildable ground")
+			_tap(mb.position)
 	elif event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event
 		if _grabbing:
 			_drag_px += mm.relative.length()
 			pan_to(mm.position)
+	elif event is InputEventScreenTouch:
+		_touch(event)
+	elif event is InputEventScreenDrag:
+		_touch_drag(event)
 	elif event is InputEventMagnifyGesture:
 		# A trackpad pinch, which is what a laptop actually has.
 		var mg: InputEventMagnifyGesture = event

@@ -1,12 +1,12 @@
 {
   "phase": 3,
   "phase_name": "Phase 3 \u2014 City builder. Playable POC done; Phase 2 pipeline complete, its art approval still the owner's.",
-  "milestone": "Phase 3 mechanically complete: six buildings, upgrade levels, selection panel, save v2 with a tested migration",
+  "milestone": "Phase 3 content complete: six buildings, visible upgrades, Durn's tutorial, touch and desktop input",
   "phase_gate": "Phase 3: play twenty minutes on your own phone and want to keep going",
   "phase_gate_met": false,
   "last_commit": "216c12a",
   "last_session": "2026-08-09",
-  "sessions_completed": 11,
+  "sessions_completed": 13,
   "repo": "git@github.com:Abhay0899193/Wastemarch.git",
   "branch": "main",
   "versions": {
@@ -37,12 +37,12 @@
     "arch": "arm64"
   },
   "verification_at_close": {
-    "date": "2026-08-09 (session 11)",
+    "date": "2026-08-09 (session 13)",
     "no_floats_lint": "pass",
     "cargo_test": "pass \u2014 125 passed, 1 ignored",
     "palette_check": "pass",
     "godot_sim_smoke": "PASS \u2014 hash 0x6de277a1cf08225b matches CI",
-    "city_smoke": "PASS \u2014 48 checks: place, refuse, build, produce, upgrade, save, migrate, and the camera (three drags, two zooms, limits, clamp)",
+    "city_smoke": "PASS \u2014 62 checks, now including the tutorial, level looks, the camera and touch",
     "asset_pipeline": "pass \u2014 eight assets: keep 1488, watchtower 558, granary 294, logging_camp 204, croft 126, mine 108, pine 48, boulder 24",
     "silhouette": "pass across six buildings, 21 pairs; worst keep L1 vs L5 0.74, worst new pair croft vs logging_camp 0.69",
     "frame_time": "placement 41 ms after _preload_models; was a 1376 ms stall. game/tools/prof.gd measures it"
@@ -163,11 +163,12 @@
     "settled": "tiled palette materials baked to a real unwrap with AO and emission; concept projection dropped; proportions reset to measured CoC values 9 Aug 2026"
   },
   "save_format": {
-    "version": 2,
+    "version": 3,
     "written_by": "game/city/city.gd, SAVE_VERSION",
     "history": {
       "1": "the first format",
-      "2": "buildings carry a level"
+      "2": "buildings carry a level",
+      "3": "carries the tutorial step; a v2 save migrates to 'already finished the tutorial'"
     },
     "rule": "one migration step per version applied in order in _migrate(); a future version is refused, never guessed at",
     "tested": "city_smoke.gd writes a v1 payload by hand \u2014 a save-then-load round trip with current code would pass even if migration did nothing"
@@ -181,6 +182,7 @@
     "save_load": "Ctrl+S / Ctrl+L",
     "recentre": "Home",
     "quit": "Escape",
-    "note": "S is WASD pan-down, which is why save moved to Ctrl+S"
+    "note": "S is WASD pan-down, which is why save moved to Ctrl+S",
+    "touch": "one finger pans, two fingers pinch to zoom, a tap under 18 px does what a left click does; emulate_mouse_from_touch is OFF on purpose"
   }
 }

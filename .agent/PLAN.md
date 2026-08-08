@@ -2,7 +2,7 @@
 
 ## RESUME HERE
 
-**Last session:** 9 August 2026 (session 11). Working tree clean, on `main`.
+**Last session:** 9 August 2026 (session 13). Working tree clean, on `main`.
 **Nothing is half-finished. Commits are NOT pushed — the owner pushes.**
 
 **Where we are: Phase 3 is mechanically complete.** Six buildings, upgrade levels to 5, a
@@ -14,8 +14,8 @@ and want to keep going"* — so the remaining work is Durn's tutorial, and then 
 
 | | |
 |---|---|
-| Pan | right-drag or middle-drag, arrow keys or `WASD` |
-| Zoom | wheel, trackpad pinch, `+` and `-` |
+| Pan | one finger on a phone; right-drag, middle-drag, arrows or `WASD` on a desktop |
+| Zoom | two-finger pinch; wheel, trackpad pinch, `+` and `-` |
 | Place | pick a card, click the ground |
 | Select | click a finished building |
 | Cancel | right-click without dragging |
@@ -59,13 +59,15 @@ set. **Force a clippy re-lint** with `touch sim/*/src/*.rs` before trusting a gr
 
 ## Next 3 actions
 
-1. **Durn's tutorial** — the last thing Phase 3 names. `docs/STORY.md` has the script and
-   `docs/reference/COC_TEARDOWN.md` has the shape: village already built, one action available
-   at a time, everything else dimmed, a named enemy inside thirty seconds.
-2. **Touch input.** Pinch to zoom, drag to pan, tap to select. Right-drag and a scroll wheel are
-   not a phone, and the phase gate is a phone.
-3. **Painted two-tone texture**, the largest remaining gap to the reference. Everything cheaper
-   than it has now been done.
+**Everything Phase 3 names in code is done.** Its gate is *"play twenty minutes on your own
+phone and want to keep going"*, so what is left is a device and your judgement.
+
+1. **Put it on the phone.** The Android build works and the emulator runs it; the gate needs
+   real hardware. iOS is still blocked on the admin action in `STATE.json`.
+2. **Play it for twenty minutes and say yes or no.** If no, say which twenty seconds lost you —
+   that is more useful than a list.
+3. **Painted two-tone texture**, the largest remaining gap to the Clash of Clans reference.
+   Everything cheaper than it has now been done.
 
 ## The art question — two of the three options are now spent
 

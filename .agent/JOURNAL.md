@@ -1037,3 +1037,36 @@ now re-applies the level look after clearing.
 
 **Verified.** city smoke **53 checks**, including one that upgrades a croft — a building with no
 level 2 model — and asserts it changes size and keeps its tint after finishing.
+
+---
+
+## 2026-08-09 — Session 13 — touch, and the phase gate is now a device problem
+
+**One finger pans, two pinch, a tap is a click.** All three go through the same
+grab-the-ground functions the mouse uses, so there is one implementation of "put this world
+point under that screen point" and touch cannot drift out of agreement with the mouse. A tap
+and a left click go through one `_tap()` for the same reason.
+
+**`emulate_mouse_from_touch` is off, on purpose.** With it on a finger becomes a left click, so
+a one-finger drag would try to *place* a building rather than pan, and every pinch would arrive
+as two competing left buttons. Handling touch as touch is fewer surprises than handling a mouse
+that is not there.
+
+**Lifting one finger out of a pinch must not be a tap**, or spreading two fingers to zoom ends
+with a building placed where the second finger was. The tap test only fires for the *last*
+finger up and only under 18 px of travel — larger slop than the mouse's 6, because fingers are
+imprecise and a phone is held in a moving hand.
+
+**Six touch checks in `city_smoke`**, driving the same handlers the operating system would:
+one finger pans and the grabbed ground stays under it, the finger is forgotten on release, two
+fingers spreading zooms in, and lifting one finger of a pinch places nothing. None of that can
+be checked by clicking, and the phase gate is a phone.
+
+One test caught itself: the touch checks ran straight after the pan-clamp check, which leaves
+the camera pinned in a corner where a further pan legitimately does nothing. Recentre first.
+
+**Verified.** no-floats ok · 125 Rust tests · palette ok · sim hash 0x6de277a1cf08225b · city
+smoke **62 checks** · no placement frame over 66 ms.
+
+**Phase 3 is code-complete.** What its gate needs now is a device and the owner's twenty
+minutes.
