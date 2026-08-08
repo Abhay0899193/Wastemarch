@@ -207,6 +207,34 @@ white blobs. Matte is the premium look here.
 **Maximum five hues per asset** forces restraint. Colour discipline is the difference between
 "art directed" and "generated."
 
+### The five materials, and why there are exactly five
+
+Every building is made of these and nothing else. The cap above *is* this list — adding a
+sixth material means removing one.
+
+| Material | Palette value | Roughness | Used for |
+|---|---|---|---|
+| stone | Bone grey `#C4BCAE` | 0.85 | Walls, footings, paving, steps |
+| timber | Dead soil `#8B8071` | 0.75 | Posts, planking, doors, railings |
+| thatch | Dry ochre `#9B8459` | 0.95 | Roofs, sacking |
+| cloth | Ostmere crimson `#8C2323` | 0.80 | Banners and pennants **only** |
+| firelight | Firelight core `#F7CE7C` | 0.55 | Braziers, lit windows. Emissive |
+
+**The colours are used literally, not approximated.** The building scripts read the same hex
+values this document locks, so the palette drift visible in concept art physically cannot
+happen to a model. That is the point of doing colour in the model rather than only in a
+generated texture.
+
+### Rendering at the locked camera is a design check, not a preview
+
+The watchtower's roof was built with a comfortable gap beneath it, which looks correct in a
+side view and **completely hid the brazier** when seen from 30 degrees above — the only angle
+this game has. The brazier is that building's entire "life" signal.
+
+The fix was taller posts and a tighter roof overhang. The point is that no amount of care in
+elevation would have found it: a building must be judged at the camera it will be seen at, and
+that is why `render_and_silhouette.py` renders there and nowhere else.
+
 ---
 
 ## Lighting — almost none of it is real

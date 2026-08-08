@@ -511,3 +511,27 @@ noticed.
 
 Compare a building against its own upgrade levels too: `keep_L1` vs `keep_L5` is 0.71, the
 closest pair in the set and correctly so — the same building, grown.
+
+### Building materials are five palette values, assigned in the builder
+
+`MATERIALS` in `tools/blender/build_asset.py` — stone, timber, thatch, cloth, firelight —
+holding the literal hex values locked in ADR-0004. `using("thatch")` sets what following
+primitives are made of; the primitives tag their own faces.
+
+**Why this matters beyond convenience:** the palette drift visible in AI concept art cannot
+happen to a model, because the model is not asked to interpret a colour, it is given one. Any
+later AI texture pass refines *on top of* a correct base rather than being the only source of
+colour.
+
+Five is the cap from `ART_BIBLE.md` (max five hues per asset). Adding a sixth means removing
+one.
+
+### Judge a building at the locked camera, never in elevation
+
+The watchtower's roof had a comfortable gap under it — correct in a side view, and it
+**completely hid the brazier** at 30 degrees elevation, which is the only angle the game has.
+The brazier is that building's whole "life" signal.
+
+No amount of care in elevation finds this. `tools/blender/render_and_silhouette.py` renders at
+the game camera for exactly this reason, and it is worth looking at its output after any
+proportion change, not only when the silhouette numbers move.

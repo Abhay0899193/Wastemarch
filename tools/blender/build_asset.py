@@ -43,6 +43,67 @@ BUDGETS = {"small": 1500, "large": 4000, "troop": 900}
 # 2 metres across. docs/ART_BIBLE.md.
 TILE = 1.0
 
+# The material vocabulary. Every colour is a value locked in ADR-0004 — the
+# palette is not approximated here, it is used literally, which is the whole
+# reason the drift seen in the concept art cannot happen to a model.
+#
+# Five is not a coincidence: ART_BIBLE.md caps an asset at five hues, so this
+# list is the cap. Adding a sixth material means taking one away.
+MATERIALS = [
+    ("stone",     "#C4BCAE", 0.85),   # bone grey — walls, footings, paving
+    ("timber",    "#8B8071", 0.75),   # dead soil — weathered posts and planking
+    ("thatch",    "#9B8459", 0.95),   # dry ochre — roofs, sacking
+    ("cloth",     "#8C2323", 0.80),   # Ostmere crimson — banners only
+    ("firelight", "#F7CE7C", 0.55),   # the lit thing itself, emissive
+]
+MATERIAL_INDEX = {name: i for i, (name, _, _) in enumerate(MATERIALS)}
+
+# Which material new faces are given. Set by `using()` while building.
+_current_material = 0
+
+
+def using(material: str) -> None:
+    """Every primitive made after this call is that material."""
+    global _current_material
+    if material not in MATERIAL_INDEX:
+        raise KeyError(f"'{material}' is not one of {list(MATERIAL_INDEX)}")
+    _current_material = MATERIAL_INDEX[material]
+
+
+def _tag(bm, first_face_index: int) -> None:
+    """Assign the current material to every face made since the mark."""
+    bm.faces.ensure_lookup_table()
+    for f in bm.faces[first_face_index:]:
+        f.material_index = _current_material
+
+
+def srgb_to_linear_tuple(hex_colour: str):
+    """Blender works in linear light; the palette is written in sRGB."""
+    h = hex_colour.lstrip("#")
+    out = []
+    for i in (0, 2, 4):
+        v = int(h[i:i + 2], 16) / 255.0
+        out.append(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4)
+    return tuple(out)
+
+
+def build_materials(obj) -> None:
+    """Attach the five palette materials, in order, so indices line up."""
+    for name, hex_colour, roughness in MATERIALS:
+        mat = bpy.data.materials.new(name)
+        mat.use_nodes = True
+        bsdf = mat.node_tree.nodes["Principled BSDF"]
+        rgb = srgb_to_linear_tuple(hex_colour)
+        bsdf.inputs["Base Color"].default_value = (*rgb, 1.0)
+        # ART_BIBLE.md: roughness never below 0.35. Shiny reads as cheap on a
+        # phone, where there are no reflections worth having anyway.
+        bsdf.inputs["Roughness"].default_value = max(0.35, roughness)
+        bsdf.inputs["Metallic"].default_value = 0.0
+        if name == "firelight":
+            bsdf.inputs["Emission Color"].default_value = (*rgb, 1.0)
+            bsdf.inputs["Emission Strength"].default_value = 1.6
+        obj.data.materials.append(mat)
+
 
 # ---------------------------------------------------------------------------
 # Small helpers for building shapes. Deliberately plain: every building is boxes
@@ -57,6 +118,7 @@ def new_mesh(name):
 
 
 def prism(bm, bottom_centre, bottom_xy, top_centre, top_xy):
+    _mark = len(bm.faces)
     """A six-sided solid whose top face may differ from its bottom. 12 triangles.
 
     This one primitive covers everything the buildings need: a plain box when the
@@ -75,6 +137,7 @@ def prism(bm, bottom_centre, bottom_xy, top_centre, top_xy):
     for i in range(4):
         j = (i + 1) % 4
         bm.faces.new((lo[i], lo[j], hi[j], hi[i]))
+    _tag(bm, _mark)
     return lo + hi
 
 
@@ -87,6 +150,7 @@ def box(bm, centre, size):
 
 
 def pyramid(bm, centre, size, height):
+    _mark = len(bm.faces)
     """A square-based pyramid — the watchtower's roof. 6 triangles."""
     cx, cy, cz = centre
     hx, hy = size[0] / 2, size[1] / 2
@@ -96,9 +160,11 @@ def pyramid(bm, centre, size, height):
     bm.faces.new(tuple(reversed(base)))
     for i in range(4):
         bm.faces.new((base[i], base[(i + 1) % 4], apex))
+    _tag(bm, _mark)
 
 
 def gable_roof(bm, centre, size, ridge_height):
+    _mark = len(bm.faces)
     """A simple pitched roof: two slopes and two triangular ends. 8 triangles."""
     cx, cy, cz = centre
     sx, sy = size[0] / 2, size[1] / 2
@@ -110,9 +176,11 @@ def gable_roof(bm, centre, size, ridge_height):
     bm.faces.new((e[2], e[3], r0, r1))     # back slope
     bm.faces.new((e[1], e[2], r1))         # gable end
     bm.faces.new((e[3], e[0], r0))         # gable end
+    _tag(bm, _mark)
 
 
 def ramp(bm, start, end, width, thickness):
+    _mark = len(bm.faces)
     """A sloped plank, used for the granary's grain chute."""
     ax, ay, az = start
     bx, by, bz = end
@@ -130,6 +198,7 @@ def ramp(bm, start, end, width, thickness):
     for i in range(4):
         j = (i + 1) % 4
         bm.faces.new((top[i], top[j], bot[j], bot[i]))
+    _tag(bm, _mark)
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +220,8 @@ def build_granary(level: int = 1, detail: bool = True):
     simplified away in an LOD.
     """
     obj = new_mesh("granary")
+    build_materials(obj)
+    using("stone")
     bm = bmesh.new()
 
     foot = 2.0 * TILE                    # the 2x2 tiles it occupies
@@ -163,13 +234,17 @@ def build_granary(level: int = 1, detail: bool = True):
     body_y = foot / 2 - body_d / 2       # body pushed to the back of the plot
     lean_y = -foot / 2 + lean_d / 2
 
+    using("stone")
     box(bm, (0, body_y, stone_h / 2), (foot + 0.1, body_d + 0.1, stone_h))
+    using("timber")
     box(bm, (0, body_y, stone_h + body_h / 2), (foot, body_d, body_h))
+    using("thatch")
     gable_roof(bm, (0, body_y, stone_h + body_h),
                (foot + 0.34, body_d + 0.30), ridge)
 
     # Plank door on the gable end, sunk slightly so it reads as an opening.
     if detail:
+        using("timber")
         box(bm, (-foot / 2 + 0.02, body_y + 0.1, stone_h + 0.52),
             (0.1, 0.6, 1.04))
 
@@ -178,9 +253,11 @@ def build_granary(level: int = 1, detail: bool = True):
     # edge here put the whole roof a metre off to one side, which the overhang
     # check caught immediately.
     eave_z = stone_h + body_h * 0.86
+    using("thatch")
     ramp(bm, (0.0, body_y - body_d / 2, eave_z),
          (0.0, -foot / 2 + 0.04, eave_z - 0.34),
          width=foot, thickness=0.09)
+    using("timber")
     for px in (-foot / 2 + 0.12, 0.0, foot / 2 - 0.12):
         box(bm, (px, lean_y - lean_d / 2 + 0.1, (eave_z - 0.34) / 2),
             (0.11, 0.11, eave_z - 0.34))
@@ -189,6 +266,7 @@ def build_granary(level: int = 1, detail: bool = True):
     # "store" without any need for a sign — and they are also pure detail, so
     # they are the first thing dropped at distance.
     if detail:
+        using("thatch")
         for sx, sy, sz, s in ((-0.62, 0.06, 0.15, 0.34), (-0.22, 0.02, 0.15, 0.32),
                               (0.20, 0.06, 0.15, 0.33), (0.62, 0.02, 0.15, 0.31),
                               (-0.42, 0.10, 0.44, 0.30), (0.40, 0.06, 0.44, 0.29)):
@@ -216,6 +294,8 @@ def build_keep(level: int = 1, detail: bool = True):
     t = (max(1, min(5, level)) - 1) / 4.0        # 0 at level 1, 1 at level 5
 
     obj = new_mesh("keep")
+    build_materials(obj)
+    using("stone")
     bm = bmesh.new()
 
     foot = 4.0 * TILE
@@ -234,6 +314,7 @@ def build_keep(level: int = 1, detail: bool = True):
     # Four walls around a courtyard, rather than one solid block. The gap is
     # visible from the game camera and it is what makes the keep read as a place
     # with an inside.
+    using("stone")
     for sx, sy, w, d in ((0, 1, foot, wall_t), (0, -1, foot, wall_t),
                          (1, 0, wall_t, foot - 2 * wall_t),
                          (-1, 0, wall_t, foot - 2 * wall_t)):
@@ -290,10 +371,15 @@ def build_keep(level: int = 1, detail: bool = True):
         # Arched door with steps up to it, and the crimson banner. All three are
         # things the eye finds first at close range and cannot resolve at all
         # from far away.
+        using("timber")
         box(bm, (0.0, -(foot / 2 - wall_t) + 0.02, 0.55), (0.85, 0.12, 1.10))
+        using("stone")
         for i, sz in enumerate((0.06, 0.12, 0.18)):
             box(bm, (0.0, -(foot / 2) - 0.12 + i * 0.13, sz / 2),
                 (1.0, 0.26, sz))
+        # The one piece of crimson on the whole building. ART_BIBLE.md rule 3:
+        # if everything the kingdom owns is crimson, crimson stops meaning power.
+        using("cloth")
         box(bm, (0.25 + tower_w / 2 + 0.02, ty, tower_h * 0.74),
             (0.04, 0.42, 0.62))
 
@@ -316,6 +402,8 @@ def build_watchtower(level: int = 1, detail: bool = True):
     t = (max(1, min(5, level)) - 1) / 4.0
 
     obj = new_mesh("watchtower")
+    build_materials(obj)
+    using("stone")
     bm = bmesh.new()
 
     foot = 2.0 * TILE
@@ -325,11 +413,13 @@ def build_watchtower(level: int = 1, detail: bool = True):
     plat_w = 1.34
     leg_bot = foot / 2 - 0.16
 
+    using("stone")
     box(bm, (0, 0, base_h / 2), (foot - 0.06, foot - 0.06, base_h))
     prism(bm, (0, 0, base_h), (core_bot, core_bot),
           (0, 0, plat_z - 0.1), (core_top, core_top))
 
     # Four splayed legs, wide at the ground and gathered under the platform.
+    using("timber")
     for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
         prism(bm, (sx * leg_bot, sy * leg_bot, base_h), (0.17, 0.17),
               (sx * (plat_w / 2 - 0.08), sy * (plat_w / 2 - 0.08), plat_z),
@@ -337,19 +427,30 @@ def build_watchtower(level: int = 1, detail: bool = True):
 
     box(bm, (0, 0, plat_z + 0.06), (plat_w + 0.30, plat_w + 0.30, 0.12))
 
-    # Roof on four corner posts, leaving the platform open on all sides so the
-    # brazier inside it is visible from every angle the camera allows.
-    eave = plat_z + 0.72
+    # Roof on four corner posts.
+    #
+    # **The post height and roof size are set by the camera, not by taste.** The
+    # first version had a 0.66 m gap under a generous roof, which looks right in
+    # elevation and completely hides the brazier when seen from 30 degrees above
+    # — which is the only angle this game has. The brazier is the building's
+    # entire "life" signal under ART_BIBLE.md, so the roof gives way to it: taller
+    # posts, tighter overhang. Found by rendering at the locked camera, which is
+    # the only way it could have been found.
+    post_h = 1.02
+    eave = plat_z + 0.12 + post_h
     for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
         box(bm, (sx * (plat_w / 2 - 0.07), sy * (plat_w / 2 - 0.07),
-                 plat_z + 0.42), (0.1, 0.1, 0.66))
-    pyramid(bm, (0, 0, eave), (plat_w + 0.46, plat_w + 0.46), 0.52)
+                 plat_z + 0.12 + post_h / 2), (0.1, 0.1, post_h))
+    using("thatch")
+    pyramid(bm, (0, 0, eave), (plat_w + 0.24, plat_w + 0.24), 0.46)
 
-    box(bm, (0, 0, plat_z + 0.32), (0.36, 0.36, 0.4))        # brazier
+    using("firelight")
+    box(bm, (0, 0, plat_z + 0.42), (0.40, 0.40, 0.58))       # brazier
 
     if detail:
         # Railings, ladder and pennant. The railing in particular is 40% of the
         # triangle count and none of the silhouette.
+        using("timber")
         for sx, sy, w, d in ((0, 1, plat_w, 0.07), (0, -1, plat_w, 0.07),
                              (1, 0, 0.07, plat_w), (-1, 0, 0.07, plat_w)):
             box(bm, (sx * plat_w / 2, sy * plat_w / 2, plat_z + 0.34),
@@ -366,6 +467,7 @@ def build_watchtower(level: int = 1, detail: bool = True):
             box(bm, (-0.55 + 0.25 * f, 0.62 - 0.32 * f,
                      base_h + (plat_z - base_h) * f), (0.44, 0.05, 0.04))
         box(bm, (0, 0, eave + 0.52 + 0.24), (0.05, 0.05, 0.48))   # pennant pole
+        using("cloth")
         box(bm, (0.17, 0, eave + 0.52 + 0.34), (0.30, 0.03, 0.18))
 
     bm.to_mesh(obj.data)

@@ -138,10 +138,13 @@ def render_one(asset: str, level: int, silhouette: bool, ortho_scale: float) -> 
 
     setup_scene(silhouette, SIL_PX if silhouette else LOOK_PX, ortho_scale, height)
 
-    # Dead soil, from the locked palette, so the look render is roughly on-model
-    # even before real textures exist.
-    obj.data.materials.append(
-        flat_material(None if silhouette else (0.30, 0.25, 0.19)))
+    if silhouette:
+        # One solid black material replacing all of them — the silhouette is
+        # about shape only, and any colour at all would leak into the mask.
+        obj.data.materials.clear()
+        obj.data.materials.append(flat_material(None))
+        for poly in obj.data.polygons:
+            poly.material_index = 0
 
     suffix = "_sil" if silhouette else ""
     path = OUT / f"{asset}_L{level}{suffix}.png"

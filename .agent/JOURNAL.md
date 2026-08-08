@@ -586,3 +586,36 @@ nobody ever catches, because it only ever says "fine".
 
 Also worth its own line: `BLENDER_EEVEE_NEXT` does not exist in 5.2 — it is `BLENDER_EEVEE`.
 Precisely the 4.x-to-5.x drift MEMORY warned would cost time in Phase 2.
+
+### Stage 3, started at the lazy rung — and it solved a problem I had flagged
+
+Checked the prerequisites before committing to the master plan's approach and two things came
+back that changed it. `mflux-generate-qwen-edit` takes init images rather than true ControlNet
+conditioning, and **Qwen-Image-Edit is not cached** — a multi-gigabyte download standing
+between here and a first texture.
+
+So stage 3 starts with material zones painted straight from the locked palette instead: five
+materials, literal hex values from ADR-0004, assigned per part in the builder. Deterministic,
+instant, no download.
+
+**That also fixes something I had raised as an open risk.** The concept art drifts brighter and
+more saturated than the palette; I had said it would matter if it survived stage 3. It cannot
+now, because the model is never asked to interpret a colour — it is given one. An AI texture
+pass later refines on top of a correct base rather than being the only source of colour.
+
+### The camera found a fault no amount of care would have
+
+The watchtower's roof sat on a comfortable gap that looks right in elevation and **completely
+hid the brazier** from 30 degrees above, which is the only angle this game has. The brazier is
+that building's entire "life" signal under the Art Bible.
+
+Taller posts, tighter overhang, fixed. Written into `ART_BIBLE.md` as a rule: a building is
+judged at the camera it will be seen at, and rendering there is a design check rather than a
+preview.
+
+### State
+
+Three buildings, palette materials, in the engine: **2,548 triangles and 10 draw calls**
+against 250,000 and 120. `game/world/AssetPreview.tscn` shows them in the real renderer at the
+locked camera and prints the budget, which is `MASTER_PLAN.md` stage 6 as well as somewhere to
+look.
