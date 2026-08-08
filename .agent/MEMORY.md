@@ -921,3 +921,40 @@ Two related shape lessons from the same pass:
 
 Budgets had room four times over the whole time: keep 1,488 of 4,000, watchtower 558 of 1,500,
 granary 294 of 1,500.
+
+## Phase 3 proof of concept
+
+    $GODOT --path game res://city/City.tscn                       # play it
+    $GODOT --headless --path game --script res://tools/city_smoke.gd   # check it
+
+`game/city/city.gd` + `City.tscn`. Place from the bar, click to build, right-drag to pan,
+scroll to zoom, `S` save, `L` load. Balance is in `game/data/buildings.json`, all placeholder.
+
+### `add_child()` in `_initialize` does NOT run `_ready` before `_initialize` returns
+
+The node enters the tree when the main loop next iterates, so every field is still empty if
+read straight after. The first city smoke test failed with "expected 90, got 0" and **the bug
+was in the test**. Do setup in `_initialize`, then wait for `is_inside_tree()` in `_process`
+and run the checks there.
+
+### The grid is two lines of `fract` in the ground shader
+
+1,936 tiles as meshes is a draw-call problem and as a texture it is a memory one. In the
+shader it is free and crisp at every zoom. `game/city/City.tscn`, `Shader_ground`.
+
+### Godot picks the tile under the mouse by ray-plane, not physics
+
+The ground is y=0, so intersecting the camera ray with that plane needs no colliders and
+cannot be blocked by a building standing in the way. `_cell_under_mouse()`.
+
+### Tint with surface *overrides*, and clear them to reveal the baked texture
+
+`set_surface_override_material` is per instance, so tinting a ghost cannot tint every building
+sharing that material. To finish a building, set the override back to `null` rather than
+tinting it to white — the baked texture lives on the mesh's own material and any override
+hides it permanently.
+
+### `timeout` is not on macOS
+
+`timeout 60 cmd` fails with "command not found" and the command silently does not run, which
+looks exactly like a hang. Cost a diagnostic cycle. Use a polling loop instead.

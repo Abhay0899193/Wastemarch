@@ -1,0 +1,88 @@
+[gd_scene load_steps=6 format=3]
+
+; Phase 3 proof of concept — the buildable city.
+;
+;   $GODOT --path game res://city/City.tscn
+;
+; Camera and lighting are the locked ones from docs/ART_BIBLE.md and must stay
+; identical to world/WorldRoot.tscn. Angles rather than a Transform3D basis, see
+; .agent/MEMORY.md.
+
+[ext_resource type="Script" path="res://city/city.gd" id="1_city"]
+
+[sub_resource type="Environment" id="Environment_city"]
+background_mode = 1
+background_color = Color(0.11, 0.12, 0.13, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.34, 0.39, 0.5, 1)
+ambient_light_energy = 0.32
+
+; The grid is drawn in the ground shader rather than as geometry. Forty-four
+; squared is 1,936 tiles; as meshes that is a draw call problem and as a texture
+; it is a memory one, but as two lines of `fract` it is free and always crisp at
+; any zoom.
+[sub_resource type="Shader" id="Shader_ground"]
+code = "shader_type spatial;
+render_mode diffuse_lambert, specular_disabled;
+
+uniform vec3 soil : source_color = vec3(0.545, 0.502, 0.443);
+uniform vec3 line_colour : source_color = vec3(0.44, 0.40, 0.35);
+uniform float tile = 1.0;
+uniform float line_width = 0.02;
+uniform float half_extent = 22.0;
+
+void fragment() {
+	vec2 p = (VERTEX.xz) / tile;
+	vec2 g = abs(fract(p) - 0.5);
+	float line = 1.0 - smoothstep(0.5 - line_width * 2.0, 0.5, max(g.x, g.y));
+	vec3 base = mix(line_colour, soil, line);
+
+	// Outside the playable square the ground stays plain, so the edge of the
+	// world is visible without a fence around it.
+	vec2 d = abs(VERTEX.xz);
+	float inside = step(max(d.x, d.y), half_extent);
+	ALBEDO = mix(soil, base, inside);
+	ROUGHNESS = 0.95;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="Material_ground"]
+shader = SubResource("Shader_ground")
+
+[sub_resource type="PlaneMesh" id="Mesh_ground"]
+size = Vector2(120, 120)
+material = SubResource("Material_ground")
+
+[node name="City" type="Node3D"]
+script = ExtResource("1_city")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_city")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(12.247449, 10, 12.247449)
+rotation_degrees = Vector3(-30, 45, 0)
+projection = 1
+size = 22.0
+far = 300.0
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+position = Vector3(0, 20, 0)
+rotation_degrees = Vector3(-45, -50, 0)
+light_color = Color(1, 0.95, 0.87, 1)
+light_energy = 2.0
+shadow_enabled = true
+directional_shadow_mode = 0
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_ground")
+
+[node name="Placed" type="Node3D" parent="."]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Root" type="Control" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2

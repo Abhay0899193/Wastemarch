@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "Balance values live here, not in code — MASTER_PLAN.md section 5, and CLAUDE.md.",
+    "Every number below is PLACEHOLDER. Phase 5 tunes the real curve against a",
+    "spreadsheet before it is tuned in the game. What matters now is that the loop",
+    "closes: each building pays for the next one, so there is always a reason to",
+    "place something.",
+    "",
+    "cost      what it takes to place, deducted immediately",
+    "produces  resource and amount, added every `interval` seconds once built",
+    "build_s   seconds from placement to finished",
+    "footprint tiles, and the model is expected to match it"
+  ],
+  "buildings": [
+    {
+      "id": "keep",
+      "name": "Keep",
+      "footprint": [4, 4],
+      "cost": {"stone": 60},
+      "build_s": 12.0,
+      "produces": {"resource": "timber", "amount": 2, "interval": 6.0},
+      "blurb": "The hold itself. Cuts and stores timber from the old fields."
+    },
+    {
+      "id": "granary",
+      "name": "Granary",
+      "footprint": [2, 2],
+      "cost": {"timber": 30},
+      "build_s": 6.0,
+      "produces": {"resource": "grain", "amount": 3, "interval": 5.0},
+      "blurb": "Keeps the grain dry. Feeds everything else you build."
+    },
+    {
+      "id": "watchtower",
+      "name": "Watchtower",
+      "footprint": [2, 2],
+      "cost": {"grain": 40, "timber": 20},
+      "build_s": 9.0,
+      "produces": {"resource": "stone", "amount": 2, "interval": 8.0},
+      "blurb": "Eyes on the treeline. The crew quarry stone between watches."
+    }
+  ],
+  "starting_resources": {"grain": 120, "timber": 90, "stone": 70, "iron": 0}
+}
