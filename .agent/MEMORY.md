@@ -448,3 +448,48 @@ relying on care. Keep that check when the pipeline grows.
 via ControlNet. mflux supports that for FLUX models but **not** for Z-Image or
 Qwen-Image-Edit. Stage 1 does not need it. Do not install ComfyUI speculatively; decide when
 stage 3 is actually being built.
+
+## Blender stage 2 — findings from the first real building (8 Aug 2026)
+
+Blender **5.2.0 LTS** headless verified working. `smart_project` (angle in **radians** in 5.x),
+`DECIMATE`, and glTF export all present. Entry point:
+`$BLENDER --background --factory-startup --python tools/blender/build_asset.py -- --asset granary`
+
+### Do not use DECIMATE for LOD on box geometry
+
+It collapses corners — destroying the silhouette the Art Bible exists to protect — and on the
+granary it produced a mesh that `mesh.validate()` reported as needing repair, which glTF then
+warned "may be exported wrongly". The base mesh was clean; **the decimate output was the
+broken one.**
+
+Replaced with **detail-dropping**: builders take `detail: bool`, and LOD1 is the same builder
+run with `detail=False`. Exact, repeatable, silhouette-safe. Also **no LOD1 at all below 400
+triangles** — a second mesh costs memory and a draw call, and the granary is 162 triangles.
+
+### "Origin at footprint centre" means the TILES, not the bounding box
+
+The first validator read it as "mesh bounding box must be centred" and failed a building whose
+lean-to correctly overhangs. Builders now **declare** their footprint in tiles; the validator
+checks the declared footprint and measures overhang separately, capped at `MAX_OVERHANG = 0.35`
+so a building cannot sit on its neighbour's tile.
+
+### Texel density is a claim on the shared atlas, not a per-asset texture size
+
+Reporting "the texture size this asset needs" gave **4096×4096 for a 2×2 shed** — arithmetically
+right, a unit error in fact. All buildings share one texture sheet (`ART_BIBLE.md`, materials),
+so the meaningful number is texels claimed: granary = 39.4 m² × 256² = **2.6M texels**.
+
+**Open and deliberately unresolved:** 256 px/m is 2–4× what a phone actually shows at typical
+zoom. Revisit when stage 3 generates real textures. Geometry is unaffected either way, so it is
+cheap to defer.
+
+### `ramp()` takes the plank's centre line, not an edge
+
+Passing a wall edge put the granary's lean-to roof a metre off-centre. The overhang check
+caught it instantly, which is the whole argument for validating at build time.
+
+### New assets need an editor scan before Godot sees them
+
+Same rule as `.gdextension` files: `--headless --path game --quit` does **not** import a new
+`.glb`. Run `--headless --path game --editor --quit` once; that writes the `.import` file and
+the `.godot/imported/*.scn`.

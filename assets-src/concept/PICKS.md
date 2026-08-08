@@ -7,11 +7,22 @@ comparison read it from a file rather than from someone's memory.
 Provenance for every image — model, seed, full prompt, recipe hash — is in
 `tools/pipeline/provenance.json`.
 
-| Asset | Picked | Recipe | Chosen because |
+**Chosen by the project owner, 8 August 2026.**
+
+| Asset | Level | Picked | Chosen because |
 |---|---|---|---|
-| `keep` | `keep/keep_1002.png` | `80c521459f4653d2` | Crisper stonework than the alternatives, the crimson banner reads as authority rather than decoration, firelight and steps at the door. The rebuilt corner from the prompt is visible. |
-| `granary` | `granary/granary_2002.png` | `aa47c1882d7845d3` | The only take with a prominent grain chute, on staddle stones, with no interior light. Reads as storage, not a dwelling. |
-| `watchtower` | `watchtower/watchtower_1002.png` | `80c521459f4653d2`-family | Passes the 64-pixel silhouette test outright — tall, thin, unmistakable outline, brazier reading as the "life" role. |
+| `granary` | 1 | `granary/granary_1004.png` | Stone footings, a solid plank door, no windows, and an **open lean-to with grain sacks stacked under it**. That lean-to is an asymmetric silhouette feature, which is what the 64-pixel test rewards, and the sacks say "store" without needing a caption. |
+| `watchtower` | 1 | `watchtower/watchtower_1004.png` | Stone core with splayed timber bracing legs, external ladder, railed platform, brazier, paved base. Better structural logic than the alternatives and the silhouette is still unmistakable. |
+| `keep` | 1–2 | `keep/keep_1002.png` | Compact and vertical. The early keep: one tower, tight walls, firelight and steps at the door. |
+| `keep` | 4–5 | `keep/keep_1003.png` | The same building **grown up** — larger walled enclosure, more crenellation, tower set back behind a courtyard. |
+
+### The keep has two references, on purpose
+
+`keep_1002` and `keep_1003` are the *same building at different upgrade levels*, not two
+candidate designs. The parametric builder reads them as the two ends of the progression and
+interpolates the levels between. This is exactly the case `MASTER_PLAN.md` section 7.3 argues
+for scripted models over hand-made ones: five hand-modelled keeps would drift apart, one
+script with a `level` parameter cannot.
 
 ## Known drift, accepted at this stage
 
@@ -26,5 +37,11 @@ stage 3, it is a defect.
 ## The rejected images are still committed
 
 They are cheap, they are already in Git LFS, and they are the honest record of what the prompt
-actually produced — including the four granaries that came out as houses, which is why the
-granary prompt file carries its own history section.
+actually produced — including the ones that came out as houses, which is why the granary prompt file
+carries its own history section.
+
+That history is worth reading with a caveat: the rewritten prompt (`granary_2001`–`2003`) did
+produce the grain chute it was asked for, but the owner picked `granary_1004` from the
+*original* batch anyway, and on inspection it reads as a grain store more convincingly. The
+lesson is not that the prompt fix was wrong — it is that "the prompt did what I asked" and
+"the picture is better" are different questions, and only the second one matters.

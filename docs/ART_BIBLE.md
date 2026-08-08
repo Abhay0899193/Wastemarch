@@ -86,10 +86,29 @@ more detail and more work for the phone.
 | **LOD1** (see below) | 40% of the original |
 
 **LOD** stands for "level of detail" — a simplified copy of a model used when it is far away
-or small on screen, where nobody can tell the difference. Every asset ships with two: the
-full one and a 40% one.
+or small on screen, where nobody can tell the difference.
 
 The build **fails** if an asset is over budget. It is not a warning.
+
+### How LOD1 is made, and when it is not made at all
+
+Two rules here were written from measurement on the first real building, on 8 August 2026, and
+they replace the obvious approach:
+
+**LOD1 is built by leaving parts out, not by simplifying triangles.** The obvious method is
+Blender's *decimate* modifier, which collapses triangles until the model is 40% of its
+original size. On buildings made of boxes it eats corners — that is, it destroys exactly the
+silhouette this document spends a whole section protecting. Measured on the granary it also
+produced a mesh Blender's own checker reported as broken, which the exporter then warned "may
+export wrongly".
+
+So each building script marks its parts as structure or as detail. The grain sacks under the
+granary's lean-to are detail; the lean-to itself is structure and is never dropped. Turning
+detail off is exact, repeatable, and cannot round off an outline.
+
+**Below 400 triangles a model gets no LOD1 at all.** A second mesh costs memory and a draw
+call. The granary is 162 triangles; saving 97 of them does not pay for that. The LOD exists to
+save work, and below this size it creates more than it saves.
 
 ### Whole-scene budgets
 
@@ -116,6 +135,19 @@ A **texel** is one pixel of a texture as it appears stretched over the 3D surfac
 density** is how many of them cover one real-world metre.
 
 Every asset in Wastemarch uses **256 texels per metre**, without exception.
+
+**What this costs, measured.** The granary — a 2×2-tile shed — has 39.4 square metres of
+surface, which at 256 texels per metre is **2.6 million texels**, or a 1,607-pixel square if it
+had a texture to itself. It does not have one: all buildings share a single texture sheet, so
+what an asset really has is a *claim on the shared sheet*. The build reports that claim rather
+than a per-asset texture size, because an asset that "needs a 4096 texture" is a unit error,
+not a fact.
+
+Whether 256 is the right number is a **fair question and it is not settled by this document**:
+at typical phone zoom a building renders at roughly 60–100 pixels per metre, so 256 is two to
+four times the resolution actually on screen. That headroom buys zooming in. It is revisited
+when stage 3 first generates real textures — the geometry does not change either way, so this
+is a cheap decision to defer and an expensive one to guess at.
 
 This single number is what most separates art that looks like a coherent product from art
 that looks assembled from different sources. If one building has crisp detail and its

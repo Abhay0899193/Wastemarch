@@ -1,7 +1,7 @@
 {
   "phase": 2,
   "phase_name": "Phase 2 — art pipeline. Palette locked; nothing is blocked.",
-  "milestone": "Phase 2 stage 1 working: reproducible concept art with provenance, via mflux + Z-Image Turbo",
+  "milestone": "Phase 2 stage 2: first parametric building built, validated and imported into Godot",
   "phase_gate": "Headless battle produces an identical state hash on macOS, Linux and an ARM device",
   "phase_gate_met": true,
   "last_commit": "216c12a",
@@ -67,6 +67,12 @@
       "id": "product-name",
       "blocks": "phase-8 public listing",
       "detail": "'Wastemarch' is a working title. Needs USPTO/EUIPO and app-store searches before any public listing."
+    },
+    {
+      "id": "texel-density-256",
+      "blocks": "nothing yet; revisit at stage 3",
+      "detail": "256 px/m is 2-4x what a phone shows at typical zoom. Granary measures 2.6M texels for a 2x2 shed. Geometry is unaffected by the choice, so it is cheap to defer and expensive to guess.",
+      "urgency": "decide when stage 3 first generates real textures"
     }
   ],
   "adrs": [
@@ -123,5 +129,14 @@
     "entrypoint": "python3 tools/pipeline/concept.py <asset> --seeds N",
     "licence_guard": "concept.py refuses any model not on CLAUDE.md's permitted list — Flux Kontext is cached on this machine for another project",
     "open": "MASTER_PLAN stage 3 conditions textures on baked depth/normal/AO via ControlNet; mflux supports that for FLUX only, not Z-Image or Qwen-Edit. ComfyUI may still be needed then. Deliberately not pre-solved."
+  },
+  "asset_pipeline_status": {
+    "stage_1_concept": "WORKING — tools/pipeline/concept.py, mflux + Z-Image Turbo, ~2min/image, provenance recorded",
+    "stage_2_model": "WORKING for one building — tools/blender/build_asset.py, granary_L1.glb, 162/1500 tris, imports into Godot",
+    "stage_3_texture": "NOT STARTED — needs the ControlNet decision (mflux cannot condition Z-Image/Qwen on baked passes)",
+    "stage_4_export": "folded into stage 2 for now; glTF export + validation happen at build time",
+    "stage_5_icons": "NOT STARTED",
+    "stage_6_godot_validate": "partial — the .glb imports; game/tools/validate_assets.gd does not exist yet",
+    "picks": "assets-src/concept/PICKS.md — granary_1004, watchtower_1004, keep_1002 (early) + keep_1003 (late)"
   }
 }

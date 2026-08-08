@@ -501,3 +501,50 @@ and it is the whole reason the project's one critical risk is manageable.
 
 **The keep is on-model:** bone-grey stone, a small crimson banner reading as authority rather
 than decoration, warm firelight in the doorway, and the rebuilt corner the prompt asked for.
+
+### Stage 2 — the first parametric building
+
+Owner picked `granary_1004`, `watchtower_1004`, and **both** `keep_1002` and `keep_1003`. The
+two keeps are read as the two ends of the upgrade progression rather than as rival designs,
+which is exactly the case the master plan makes for scripted models: one script with a `level`
+parameter cannot drift the way five hand-made keeps would. Recorded in `PICKS.md`.
+
+Worth recording honestly: the owner's granary pick came from the batch I had written off as
+"came out as houses", and on inspection it is the better building — stone footings, solid door,
+no windows, and an open lean-to with grain sacks stacked under it. The lean-to is an asymmetric
+silhouette feature, which is what the 64-pixel test rewards. **"The prompt did what I asked"
+and "the picture is better" are different questions and only the second one matters.**
+
+### The validator earned its keep three times in an hour
+
+Everything below was caught by the build failing, not by looking at a render:
+
+1. **A metre-off-centre lean-to roof.** `ramp()` takes the plank's centre line; I passed a wall
+   edge. The overhang check named the exact distance.
+2. **"Origin at footprint centre" was implemented wrongly** — as "the mesh bounding box must be
+   centred", which failed a building whose lean-to is *meant* to overhang. Builders now declare
+   their footprint in tiles and overhang is measured separately, capped at 0.35 m.
+3. **Decimate produces broken meshes on box geometry.** `mesh.validate()` said the base mesh
+   was clean and the decimated LOD1 needed repair; glTF then warned it "may be exported
+   wrongly". Decimation also eats corners, destroying the silhouette the Art Bible protects.
+
+That third one changed a rule rather than a line of code. LOD1 is now built by **dropping
+detail parts** — builders take `detail: bool` — and below 400 triangles there is no LOD1 at
+all, because a second mesh costs a draw call to save 97 triangles. Both written into
+`ART_BIBLE.md`.
+
+### A unit error caught by disbelief rather than by a test
+
+The build first reported the granary needs a **4096×4096 texture**. Arithmetically correct and
+obviously absurd for a shed. The mistake was the unit: buildings share one texture sheet, so an
+asset does not have a texture size, it has a claim on atlas area. Now reported as 2.6M texels.
+
+That raised a fair question the Art Bible now carries openly: **256 texels per metre is two to
+four times what a phone shows** at typical zoom. Not changed — the geometry is unaffected
+either way, so it is cheap to defer to stage 3 and expensive to guess at.
+
+### End to end
+
+`granary_L1.glb` — 162 of 1,500 triangles, 2×2 tiles, 0.17 m overhang, sitting on z=0 —
+imports into Godot cleanly and produces a `.scn`. Prompt → concept → parametric model →
+validated → glTF → engine, with nothing done by hand.
