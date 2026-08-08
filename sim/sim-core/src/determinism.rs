@@ -308,17 +308,20 @@ mod tests {
 
     #[test]
     fn the_godot_smoke_test_expects_the_same_hash() {
-        // game/tools/sim_smoke.gd hard-codes this value on purpose: reading it
+        // game/tools/sim_checks.gd hard-codes this value on purpose: reading it
         // back out of the library would make a stale build agree with itself.
         // The duplication is load-bearing, so this keeps the two in step rather
         // than leaving it to whoever edits one of them.
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../game/tools/sim_smoke.gd");
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../game/tools/sim_checks.gd"
+        );
         let source =
             std::fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {path}: {e}"));
         let expected = format!("const EXPECTED_HASH := \"{EXPECTED_HASH:#018x}\"");
         assert!(
             source.contains(&expected),
-            "game/tools/sim_smoke.gd is out of step with EXPECTED_HASH.\n\
+            "game/tools/sim_checks.gd is out of step with EXPECTED_HASH.\n\
              It should contain:\n  {expected}"
         );
     }

@@ -355,3 +355,57 @@ simulation ignoring its inputs entirely would pass the replay loop perfectly.
 125 tests plus the gated sweep. Phase 1 is **complete except the ARM-device third of its
 gate**, which needs hardware. Two blockers remain and both are the owner's: an admin password
 for iOS, and a physical Android device.
+
+---
+
+## 2026-08-08 — Session 5 — the ARM leg, on an emulator
+
+### The question
+
+Owner asked whether anything could be tested while a physical Android phone and an admin
+password are being arranged, and whether a simulator would do. Answer for Android: yes,
+completely, for correctness. Answer for iOS: no — the missing framework *is* the simulator,
+so there is nothing to fall back to.
+
+### The emulator
+
+`system-images;android-34;default;arm64-v8a` plus `emulator`, installed under `$HOME` with no
+admin, AVD `wastemarch_p6a` on the pixel_6a profile. On Apple Silicon this runs the real
+`aarch64-linux-android` library natively under HVF with real bionic — a genuine third leg for
+the hash, not a translation layer.
+
+### Making the hash visible on a device at all
+
+**An exported app ignores `--script`**, so `tools/sim_smoke.gd` cannot run on a phone. Split
+the checks into `tools/sim_checks.gd` (a `RefCounted` with `run() -> int`); `sim_smoke.gd` is
+now a six-line shim and `world/world_root.gd` calls the same thing from `_ready()`. One set of
+checks, two entry points, no duplication. `adb logcat -s godot:V` reads it.
+
+The Rust test that pins the hash constant into GDScript failed within minutes of the move,
+which is exactly what it is for. Repointed at the new file.
+
+### The false emergency
+
+First on-device run: `expected 0x6de277a1cf08225b, got 0x8f71831f894f8205`. That is the
+signature MEMORY describes as "stop everything". It was a **stale `.so`** — built 01:36, with
+`sim-core` last touched 02:05, across three golden-hash changes. `cargo test` on the desktop
+never rebuilds the Android target, so nothing else in the project would ever have noticed.
+Rebuilt, re-exported, hash matched exactly.
+
+Recorded in MEMORY as a mtime check to run *before* believing any cross-platform failure. The
+real fix is a CI job that cross-compiles the Android target; that is now action 2 in PLAN.
+
+### What the emulator will not tell us
+
+Screenshot comes back black — the Vulkan surface is not composited into `screencap`. Stopped
+after two attempts rather than chasing it; it is not evidence of a render failure, and frame
+rate on an emulator borrowing the Mac's GPU is meaningless anyway. Performance, draw calls,
+triangles and heat remain hardware-only, which is the Phase 0 budget gate, not Phase 1's.
+
+### State
+
+125 tests green, hash agrees on macOS, Linux and an ARM Android system. **Left for the owner:
+does an emulator close the Phase 1 gate, or does it need a physical phone?** It is the same
+M4 Pro silicon as the macOS leg, so it proves the toolchain and ABI, not a second chip vendor.
+`sim-core` is pure integer, which is why that risk is small — but it is the owner's call and
+the gate stays open until they make it.

@@ -142,6 +142,65 @@ no admin.
   just the presence, of every `.so` the `.gdextension` lists:
   `unzip -l <apk> | grep lib/`.
 
+### A stale cross-compiled `.so` looks EXACTLY like a determinism emergency
+
+First run of the sim checks on Android reported
+`FAIL determinism hash: expected 0x6de277a1cf08225b, got 0x8f71831f894f8205`. That is the
+signature MEMORY calls "stop everything". It was not divergence. The Android `.so` was built
+at 01:36 and `sim-core/src/*.rs` last changed at 02:05 — the golden hash moved three times
+that session and the phone build predated the last move.
+
+Godot's export copies whatever `sim.gdextension` points at. `cargo test` on the desktop does
+**not** rebuild the Android target, so nothing else in the project notices.
+
+**Before believing any cross-platform hash failure, compare mtimes:**
+
+```bash
+ls -l sim/target/aarch64-linux-android/debug/libsim_godot.so sim/sim-core/src/*.rs
+```
+
+Rebuild first — `cargo build -p sim-godot --target aarch64-linux-android` — then re-export,
+**then** panic if it still disagrees. After the rebuild the hash matched exactly.
+
+Same trap applies to `aarch64-apple-ios` whenever iOS unblocks.
+
+### The Android emulator runs the real ARM build — use it, but only for correctness
+
+`system-images;android-34;default;arm64-v8a` on Apple Silicon executes the actual
+`aarch64-linux-android` library natively under HVF, with real bionic. So it is a genuine third
+leg for the determinism hash, and it verifies the Android toolchain and ABI. Setup and
+commands are in `docs/ENVIRONMENT.md` and `docs/TESTING.md` check 6. AVD name
+`wastemarch_p6a`.
+
+**What it does not answer:** it is the same Apple M4 Pro silicon as the macOS leg, so it does
+not prove agreement with a Qualcomm or Exynos chip — though `sim-core` is pure integer, which
+is precisely why the no-float rule exists. And it says nothing about frame rate, draw calls,
+heat or throttling.
+
+**Emulator gotchas, both hit on 8 Aug 2026:**
+
+- `adb install` fails with `device offline` when the adb server restarts between shell
+  invocations. Loop on `adb get-state` until it says `device` before installing, and
+  **check the install actually said `Success`** — otherwise the previous APK stays installed
+  and the next launch silently re-runs the old build.
+- The launcher activity is `com.wastemarch.game/com.godot.game.GodotAppLauncher`, not
+  `GodotApp` — `am start` on `GodotApp` fails with `Permission Denial ... not exported`.
+- `adb exec-out screencap -p` returns **black** for the Godot app. The Vulkan surface is not
+  composited into the screenshot buffer. Do not chase this; it is not evidence the render
+  failed. `ERROR: Couldn't present to Vulkan queue (VkResult error 5)` at startup is
+  `VK_ERROR_OUT_OF_DATE_KHR` from the rotation to landscape, and stops after three.
+
+### The determinism hash is now duplicated in `sim_checks.gd`, and a Rust test pins it there
+
+`game/tools/sim_checks.gd` holds the boundary checks; `tools/sim_smoke.gd` (headless,
+`--script`) and `world/world_root.gd` (inside a real build) both call it. The second exists
+because **an exported app ignores `--script`** — on a phone there is no other way to see the
+hash.
+
+`determinism.rs::tests::the_godot_smoke_test_expects_the_same_hash` reads that file by path.
+Moving or renaming `sim_checks.gd` fails that test, by design. It caught the move within
+minutes of making it.
+
 ### Godot's iOS export needs app icons
 
 The export gets all the way through generating the Xcode project and then fails:

@@ -1,4 +1,6 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://world/world_root.gd" id="1_worldroot"]
 
 ; Phase 0 gate scene: a grey cube under the locked game camera.
 ; The camera is the real deliverable here — orthographic, 30 degrees elevation,
@@ -31,6 +33,7 @@ material = SubResource("Material_ground")
 size = Vector2(40, 40)
 
 [node name="WorldRoot" type="Node3D"]
+script = ExtResource("1_worldroot")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_world")

@@ -1,7 +1,7 @@
 # Testing — the checks that guard the project
 
 **What this is.** This lists every automatic check the project runs, what each one protects
-against, and how to run it yourself. Right now there are five; more arrive with each phase.
+against, and how to run it yourself. Right now there are six; more arrive with each phase.
 The list is short on purpose — a check that nobody trusts is worse than no check.
 
 ---
@@ -20,6 +20,9 @@ $GODOT --headless --path game --quit    # 4. the game project imports cleanly
 All of these also run automatically on GitHub every time anything is pushed, and the
 simulation tests run on **two different kinds of computer at once** — see check 5. If any one
 of them fails, the change is marked broken.
+
+Check 6 is the exception: it needs an emulated Android phone running on your Mac, so it is
+run by hand rather than on GitHub.
 
 ---
 
@@ -154,11 +157,60 @@ sit exactly on a rounding boundary are precisely where two implementations diver
 of them is now included deliberately. **This is why a check has to be watched failing before
 it can be trusted.**
 
+## 6. The simulation agrees with itself on an Android phone
+
+**What it protects against:** the same arithmetic giving a different answer once it is compiled
+for a phone's processor rather than a computer's. If that ever happened, two players' phones
+could watch the same battle end differently, and nothing else in this list would notice.
+
+Check 5 compares a Mac and a Linux server. This check adds a third, genuinely different
+machine: the Android build of the simulation, running on an Android system, on an ARM
+processor. It runs in an **emulator** — a full Android phone simulated on the Mac — so it
+needs no hardware.
+
+```bash
+export ADB=~/Android/sdk/platform-tools/adb
+export GODOT=/Users/singha7/Applications/Godot.app/Contents/MacOS/Godot
+
+# 1. Start the emulated phone (leave it running; it takes about half a minute to boot).
+~/Android/sdk/emulator/emulator -avd wastemarch_p6a -no-snapshot -no-boot-anim &
+
+# 2. Build the simulation for phone processors, then package the game.
+(cd sim && cargo build -p sim-godot --target aarch64-linux-android)
+"$GODOT" --headless --path game --export-debug "Android" /tmp/wastemarch.apk
+
+# 3. Install it and read what it says.
+$ADB install -r /tmp/wastemarch.apk
+$ADB logcat -c
+$ADB shell am start -n com.wastemarch.game/com.godot.game.GodotAppLauncher
+sleep 20 && $ADB logcat -d | grep "godot   :"
+```
+
+**What a pass looks like** — the last line must read:
+
+```
+PASS — the Rust simulation is running inside Godot and agrees with CI
+```
+
+and the hash line above it must show the same value as `sim/sim-core/src/determinism.rs`.
+
+**Step 2 is not optional.** The game package contains a *copy* of the simulation built for
+phones. If you skip the build, the copy is whatever was built last time, and the check will
+report a mismatch that looks exactly like a real cross-platform bug but is only a stale file.
+This happened on the very first run of this check.
+
+**What this check does NOT cover: speed, or anything you can see.** The emulator borrows the
+Mac's graphics card, so its frame rate means nothing, and a screenshot of it comes back black
+because of how the emulator handles 3D. Frame rate, draw calls and heat are still only
+answerable on a real phone.
+
+---
+
 ## Checks that arrive later
 
 | Check | Arrives | What it will protect |
 |---|---|---|
-| Determinism on a real phone | Phase 1 | The check above covers Linux and macOS. The Phase 1 gate also requires an ARM device to agree. |
+| Determinism on a real phone | Phase 1 | The check above covers Linux and macOS. An Android emulator now covers the ARM leg too — see check 6. A physical phone is still outstanding. |
 | Asset budget validation | Phase 2 | Every 3D asset within its triangle budget, correct scale, correct texel density, no bad geometry. |
 | Silhouette legibility | Phase 2 | Every building still identifiable as a solid black shape at 64 pixels. |
 | Replay determinism | Phase 4 | A battle replays identically from its record, twice. The Phase 4 completion test. |

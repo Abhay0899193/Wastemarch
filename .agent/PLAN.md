@@ -2,11 +2,17 @@
 
 ## RESUME HERE
 
-**Last session:** 8 August 2026 (session 4). Working tree clean, on `main`, pushed.
+**Last session:** 8 August 2026 (session 5). Working tree clean, on `main`, pushed.
 **Nothing is half-finished.**
 
-**Phase 1 is complete except the ARM-device third of its gate.** Everything that can be built
-without hardware has been built.
+**Phase 1's ARM leg is verified — on an emulator, not yet on a phone.** The Android build of
+the simulation produces `0x6de277a1cf08225b`, the same hash as macOS and Linux, running on a
+real `arm64-v8a` Android system. See `docs/TESTING.md` check 6.
+
+**One open question for the owner: does that close the Phase 1 gate?** The emulator is the
+same Apple M4 Pro silicon as the macOS leg, so it proves the Android toolchain and ABI agree
+but not that a Qualcomm chip does. `sim-core` is pure integer, which is exactly why that is a
+small risk. The gate is left **open** pending the owner's call and a physical phone.
 
 **First command of the next session** — protocol from `CLAUDE.md` §1, then:
 
@@ -38,10 +44,11 @@ set; the binding needs the engine at build time. Its own check is
 | | What | Why it is stuck |
 |---|---|---|
 | **iOS** | `sudo xcodebuild -runFirstLaunch`, once, by someone with admin | `CoreSimulator.framework` is absent and `xcodebuild` will not start without it. **The paid Developer Program does NOT work around this** — see MEMORY. A *free* Apple ID suffices afterwards. |
-| **Android device** | Connect a phone with USB debugging on | The APK is built, signed and complete. `adb devices` lists nothing. |
+| **Android device** | Connect a phone with USB debugging on | Only **performance** now needs it. Correctness is answered by the emulator. `adb devices` lists no physical device. |
 
-**Nothing else is waiting on either.** Both Phase 0 and Phase 1 gates need physical hardware
-and nothing more.
+**The emulator removed the correctness half of the Android blocker.** What is still hardware-only:
+frame rate, draw calls, triangle count, heat and throttling — the Phase 0 budget gate. iOS is
+unchanged and still needs the admin password.
 
 ---
 
@@ -67,15 +74,17 @@ device**. The first two agree on every push; the third needs a device.
 - [x] 10,000-seeded-run property test
 - [x] Determinism canary — **13 perturbations tried, 11 caught, 2 explained**
 - [x] GDExtension: the sim runs inside Godot and agrees with CI
-- [ ] **Blocked on a device:** on-device hash agreement
+- [x] On-device hash agreement — **Android emulator, `arm64-v8a`, hash matches CI**
+- [ ] Same, on a physical phone — owner's call whether the gate needs it
 
-### Next 3 actions, once a device exists
+### Next 3 actions
 
-1. Install the APK, run the sim smoke test on-device, compare the hash to CI's.
-2. Close both gates, then start Phase 2 (art pipeline) — **which is blocked on the colour
-   palette decision**, see below.
-3. Add an `aarch64-linux-android` cross-compile check to CI so the Android library cannot
-   silently regress to zero bytes again.
+1. **Owner decides** whether the emulator closes the Phase 1 gate, or whether a physical
+   phone is required. Everything else is unblocked either way.
+2. Add an `aarch64-linux-android` cross-compile check to CI. The first emulator run failed on
+   a **stale** `.so`, not a real divergence (see MEMORY) — CI building that target would have
+   caught it, and would also stop the library silently regressing to zero bytes again.
+3. Start Phase 2 (art pipeline) — **blocked on the colour palette decision**, see below.
 
 ### If the owner would rather keep building than wait
 
@@ -89,7 +98,7 @@ outstanding.
 ## Frozen numeric contract
 
 See MEMORY, "`sim-core` numeric contract". Golden hash **`0x6de277a1cf08225b`**, duplicated in
-`game/tools/sim_smoke.gd` on purpose and guarded by a test. Changing it invalidates every
+`game/tools/sim_checks.gd` on purpose and guarded by a test. Changing it invalidates every
 recorded battle — sometimes correct, never incidental, always say so in the commit message.
 
 ## Deliberately out of scope

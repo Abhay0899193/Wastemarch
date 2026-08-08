@@ -62,6 +62,12 @@ battle on a Mac, on a Linux machine, and on a phone chip, and compares the resul
 **Finished when:** the same battle produces a byte-for-byte identical result on macOS, on
 Linux, and on an ARM device.
 
+**Status, 8 August 2026:** all three agree. The third is an *emulated* Android phone running
+on the Mac — see [TESTING.md](TESTING.md) check 6. Because the Mac and phones share the same
+kind of processor, that is a real test of the phone build and not a pretend one. It is still
+the same physical chip as the macOS result, so whether it counts as "an ARM device" is a
+judgement call left to the project owner.
+
 **Seeded randomness** means the random numbers come from a starting value we choose, so the
 same starting value always produces the same sequence. It is randomness you can replay.
 

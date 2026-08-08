@@ -294,6 +294,40 @@ Finally, on the phone: **Settings → About → tap "Build number" seven times**
 **Developer options → USB debugging**. Plug it in and `~/Android/sdk/platform-tools/adb
 devices` should list it.
 
+### The emulated phone — a Pixel 6a with no Pixel 6a
+
+An **emulator** is a complete Android phone running as a program on the Mac. Because this Mac
+has an ARM processor and so do phones, the emulator runs the *real* phone build of our code,
+not a translated version. That makes it trustworthy for anything about correctness, and
+worthless for anything about speed. Installed 8 August 2026, no administrator needed:
+
+```bash
+export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jdk-21.0.12+8/Contents/Home
+~/Android/sdk/cmdline-tools/latest/bin/sdkmanager \
+  "emulator" "system-images;android-34;default;arm64-v8a"     # about 1.6 GB
+
+~/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd \
+  -n wastemarch_p6a -k "system-images;android-34;default;arm64-v8a" -d pixel_6a
+```
+
+Then edit `~/.android/avd/wastemarch_p6a.avd/config.ini` so it ends with these four lines —
+the file may already contain older copies of them, and **duplicates must be deleted**, not
+left below the originals:
+
+```ini
+hw.gpu.enabled=yes
+hw.gpu.mode=host
+hw.ramSize=4096
+hw.initialOrientation=landscape
+```
+
+Start it with `~/Android/sdk/emulator/emulator -avd wastemarch_p6a -no-snapshot -no-boot-anim`.
+`docs/TESTING.md` check 6 covers what to do next.
+
+**Two things it cannot tell you.** Frame rate, because it borrows the Mac's graphics card. And
+anything visual, because a screenshot of a 3D Godot app on the emulator comes back black —
+that is a limitation of the emulator's screenshot tool, not a sign the game failed to draw.
+
 ### If you would rather fix Homebrew properly
 
 One administrator command makes every future `brew install` work normally:
