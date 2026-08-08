@@ -38,6 +38,7 @@ be baked into the texture here or it does not exist at all.
 """
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -51,11 +52,15 @@ REPO = Path(__file__).resolve().parent.parent.parent
 OUT_DIR = REPO / "assets-src" / "model"
 TEX_DIR = REPO / "assets-src" / "baked"
 
-# 2048, not 1024. One texture is stretched over a whole building, so it holds far
-# less resolution per face than a 1024 concept image that spent all of itself on
-# the three visible sides. At 1024 the buildings came out visibly blurry beside
-# their own concepts. 2048 costs 4x the texture memory and is still one texture.
-BAKE_PX = 2048
+# Texture size by how much building there is to cover. A 2x2 shed and a 4x4 keep
+# were both getting 2048, which made a 162-triangle granary a 16 MB glTF.
+#
+# **This matters more than it looks.** 24 buildings x 5 levels at 15 MB each is
+# 1.8 GB in Git LFS, against `MASTER_PLAN.md` §1.3's promise of "tens of MB of
+# meshes and shared textures". The shipped app is fine — Godot recompresses to
+# ASTC on import — but the repository is not.
+BAKE_PX_BY_CLASS = {"small": 1024, "large": 2048, "troop": 512}
+BAKE_PX = 2048          # replaced per-asset in main()
 AO_SAMPLES = 24          # plenty for soft contact shadows on box geometry
 AO_STRENGTH = 0.85       # 1.0 is very dark in corners; this keeps it readable
 MARGIN_PX = 16           # bleed past each UV island, so seams do not show
@@ -152,6 +157,68 @@ def save(img, path: Path) -> None:
     img.save()      # colourspace untouched — see .agent/MEMORY.md
 
 
+ICON_PX = 256
+ICON_DIR = REPO / "game" / "assets" / "atlases" / "icons"
+
+
+def render_icon(obj, asset: str, level: int) -> Path:
+    """The building's interface icon: a hero shot on a transparent background.
+
+    `MASTER_PLAN.md` stage 5. The camera is deliberately **not** the game camera
+    — a building card in a shop list wants to be seen slightly from the front and
+    filling its frame, not sitting in the corner at the angle it occupies on the
+    grid. It is the same model though, which is the whole point of stage 5: the
+    interface art can never drift from the game art, because it is the game art.
+    """
+    scene = bpy.context.scene
+    scene.render.engine = "BLENDER_EEVEE"
+    scene.render.resolution_x = scene.render.resolution_y = ICON_PX
+    scene.render.resolution_percentage = 100
+    scene.render.film_transparent = True
+    scene.render.image_settings.file_format = "PNG"
+    scene.render.image_settings.color_mode = "RGBA"
+
+    world = bpy.data.worlds.new("icon_bg")
+    world.use_nodes = True
+    # An icon is seen at 64px in a shop list against an interface panel, so it
+    # needs to be brighter and flatter than the same building on the map. 0.55
+    # came out muddy; this reads at thumbnail size.
+    world.node_tree.nodes["Background"].inputs[0].default_value = (0.62, 0.65, 0.72, 1)
+    world.node_tree.nodes["Background"].inputs[1].default_value = 1.15
+    scene.world = world
+
+    key = bpy.data.lights.new("key", type="SUN")
+    key.energy = 3.4
+    ko = bpy.data.objects.new("key", key)
+    ko.rotation_euler = (math.radians(52), 0, math.radians(-48))
+    bpy.context.collection.objects.link(ko)
+
+    zs = [v.co.z for v in obj.data.vertices]
+    xs = [v.co.x for v in obj.data.vertices]
+    ys = [v.co.y for v in obj.data.vertices]
+    height = max(zs) - min(zs)
+    width = max(max(xs) - min(xs), max(ys) - min(ys))
+
+    cam_data = bpy.data.cameras.new("icon_cam")
+    cam_data.type = "ORTHO"
+    cam_data.ortho_scale = max(width, height) * 1.18
+    cam = bpy.data.objects.new("icon_cam", cam_data)
+    bpy.context.collection.objects.link(cam)
+    elev, yaw = math.radians(24.0), math.radians(38.0)
+    dist = 30.0
+    cam.location = (dist * math.cos(elev) * math.sin(yaw),
+                    -dist * math.cos(elev) * math.cos(yaw),
+                    dist * math.sin(elev) + height * 0.52)
+    cam.rotation_euler = (math.radians(90) - elev, 0.0, yaw)
+    scene.camera = cam
+
+    ICON_DIR.mkdir(parents=True, exist_ok=True)
+    path = ICON_DIR / f"{asset}_L{level}.png"
+    scene.render.filepath = str(path)
+    bpy.ops.render.render(write_still=True)
+    return path
+
+
 def main(argv) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--asset", required=True)
@@ -170,6 +237,10 @@ def main(argv) -> int:
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     obj, size_class, footprint = ba.BUILDERS[args.asset](args.level)
+
+    global BAKE_PX
+    BAKE_PX = BAKE_PX_BY_CLASS[size_class]
+
     unwrap_for_baking(obj)
 
     if not args.from_concept:
@@ -288,8 +359,12 @@ def main(argv) -> int:
     report = ba.validate(obj, size_class, footprint)
     out = OUT_DIR / f"{args.asset}_L{args.level}.glb"
     ba.export([obj], out)
+
+    icon = render_icon(obj, args.asset, args.level)
+
     print(f"\nOK — {report['triangles']} triangles, one baked {BAKE_PX}px "
           f"texture with AO, {out.relative_to(REPO)}")
+    print(f"     icon {ICON_PX}px -> {icon.relative_to(REPO)}")
     return 0
 
 

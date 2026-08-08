@@ -871,3 +871,26 @@ Mechanics that made it work:
 *painted into them*, which is genuinely not background, so it survives the key. That is also
 part of why they look better than the models — they carry occlusion the models only got when
 AO was baked, and more of it.
+
+## The Phase 2 gate command
+
+    python3 tools/pipeline/build.py --all
+
+Prompt file and builder function are the authored inputs; everything after them — concept art,
+geometry, unwrap, 2048/1024 texture with AO and emission, glTF, interface icon, Godot import
+and the budget check — runs unattended. Roughly 10–20 s per building without regenerating art.
+
+**Stage 5 of that script verifies the `.glb` by reading it back**, not by trusting the build
+log: triangle count, material count, texture count, file size, and that the icon is not blank.
+Straight from the Phase 0 lesson where the Android library shipped as zero bytes with a green
+build. A build reporting success is not evidence its output contains anything.
+
+### Texture size is per size class, and glTF size is a real constraint
+
+`BAKE_PX_BY_CLASS` — small 1024, large 2048, troop 512. A 2x2 shed was getting the same 2048 as
+a 4x4 keep, which made a 162-triangle granary a 16 MB glTF.
+
+Even fixed, textures are **embedded** in each `.glb`: granary 4.8 MB, keep 10 MB. Across 24
+buildings x 5 levels that is ~800 MB in Git LFS against a promise of "tens of MB". The shipped
+app is fine because Godot recompresses to ASTC. The repository is not. Recorded in
+`docs/BACKLOG.md` with two fixes; do it before the set passes about six assets.

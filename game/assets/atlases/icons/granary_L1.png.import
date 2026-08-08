@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bb06t2kfgpsf4"
-path="res://.godot/imported/granary_L1_granary_L1_albedo.png-26b656751d2c8e0f53d19514f4937be5.ctex"
+uid="uid://o3u3va47vtoy"
+path="res://.godot/imported/granary_L1.png-382d46d47dc8216445e8edde02cb3bbb.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "cf0aff80f13d5c5ecdeb65bdfd203940"
 }
 
 [deps]
 
-source_file="res://assets/models/granary_L1_granary_L1_albedo.png"
-dest_files=["res://.godot/imported/granary_L1_granary_L1_albedo.png-26b656751d2c8e0f53d19514f4937be5.ctex"]
+source_file="res://assets/atlases/icons/granary_L1.png"
+dest_files=["res://.godot/imported/granary_L1.png-382d46d47dc8216445e8edde02cb3bbb.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

@@ -181,6 +181,33 @@ So the upgrade is really two decisions, and the texel one comes first.
 art is what is holding it back. Not before — this is a large amount of work whose value is
 entirely visual, and Phase 3's test is whether the game is *fun*.
 
+### Stop embedding textures in every `.glb`
+
+Each building ships its baked texture inside its glTF: granary 4.8 MB, keep 10 MB, watchtower
+5.1 MB. Across 24 buildings at 5 levels that is **roughly 800 MB in Git LFS**, against
+`MASTER_PLAN.md` §1.3's promise of "tens of MB of meshes and shared textures".
+
+The shipped app is fine — Godot recompresses to ASTC on import, which `CLAUDE.md` already
+requires. It is the *repository* that suffers.
+
+Two fixes, either of which is enough:
+
+1. **Reference the texture instead of embedding it.** glTF can point at an external file, so
+   five levels of one building share one texture rather than carrying five copies.
+2. **Share a texture across levels.** The levels of a building are the same materials at
+   different sizes; only the unwrap differs, and it could be made to match.
+
+**Reconsider:** before the building set grows past about six assets. Cheap now, a repository
+rewrite later.
+
+### Pack the interface icons into an atlas
+
+`MASTER_PLAN.md` stage 5 specifies "packed into atlases by a committed Python packer". Three
+icons do not need packing and Godot handles individual textures perfectly well, so the packer
+is deliberately not written yet.
+**Reconsider:** when there are more than about twenty icons, or when the interface starts
+drawing many at once.
+
 ### Automatic checks for the two new palette rules
 
 [ART_BIBLE.md](ART_BIBLE.md) rules 7 and 8 — readable in grayscale, and never colour alone —
