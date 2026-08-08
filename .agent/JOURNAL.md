@@ -679,3 +679,27 @@ failed. Now it matches `<material>_<digits>.png`: a blocklist of suffixes goes s
 a new output appears, an allowlist of what a source looks like does not.
 
 Still open, in order: ambient occlusion, lighting, and bounded hue variation within a material.
+
+### Decision: tiled palette materials everywhere, concept projection dropped
+
+After a long run at getting the models to match their concept art — camera projection, edge
+bleed, inset fitting, repainting over the model's own render, baking to a real unwrap — the
+owner asked to see the concept art standing in the engine as sprites instead.
+
+**The sprites looked clearly better than the models.** Recorded plainly; it is the honest
+result of the experiment and it is why the question was worth asking.
+
+The owner then chose to **keep 3D and drop the concept texturing**: every building textured
+from the same five tiled palette materials, the way the watchtower already was. Consistency
+over per-asset fidelity to a painting.
+
+That is a defensible call and probably the right one. Projection gave a livelier surface and
+cost: it only held from one camera angle, needed an inset hack to stop pale slivers, and made
+each building look different depending on how well its concept happened to fit its model —
+which is the *opposite* of what an art bible is for.
+
+**Three things from that work survive and keep their value:** the real UV unwrap, baked
+ambient occlusion, and baked emission. Those are why the buildings look better now than they
+did before any of it, even with the concept art removed.
+
+`assets-src/concept/` is now modelling reference, which is what concept art is normally for.

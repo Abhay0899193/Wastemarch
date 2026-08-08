@@ -2,11 +2,22 @@
 
     $BLENDER --background --factory-startup --python tools/blender/bake_asset.py -- --asset keep
 
-**What changed and why.** Until now the concept art was projected onto the model
-live, from the game camera, and the model carried camera-space UVs. That works
-only from the one angle, needs an inset hack to avoid pale slivers at the
-silhouette, and means the 3D model is barely earning its keep — it is a 2D image
-on geometry, with the drawbacks of both.
+**Buildings are textured from the five tiled palette materials**, then baked into
+a real unwrap with ambient occlusion and emission. That is the default and the
+path; `--from-concept` bakes a projected concept image instead and is kept only
+because the machinery works and its findings are recorded.
+
+**Why not the concept art.** Projecting concept art on gave a livelier surface and
+cost more than it was worth: it only holds from one camera angle, needed an inset
+hack to stop pale slivers at the silhouette, produced a different look per
+building depending on how well each concept happened to fit its model, and left
+the 3D barely earning its keep. The owner chose consistency — every building
+made of the same five materials, the way the watchtower already was — over
+per-asset fidelity to a painting. `assets-src/concept/` is now reference for
+*modelling*, which is what concept art is normally for.
+
+The three things that survived from that work and are keeping their value:
+ambient occlusion, baked emission, and the real UV unwrap.
 
 This does it the way `MASTER_PLAN.md` section 7.3 always specified:
 
@@ -146,10 +157,11 @@ def main(argv) -> int:
     ap.add_argument("--asset", required=True)
     ap.add_argument("--level", type=int, default=1)
     ap.add_argument("--source", help="image to bake from; defaults to the pick")
-    ap.add_argument("--from-materials", action="store_true",
-                    help="bake the tiled palette materials instead of a "
-                         "projected image — for open structures like the "
-                         "watchtower, where projection cannot work")
+    ap.add_argument("--from-concept", action="store_true",
+                    help="bake a projected concept image instead of the tiled "
+                         "palette materials. Kept because the machinery works "
+                         "and the findings are recorded, but it is not the "
+                         "path — see the module docstring.")
     ap.add_argument("--ao-strength", type=float, default=AO_STRENGTH)
     args = ap.parse_args(argv)
 
@@ -160,7 +172,7 @@ def main(argv) -> int:
     obj, size_class, footprint = ba.BUILDERS[args.asset](args.level)
     unwrap_for_baking(obj)
 
-    if args.from_materials:
+    if not args.from_concept:
         # The builder already attached the five tiled palette materials. Bake
         # those, so an open structure still gets ambient occlusion — which is
         # the part it was missing, not the colour.

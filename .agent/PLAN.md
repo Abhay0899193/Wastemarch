@@ -102,9 +102,10 @@ device**. The first two agree on every push; the third needs a device.
 
 ### Next 3 actions
 
-1. **Generate seeds for all three reference buildings and have the owner pick.**
-   `python3 tools/pipeline/concept.py <keep|granary|watchtower> --seeds 4`, about 2 minutes an
-   image. Picks get committed to `assets-src/concept/`; rejects stay uncommitted.
+1. **Geometry.** The buildings are basic and that is now the accepted state — the owner chose
+   consistency over per-asset fidelity to a painting. What is still worth doing inside the
+   existing budgets: the watchtower's ladder, railings and bracing are too thin to read, and
+   the keep's merlons are plain cubes. keep is 1,104 of 4,000 triangles; granary 162 of 1,500.
 2. **Stage 2 for the other two buildings.** `build_granary` is the pattern to follow —
    declare the footprint in tiles, mark detail parts so LOD1 can drop them, validate at build
    time. The keep needs `level` to interpolate between `keep_1002` and `keep_1003`.
