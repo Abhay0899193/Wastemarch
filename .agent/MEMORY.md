@@ -958,3 +958,20 @@ hides it permanently.
 
 `timeout 60 cmd` fails with "command not found" and the command silently does not run, which
 looks exactly like a hang. Cost a diagnostic cycle. Use a polling loop instead.
+
+### Put the guard where every caller routes through, not in the caller
+
+Buildings could be placed on top of each other in the Phase 3 city, and `city_smoke.gd` said
+overlap was refused — because the test called `_place()` directly while the guard lived in the
+click handler. Two different paths, one of them unguarded.
+
+The mechanism was a stale check: `_update_ghost()` skips its work when the cursor has not moved
+to a new cell, so after a placement the ghost stayed green over ground it had just taken, and a
+second click went straight through.
+
+`_place()` now refuses on its own, and the click handler reads validity from its return value
+rather than from cached state. **A guard in the shared function is a smaller diff than a guard
+in every caller, and it cannot be bypassed by a caller nobody thought of.**
+
+The test now exercises the same door a player uses. A check that calls a private helper the
+player never touches will keep passing while the game is broken.

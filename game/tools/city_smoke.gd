@@ -88,11 +88,26 @@ func _run() -> void:
 	_ok("a clear tile is still allowed",
 			_city._can_place(Vector2i(6, 6), "granary"))
 
+	# --- the bug that shipped: placing twice without moving the mouse -------
+	#
+	# `_update_ghost` skips its work when the cursor has not moved to a new cell,
+	# so after a placement the ghost stayed green over ground it had just taken
+	# and a second click put a second building straight through the first. The
+	# test missed it because it called `_place` directly and the guard was in the
+	# click handler. Now the guard is in `_place`, which is what every route uses.
+	var before: int = _city._built.size()
+	_ok("placing on top of the last building is refused",
+			not _city._place(cell, "granary"))
+	_check("and nothing was built", _city._built.size(), before)
+	_check("and nothing was charged", _city._resources["timber"], 60)
+
 	# --- off the edge -------------------------------------------------------
 	_ok("off the north edge is refused",
 			not _city._can_place(Vector2i(0, 22), "granary"))
 	_ok("straddling the edge is refused",
 			not _city._can_place(Vector2i(21, 0), "granary"))
+	_ok("_place refuses the edge too, not just _can_place",
+			not _city._place(Vector2i(21, 0), "granary"))
 
 	# --- affordability ------------------------------------------------------
 	_city._resources["timber"] = 5

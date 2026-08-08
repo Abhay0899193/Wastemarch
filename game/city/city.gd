@@ -168,7 +168,14 @@ func _tint(node: Node3D, colour: Color) -> void:
 			mesh.set_surface_override_material(i, mat)
 
 
-func _place(cell: Vector2i, id: String) -> void:
+func _place(cell: Vector2i, id: String) -> bool:
+	# **The guard lives here, not in the click handler.** Every route to placing a
+	# building goes through this function, so refusing here refuses everywhere —
+	# the click, a future keyboard shortcut, a tutorial script. Checking in the
+	# caller left exactly one hole and buildings went straight through it.
+	if not _can_place(cell, id):
+		return false
+
 	var def: Dictionary = _defs[id]
 	for res in (def["cost"] as Dictionary):
 		_resources[res] -= def["cost"][res]
@@ -177,7 +184,7 @@ func _place(cell: Vector2i, id: String) -> void:
 
 	var node := _spawn_model(id)
 	if node == null:
-		return
+		return false
 	node.position = _cell_to_world(cell, def["footprint"])
 	_placed.add_child(node)
 	_tint(node, Color(0.55, 0.62, 0.75, 0.75))       # under construction
@@ -189,6 +196,14 @@ func _place(cell: Vector2i, id: String) -> void:
 	})
 	_set_status("%s started — %.0f seconds" % [def["name"], def["build_s"]])
 	_refresh_hud()
+
+	# Force the ghost to re-evaluate. `_update_ghost` skips the work when the
+	# mouse has not moved to a different cell, and the tiles under it have just
+	# become occupied — so without this the ghost stays green over ground it can
+	# no longer use, and a second click drops a building straight through the
+	# first one.
+	_ghost_cell = Vector2i(9999, 9999)
+	return true
 
 
 # ---------------------------------------------------------------------------
@@ -374,11 +389,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_camera.size = minf(60.0, _camera.size * 1.1)
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			if _selected != "" and _ghost_valid:
-				_place(_ghost_cell, _selected)
-				if not _can_afford(_selected):
-					_select("")
-					_set_status("Not enough to build another")
+			if _selected != "":
+				var cell := _cell_under_mouse()
+				if _place(cell, _selected):
+					if not _can_afford(_selected):
+						_select("")
+						_set_status("Not enough to build another")
+				elif _occupied.has(cell):
+					_set_status("Something is already there")
+				elif not _can_afford(_selected):
+					_set_status("Not enough to build that")
+				else:
+					_set_status("Outside the buildable ground")
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			_select("")
 			_set_status("")
